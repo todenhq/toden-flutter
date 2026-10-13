@@ -39,8 +39,8 @@ class EnableBackgroundResult {
   const EnableBackgroundResult(this.started, this.reason);
 }
 
-class MyazaBackgroundPresence {
-  MyazaBackgroundPresence._();
+class BackgroundPresence {
+  BackgroundPresence._();
 
   static const MethodChannel _channel = MethodChannel('kyc_sdk_flutter/presence');
 

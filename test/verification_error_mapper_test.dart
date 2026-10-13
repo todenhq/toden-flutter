@@ -1,15 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
 import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/kyc_error_mapper.dart';
+import 'package:myaza_kyc_sdk_flutter/src/services/verification_error_mapper.dart';
 
 // Business (KYB) submissions fail with their own server error tokens. Before
 // they were mapped, every one of them fell through to a bare `unknown` (or, for
 // `pricing_not_configured`, read as a transient 5xx "try again in a moment"),
 // so the user saw nothing actionable.
 
-KYCError mapVerify(String error, {int statusCode = 422}) => mapToKycError(
-      KYCApiException(statusCode: statusCode, error: error),
+VerificationError mapVerify(String error, {int statusCode = 422}) => mapToVerificationError(
+      VerificationApiException(statusCode: statusCode, error: error),
       context: ErrorContext.verify,
     );
 
@@ -70,8 +70,8 @@ void main() {
 
   group('existing codes still map', () {
     test('402 insufficient credits carries its details', () {
-      final error = mapToKycError(
-        const KYCApiException(
+      final error = mapToVerificationError(
+        const VerificationApiException(
           statusCode: 402,
           error: 'insufficient_credits',
           details: {'required': 100, 'balance': 10, 'currency': 'NGN'},
@@ -89,8 +89,8 @@ void main() {
     });
 
     test('upload context falls back to upload_failed', () {
-      final error = mapToKycError(
-        const KYCApiException(statusCode: 400, error: 'bad_request'),
+      final error = mapToVerificationError(
+        const VerificationApiException(statusCode: 400, error: 'bad_request'),
         context: ErrorContext.upload,
       );
       expect(error.code, 'upload_failed');

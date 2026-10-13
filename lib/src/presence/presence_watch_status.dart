@@ -113,7 +113,7 @@ Future<PresenceWatchStatus?> fetchPresenceWatchStatus({
       receiveTimeout: const Duration(seconds: 10),
     ));
     final res = await dio.get<Map<String, dynamic>>(
-      '/api/kyc/address/presence/${Uri.encodeComponent(externalUserId)}',
+      '/api/v1/address/presence/${Uri.encodeComponent(externalUserId)}',
     );
     return parsePresenceWatchStatus(res.data);
   } catch (_) {

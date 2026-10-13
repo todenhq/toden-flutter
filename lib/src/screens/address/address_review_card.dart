@@ -73,7 +73,7 @@ class AddressReviewCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: colors.border),
-        borderRadius: BorderRadius.circular(MyazaRadius.md),
+        borderRadius: BorderRadius.circular(UiRadius.md),
       ),
       child: Stack(
         clipBehavior: Clip.none,
@@ -90,7 +90,7 @@ class AddressReviewCard extends StatelessWidget {
                     onTap: onEdit,
                     child: ClipRRect(
                       borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(MyazaRadius.md - 1),
+                        top: Radius.circular(UiRadius.md - 1),
                       ),
                       child: AddressReviewMap(
                         pin: pin!,

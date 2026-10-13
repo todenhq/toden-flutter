@@ -47,9 +47,9 @@ void main() {
     });
 
     test('is listed among the steps the sheet lets fill the viewport', () {
-      final shell = File('lib/src/widgets/myaza_kyc_widget.dart')
+      final shell = File('lib/src/widgets/verification_widget.dart')
           .readAsStringSync();
-      expect(shell, contains('step == KYCStep.addressCollection'));
+      expect(shell, contains('step == VerificationStep.addressCollection'));
     });
   });
 }

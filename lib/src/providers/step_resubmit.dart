@@ -16,7 +16,7 @@
 // keep all three in lockstep.
 
 import '../utils/step_log.dart' show kStepWireNames;
-import 'kyc_state.dart' show KYCStep;
+import 'verification_state.dart' show VerificationStep;
 
 /// A reviewer's instruction to redo part of the flow.
 class ResubmitConfig {
@@ -76,25 +76,25 @@ bool carriesIdEvidence(ResubmitConfig? resubmit) =>
 
 /// Steps that are always kept, whatever the reviewer ticked.
 ///
-/// [KYCStep.consent] because a flow with no first screen is disorienting, and it
-/// is where the redo is explained. [KYCStep.submitted] because a flow has to end
+/// [VerificationStep.consent] because a flow with no first screen is disorienting, and it
+/// is where the redo is explained. [VerificationStep.submitted] because a flow has to end
 /// somewhere. Neither is something the applicant is being asked to redo — they
 /// are the frame around what is.
-const Set<KYCStep> _always = {KYCStep.consent, KYCStep.submitted};
+const Set<VerificationStep> _always = {VerificationStep.consent, VerificationStep.submitted};
 
 /// One ID's evidence — a FAMILY, not alternatives a reviewer picks between.
 ///
 /// Which member a flow contains depends on the ID type: a number-only ID has
-/// [KYCStep.idInput], a document ID has [KYCStep.documentCapture] (and maybe
-/// [KYCStep.nfc]). At the moment the order is built nobody has chosen one yet,
+/// [VerificationStep.idInput], a document ID has [VerificationStep.documentCapture] (and maybe
+/// [VerificationStep.nfc]). At the moment the order is built nobody has chosen one yet,
 /// so the flow is shaped by a default. A plan naming `id-input` against an order
 /// still shaped for `document-capture` therefore matched NOTHING, fell through
 /// to the safety net, and silently ran the entire flow — which a reviewer sees
 /// as "I asked for the ID and it made them do everything again".
-const Set<KYCStep> _evidence = {
-  KYCStep.idInput,
-  KYCStep.documentCapture,
-  KYCStep.nfc,
+const Set<VerificationStep> _evidence = {
+  VerificationStep.idInput,
+  VerificationStep.documentCapture,
+  VerificationStep.nfc,
 };
 
 /// Steps a narrowed flow keeps regardless, because without them it cannot
@@ -109,8 +109,8 @@ const Set<KYCStep> _evidence = {
 /// proof of address, the questionnaire, contact checks — and never the identity
 /// itself. The alternative is a two-screen flow that collects a photo and then
 /// fails to submit.
-const Set<KYCStep> _individualRequired = {KYCStep.idType, ..._evidence};
-const Set<KYCStep> _businessRequired = {KYCStep.businessDetails};
+const Set<VerificationStep> _individualRequired = {VerificationStep.idType, ..._evidence};
+const Set<VerificationStep> _businessRequired = {VerificationStep.businessDetails};
 
 /// Narrow a full step order to the redo, preserving flow order.
 ///
@@ -122,7 +122,7 @@ const Set<KYCStep> _businessRequired = {KYCStep.businessDetails};
 /// or matches nothing we know. That last case matters: a server that learns a
 /// new step name before this SDK does must not produce a two-screen flow that
 /// collects nothing.
-List<KYCStep> applyResubmitSteps(List<KYCStep> order, ResubmitConfig? resubmit) {
+List<VerificationStep> applyResubmitSteps(List<VerificationStep> order, ResubmitConfig? resubmit) {
   final asked = resubmit?.steps;
   if (asked == null || asked.isEmpty) return order;
 
@@ -148,10 +148,10 @@ List<KYCStep> applyResubmitSteps(List<KYCStep> order, ResubmitConfig? resubmit) 
   // A kept ID needs no picker and, unless the reviewer asked for the evidence,
   // no evidence step either: the redo is only what was ticked. KYB never keeps
   // an ID (the server never sends one for a business redo), so it stays as is.
-  final isBusiness = order.contains(KYCStep.businessDetails);
+  final isBusiness = order.contains(VerificationStep.businessDetails);
   final required = isBusiness
       ? _businessRequired
-      : (keptIdType(resubmit) != null ? const <KYCStep>{} : _individualRequired);
+      : (keptIdType(resubmit) != null ? const <VerificationStep>{} : _individualRequired);
   for (final step in required) {
     final name = kStepWireNames[step];
     if (name != null) wanted.add(name);

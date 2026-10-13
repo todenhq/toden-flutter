@@ -7,10 +7,10 @@ import '../config/signature.dart';
 import '../config/supporting_documents.dart';
 import '../config/theme.dart';
 import '../config/upload_limits.dart';
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 import '../providers/step_order.dart';
 import '../services/api_service.dart';
-import '../widgets/myaza_button.dart';
+import '../widgets/ui_button.dart';
 import 'document_pick.dart';
 import 'supporting_document_card.dart';
 import '../i18n/text_scope.dart';
@@ -100,7 +100,7 @@ class _SupportingDocumentsScreenState
         ),
       );
       setState(() => _uploadingKey = null);
-    } on KYCApiException catch (e) {
+    } on VerificationApiException catch (e) {
       _fail(key, e.message ?? 'Upload failed. Please try again.');
       widget.onError?.call(e);
     } catch (_) {
@@ -134,7 +134,7 @@ class _SupportingDocumentsScreenState
         ),
       );
       setState(() => _uploadingKey = null);
-    } on KYCApiException catch (e) {
+    } on VerificationApiException catch (e) {
       _fail(key, e.error == 'signature_empty' ? empty : failed);
       widget.onError?.call(e);
     } catch (_) {
@@ -163,7 +163,7 @@ class _SupportingDocumentsScreenState
 
   @override
   Widget build(BuildContext context) {
-    final config = ref.watch(kycConfigProvider);
+    final config = ref.watch(verificationConfigProvider);
     final state = ref.watch(kYCNotifierProvider);
     final slots = resolveSupportingDocuments(
       config.supportingDocuments,
@@ -209,9 +209,9 @@ class _SupportingDocumentsScreenState
             onRemove: () => _remove(slot.key),
           ),
 
-        const SizedBox(height: MyazaSpacing.lg),
-        MyazaButton(
-          label: context.kycText(optionalOnly && uploads.isEmpty ? 'common.skip' : 'common.continue'),
+        const SizedBox(height: UiSpacing.lg),
+        UiButton(
+          label: context.verificationText(optionalOnly && uploads.isEmpty ? 'common.skip' : 'common.continue'),
           onPressed: requiredComplete && _uploadingKey == null
               ? () => ref.read(kYCNotifierProvider.notifier).nextStep()
               : null,

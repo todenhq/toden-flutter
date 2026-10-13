@@ -82,7 +82,7 @@ object PresenceGeofencer {
       .put("observations", sourcedGeofence(pending))
     var connection: HttpURLConnection? = null
     try {
-      connection = URL("${config.baseUrl}/api/kyc/address/observations")
+      connection = URL("${config.baseUrl}/api/v1/address/observations")
         .openConnection() as HttpURLConnection
       connection.requestMethod = "POST"
       connection.connectTimeout = 8000

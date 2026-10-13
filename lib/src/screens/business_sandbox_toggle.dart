@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/theme.dart';
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 import '../widgets/dashed_border.dart';
 
 // ─── Test-result pin (dev/sandbox only) ───────────────────────────────────────
@@ -41,7 +41,7 @@ class BusinessSandboxToggle extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Test result', style: text.label),
-            const SizedBox(height: MyazaSpacing.sm),
+            const SizedBox(height: UiSpacing.sm),
             Container(
               decoration: BoxDecoration(
                 border: Border.all(color: colors.border),
@@ -105,7 +105,7 @@ class BusinessSandboxToggle extends ConsumerWidget {
                 },
               ),
             ),
-            const SizedBox(height: MyazaSpacing.sm),
+            const SizedBox(height: UiSpacing.sm),
             Text(
               'Returned instead of calling the register.',
               style: text.bodySmall.copyWith(color: colors.textSecondary),

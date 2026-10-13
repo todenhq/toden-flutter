@@ -22,33 +22,33 @@ Future<MediaSource?> showMediaSourceSheet(
   String filesLabel = 'Choose a file',
   String filesSubtitle = 'PDF or image from Files',
 }) {
-  // Via showMyazaSheet so the sheet's own route carries the SDK palette —
+  // Via showUiSheet so the sheet's own route carries the SDK palette —
   // otherwise it renders light over a dark flow.
-  return showMyazaSheet<MediaSource>(
+  return showUiSheet<MediaSource>(
     context,
     builder: (sheetContext) => SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: MyazaSpacing.sm),
+        padding: const EdgeInsets.symmetric(vertical: UiSpacing.sm),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             _SourceTile(
-              icon: MyazaIcons.image,
+              icon: UiIcons.image,
               title: 'Photo Library',
               subtitle: 'Pick an existing photo',
               onTap: () =>
                   Navigator.of(sheetContext).pop(MediaSource.photoLibrary),
             ),
             _SourceTile(
-              icon: MyazaIcons.camera,
+              icon: UiIcons.camera,
               title: 'Take Photo',
               subtitle: 'Use the camera',
               onTap: () => Navigator.of(sheetContext).pop(MediaSource.camera),
             ),
             if (allowFiles)
               _SourceTile(
-                icon: MyazaIcons.fileText,
+                icon: UiIcons.fileText,
                 title: filesLabel,
                 subtitle: filesSubtitle,
                 onTap: () => Navigator.of(sheetContext).pop(MediaSource.files),
@@ -61,7 +61,7 @@ Future<MediaSource?> showMediaSourceSheet(
 }
 
 class _SourceTile extends StatelessWidget {
-  final MyazaIconData icon;
+  final UiIconData icon;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
@@ -82,8 +82,8 @@ class _SourceTile extends StatelessWidget {
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          horizontal: MyazaSpacing.md,
-          vertical: MyazaSpacing.md,
+          horizontal: UiSpacing.md,
+          vertical: UiSpacing.md,
         ),
         child: Row(
           children: [
@@ -93,11 +93,11 @@ class _SourceTile extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: colors.primary50,
-                borderRadius: BorderRadius.circular(MyazaRadius.sm),
+                borderRadius: BorderRadius.circular(UiRadius.sm),
               ),
-              child: MyazaIcon(icon, size: 20, color: colors.primary),
+              child: UiIcon(icon, size: 20, color: colors.primary),
             ),
-            const SizedBox(width: MyazaSpacing.md),
+            const SizedBox(width: UiSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

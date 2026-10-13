@@ -22,7 +22,7 @@ const _kAutocompleteDebounce = Duration(milliseconds: 300);
 const _uuid = Uuid();
 
 class AddressSearchBody extends StatefulWidget {
-  final KYCApiService api;
+  final VerificationApiService api;
 
   /// True when the platform serves Places suggestions.
   final bool autocomplete;
@@ -164,7 +164,7 @@ class _AddressSearchBodyState extends State<AddressSearchBody> {
             onSubmit: _search,
           ),
         if (widget.autocomplete && _suggestions != null) ...[
-          const SizedBox(height: MyazaSpacing.sm),
+          const SizedBox(height: UiSpacing.sm),
           AddressSearchResults(
             emptyMessage:
                 'No matches. Use your location or place the pin by hand.',
@@ -181,7 +181,7 @@ class _AddressSearchBodyState extends State<AddressSearchBody> {
           ),
         ],
         if (!widget.autocomplete && _hits != null) ...[
-          const SizedBox(height: MyazaSpacing.sm),
+          const SizedBox(height: UiSpacing.sm),
           AddressSearchResults(
             emptyMessage: 'No matches. Drag the map to place the pin instead.',
             rows: [

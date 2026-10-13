@@ -17,7 +17,7 @@ import 'package:myaza_kyc_sdk_flutter/src/screens/address/address_search_results
 /// rather than pretending to be a tall phone: anything below the fold is
 /// reached with `ensureVisible`, the way a person reaches it by scrolling.
 Widget _host(Widget child) => MaterialApp(
-      theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+      theme: ThemeData(extensions: const [UiColorScheme.light]),
       home: Scaffold(body: SingleChildScrollView(child: child)),
     );
 

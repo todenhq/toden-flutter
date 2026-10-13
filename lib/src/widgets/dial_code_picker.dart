@@ -6,7 +6,7 @@ import '../config/id_types.dart' show countryLabel;
 import '../config/theme.dart';
 import 'dial_code_row.dart';
 import 'dial_code_rows.dart';
-import 'myaza_input.dart';
+import 'ui_input.dart';
 import 'themed_sheet.dart';
 import 'icons/icons.dart';
 
@@ -15,7 +15,7 @@ import 'icons/icons.dart';
 // Country + international dialling code chooser for the phone field — and,
 // with the dial column off, THE country picker (the key-people "where their
 // ID was issued" field). One sheet for both, so the two feel identical.
-// Presented through [showMyazaSheet] so it carries the SDK palette — a plain
+// Presented through [showUiSheet] so it carries the SDK palette — a plain
 // showModalBottomSheet lands on a sibling route where the theme extension isn't
 // found, and renders light over a dark flow.
 //
@@ -37,7 +37,7 @@ Future<String?> showDialCodePicker(
   String selected, {
   String? pinned,
 }) =>
-    showMyazaSheet<String>(
+    showUiSheet<String>(
       context,
       isScrollControlled: true,
       builder: (_) => _DialCodeSheet(selected: selected, pinned: pinned),
@@ -56,7 +56,7 @@ Future<String?> showCountryPicker(
   String? pinned,
   bool grouped = false,
 }) =>
-    showMyazaSheet<String>(
+    showUiSheet<String>(
       context,
       isScrollControlled: true,
       builder: (_) => _DialCodeSheet(
@@ -140,17 +140,17 @@ class _DialCodeSheetState extends State<_DialCodeSheet> {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(
-                  MyazaSpacing.md,
-                  MyazaSpacing.md,
-                  MyazaSpacing.md,
-                  MyazaSpacing.sm,
+                  UiSpacing.md,
+                  UiSpacing.md,
+                  UiSpacing.md,
+                  UiSpacing.sm,
                 ),
                 // Deliberately NOT autofocused: springing the keyboard the
                 // instant the sheet opens hides half the list before the
                 // person has even seen it - search is one tap away.
-                child: MyazaInput(
+                child: UiInput(
                   hint: widget.showDial ? 'Search country or code' : 'Search country',
-                  prefix: MyazaIcon(MyazaIcons.search,
+                  prefix: UiIcon(UiIcons.search,
                       size: 18, color: colors.textSecondary),
                   onChanged: (v) => setState(() => _query = v),
                 ),
@@ -158,12 +158,12 @@ class _DialCodeSheetState extends State<_DialCodeSheet> {
               Flexible(
                 child: items.isEmpty
                     ? Padding(
-                        padding: const EdgeInsets.all(MyazaSpacing.lg),
+                        padding: const EdgeInsets.all(UiSpacing.lg),
                         child: Text('No countries match your search.',
                             style: text.bodyMedium),
                       )
                     : ListView.builder(
-                        padding: const EdgeInsets.only(bottom: MyazaSpacing.sm),
+                        padding: const EdgeInsets.only(bottom: UiSpacing.sm),
                         itemCount: items.length,
                         itemBuilder: (_, i) => switch (items[i]) {
                           DialCodeHeaderItem(:final region) =>

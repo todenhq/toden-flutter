@@ -7,7 +7,7 @@ import 'icons/icons.dart';
 // card (200-line rule).
 
 class KeyPeopleActionPill extends StatelessWidget {
-  final MyazaIconData icon;
+  final UiIconData icon;
   final String label;
   final VoidCallback onTap;
 
@@ -23,17 +23,17 @@ class KeyPeopleActionPill extends StatelessWidget {
     final colors = context.myazaColors;
     return Material(
       color: colors.primary100,
-      borderRadius: BorderRadius.circular(MyazaRadius.full),
+      borderRadius: BorderRadius.circular(UiRadius.full),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(MyazaRadius.full),
+        borderRadius: BorderRadius.circular(UiRadius.full),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: MyazaSpacing.sm + 2),
+          padding: const EdgeInsets.symmetric(vertical: UiSpacing.sm + 2),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              MyazaIcon(icon, size: 15, color: colors.primary),
-              const SizedBox(width: MyazaSpacing.xs + 2),
+              UiIcon(icon, size: 15, color: colors.primary),
+              const SizedBox(width: UiSpacing.xs + 2),
               Text(
                 label,
                 style: text.bodySmall.copyWith(

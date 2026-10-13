@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../config/business_application.dart';
 import '../config/theme.dart';
-import '../widgets/myaza_input.dart';
+import '../widgets/ui_input.dart';
 
 // ─── Who owns this company ───────────────────────────────────────────────────
 //
@@ -79,9 +79,9 @@ class _KeyPersonOwnersState extends State<KeyPersonOwners> {
     final name = companyName.trim().isEmpty ? 'this company' : companyName.trim();
 
     return Container(
-      padding: const EdgeInsets.all(MyazaSpacing.md),
+      padding: const EdgeInsets.all(UiSpacing.md),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(MyazaRadius.lg),
+        borderRadius: BorderRadius.circular(UiRadius.lg),
         border: Border.all(color: colors.border),
       ),
       child: Column(
@@ -95,16 +95,16 @@ class _KeyPersonOwnersState extends State<KeyPersonOwners> {
             style: text.bodySmall.copyWith(color: colors.textSecondary),
           ),
           for (var i = 0; i < owners.length; i++) ...[
-            const SizedBox(height: MyazaSpacing.sm),
-            MyazaInput(
+            const SizedBox(height: UiSpacing.sm),
+            UiInput(
               key: ValueKey('owner-name-$i'),
               hint: 'Full name',
               controller: _controllerFor('name-$i', owners[i].name),
               textCapitalization: TextCapitalization.words,
               onChanged: (v) => _patch(i, owners[i].copyWith(name: v)),
             ),
-            const SizedBox(height: MyazaSpacing.xs),
-            MyazaInput(
+            const SizedBox(height: UiSpacing.xs),
+            UiInput(
               key: ValueKey('owner-pct-$i'),
               hint: 'Their share, e.g. 75',
               controller: _controllerFor('pct-$i', owners[i].ownershipPct),
@@ -127,13 +127,13 @@ class _KeyPersonOwnersState extends State<KeyPersonOwners> {
                 ]),
                 child: Text(
                   'Remove',
-                  style: text.bodySmall.copyWith(color: MyazaColors.error),
+                  style: text.bodySmall.copyWith(color: UiColors.error),
                 ),
               ),
             ),
           ],
           if (owners.length < _maxOwners) ...[
-            const SizedBox(height: MyazaSpacing.sm),
+            const SizedBox(height: UiSpacing.sm),
             OutlinedButton(
               onPressed: () =>
                   _onChanged([...owners, const KeyPersonOwnerEntry()]),

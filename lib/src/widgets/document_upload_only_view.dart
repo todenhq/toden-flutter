@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
 import 'document_upload_target.dart';
-import 'myaza_alert.dart';
+import 'ui_alert.dart';
 import 'icons/icons.dart';
 import '../i18n/text_scope.dart';
 
@@ -57,7 +57,7 @@ class DocumentUploadOnlyView extends StatelessWidget {
       children: [
         if (header != null) ...[
           header!,
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
         ],
         Expanded(
           child: SingleChildScrollView(
@@ -66,19 +66,19 @@ class DocumentUploadOnlyView extends StatelessWidget {
             padding: EdgeInsets.only(
               bottom:
                   MediaQueryData.fromView(View.of(context)).viewPadding.bottom +
-                      MyazaSpacing.sm,
+                      UiSpacing.sm,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (error != null) ...[
-                  MyazaAlert(
-                    variant: MyazaAlertVariant.error,
+                  UiAlert(
+                    variant: UiAlertVariant.error,
                     title: "Couldn't use that photo",
                     message: error!,
                     onDismiss: onDismissError,
                   ),
-                  const SizedBox(height: MyazaSpacing.sm),
+                  const SizedBox(height: UiSpacing.sm),
                 ],
                 DocumentUploadTarget(
                   key: kDocumentUploadTargetKey,
@@ -89,10 +89,10 @@ class DocumentUploadOnlyView extends StatelessWidget {
                   hasError: error != null,
                   onPick: onPick,
                 ),
-                const SizedBox(height: MyazaSpacing.lg),
-                const _Tip(MyazaIcons.scan, 'uploadDocument.upload.tip1'),
-                const _Tip(MyazaIcons.sun, 'uploadDocument.upload.tip2'),
-                const _Tip(MyazaIcons.type, 'uploadDocument.upload.tip3'),
+                const SizedBox(height: UiSpacing.lg),
+                const _Tip(UiIcons.scan, 'uploadDocument.upload.tip1'),
+                const _Tip(UiIcons.sun, 'uploadDocument.upload.tip2'),
+                const _Tip(UiIcons.type, 'uploadDocument.upload.tip3'),
               ],
             ),
           ),
@@ -103,7 +103,7 @@ class DocumentUploadOnlyView extends StatelessWidget {
 }
 
 class _Tip extends StatelessWidget {
-  final MyazaIconData icon;
+  final UiIconData icon;
 
   /// Text key of the tip (a catalogue text).
   final String label;
@@ -114,14 +114,14 @@ class _Tip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
     return Padding(
-      padding: const EdgeInsets.only(bottom: MyazaSpacing.sm),
+      padding: const EdgeInsets.only(bottom: UiSpacing.sm),
       child: Row(
         children: [
-          MyazaIcon(icon, size: 16, color: colors.primary),
-          const SizedBox(width: MyazaSpacing.sm),
+          UiIcon(icon, size: 16, color: colors.primary),
+          const SizedBox(width: UiSpacing.sm),
           Expanded(
             child: Text(
-              context.kycText(label),
+              context.verificationText(label),
               style: context.myazaText.bodySmall
                   .copyWith(color: colors.textSecondary),
             ),

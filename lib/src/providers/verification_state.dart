@@ -2,7 +2,7 @@ import '../config/address_collection.dart';
 import '../config/business.dart';
 import '../config/business_application.dart';
 import '../config/id_types.dart';
-import '../config/kyc_config.dart';
+import '../config/verification_config.dart';
 import '../config/selfie_upload_wait.dart';
 import '../config/resumed_application.dart';
 import '../config/supporting_documents.dart';
@@ -23,7 +23,7 @@ import '../config/multi_id.dart';
 // phone OTP) after consent, country-select before id-type, and proof-of-address
 // / questionnaire after liveness.
 
-enum KYCStep {
+enum VerificationStep {
   consent,
   contactEmail,
   contactPhone,
@@ -55,9 +55,9 @@ enum KYCStep {
   submitted,
 }
 
-// ─── Media IDs (returned by /api/kyc/upload during capture) ──────────────────
+// ─── Media IDs (returned by /api/v1/upload during capture) ──────────────────
 
-class KYCMediaIds {
+class VerificationMediaIds {
   final String? documentFront;
   final String? documentBack;
   final String? selfie;
@@ -67,7 +67,7 @@ class KYCMediaIds {
   final String? proofOfAddress;
   final String? addressPhoto;
 
-  const KYCMediaIds({
+  const VerificationMediaIds({
     this.documentFront,
     this.documentBack,
     this.selfie,
@@ -78,7 +78,7 @@ class KYCMediaIds {
     this.addressPhoto,
   });
 
-  KYCMediaIds copyWith({
+  VerificationMediaIds copyWith({
     String? documentFront,
     String? documentBack,
     String? selfie,
@@ -88,13 +88,13 @@ class KYCMediaIds {
     String? proofOfAddress,
     String? addressPhoto,
     // Removing an upload has to NULL the id, which `?? this` can't express —
-    // same explicit-flag pattern as KYCState.clearSelectedIdType.
+    // same explicit-flag pattern as VerificationState.clearSelectedIdType.
     bool clearProofOfAddress = false,
     bool clearAddressPhoto = false,
-    // Retaking the selfie drops both its uploads (see KYCNotifier.clearSelfie).
+    // Retaking the selfie drops both its uploads (see VerificationNotifier.clearSelfie).
     bool clearSelfie = false,
   }) =>
-      KYCMediaIds(
+      VerificationMediaIds(
         documentFront: documentFront ?? this.documentFront,
         documentBack: documentBack ?? this.documentBack,
         selfie: clearSelfie ? null : (selfie ?? this.selfie),
@@ -118,7 +118,7 @@ class KYCMediaIds {
       addressPhoto != null;
 }
 
-// ─── Server-driven SDK config (fetched from /api/kyc/config) ─────────────────
+// ─── Server-driven SDK config (fetched from /api/v1/config) ─────────────────
 
 enum ServerConfigStatus { loading, ready, error }
 
@@ -136,7 +136,7 @@ class ServerSdkConfig {
   /// error screen instead of silently falling back to the prop ID-type list.
   final bool fatal;
 
-  /// Org branding (logo, name, color) returned by /api/kyc/config. Consumed
+  /// Org branding (logo, name, color) returned by /api/v1/config. Consumed
   /// when the consumer sets `appearance.logo = 'default'`.
   final SdkConfigBranding? branding;
 
@@ -196,15 +196,15 @@ class ServerSdkConfig {
   }
 }
 
-// ─── Submission result (returned by /api/kyc/verify — async) ─────────────────
+// ─── Submission result (returned by /api/v1/verify — async) ─────────────────
 
-class KYCSubmissionResult {
+class VerificationSubmissionResult {
   final String verificationId;
   /// Always 'pending' immediately after submission. Final result arrives via
   /// webhook to the org's backend.
   final String status;
 
-  const KYCSubmissionResult({
+  const VerificationSubmissionResult({
     required this.verificationId,
     required this.status,
   });
@@ -212,8 +212,8 @@ class KYCSubmissionResult {
 
 // ─── KYC state ────────────────────────────────────────────────────────────────
 
-class KYCState {
-  final KYCStep currentStep;
+class VerificationState {
+  final VerificationStep currentStep;
 
   /// The attempt SESSION this run is recorded under (`/session/start`). Null
   /// when minting failed — verifying is never conditional on it. Rides the
@@ -264,7 +264,7 @@ class KYCState {
   final int multiIdSlotIndex;
   final List<MultiIdSlot> multiIdSlots;
   final UserData? userData;
-  final KYCMediaIds mediaIds;
+  final VerificationMediaIds mediaIds;
 
   /// The captured selfie's base64 preview, kept CENTRALLY (the liveness
   /// screen's own state and the autoDispose liveness provider die on step
@@ -278,7 +278,7 @@ class KYCState {
   /// so the submitted screen waits on THIS rather than on the screen's own
   /// state. See config/selfie_upload_wait.dart.
   final SelfieUploadState selfieUpload;
-  final KYCSubmissionResult? submissionResult;
+  final VerificationSubmissionResult? submissionResult;
 
   /// Per-person verification links the server minted for full-KYC key people
   /// (KYB submissions). The success screen renders them with copy buttons so
@@ -289,11 +289,11 @@ class KYCState {
   final String documentScanPhase; // 'front' | 'back' | 'complete'
 
   /// Review phase communicated by DocumentCaptureScreen so the parent
-  /// (_KycFlowWidget) can update the step header title dynamically.
+  /// (_VerificationFlowWidget) can update the step header title dynamically.
   /// Values: 'camera' | 'front_preview' | 'camera_back' | 'review'
   final String docReviewPhase;
 
-  /// What the contact step is currently doing, so _KycFlowWidget can caption it
+  /// What the contact step is currently doing, so _VerificationFlowWidget can caption it
   /// — the header is rendered by the shell and cannot see the screen's state.
   /// Empty means "not on a contact step". Mirrors docReviewPhase.
   /// Channel: '' | 'email' | 'phone'. Destination is set only once a code is
@@ -309,7 +309,7 @@ class KYCState {
   final bool immersiveCapture;
 
   /// Server-driven config: which IDs the org may verify and which SDK
-  /// features apply per ID. Fetched once from /api/kyc/config on mount.
+  /// features apply per ID. Fetched once from /api/v1/config on mount.
   final ServerSdkConfig serverConfig;
 
   /// Answers collected by the questionnaire step (empty until answered). Money
@@ -443,8 +443,8 @@ class KYCState {
   /// KYC, one screening, no duplicate invite.
   final int? applicantKeyPersonIndex;
 
-  const KYCState({
-    this.currentStep = KYCStep.consent,
+  const VerificationState({
+    this.currentStep = VerificationStep.consent,
     this.sessionId,
     this.sessionUrl,
     this.sessionCancelledMessage,
@@ -457,7 +457,7 @@ class KYCState {
     this.multiIdSlotIndex = 0,
     this.multiIdSlots = const [],
     this.userData,
-    this.mediaIds = const KYCMediaIds(),
+    this.mediaIds = const VerificationMediaIds(),
     this.selfieImage,
     this.selfieUpload = kIdleSelfieUpload,
     this.submissionResult,
@@ -511,8 +511,8 @@ class KYCState {
     this.applicantKeyPersonIndex,
   });
 
-  KYCState copyWith({
-    KYCStep? currentStep,
+  VerificationState copyWith({
+    VerificationStep? currentStep,
     String? sessionId,
     String? sessionUrl,
     String? sessionCancelledMessage,
@@ -525,8 +525,8 @@ class KYCState {
     int? multiIdSlotIndex,
     List<MultiIdSlot>? multiIdSlots,
     UserData? userData,
-    KYCMediaIds? mediaIds,
-    KYCSubmissionResult? submissionResult,
+    VerificationMediaIds? mediaIds,
+    VerificationSubmissionResult? submissionResult,
     List<KeyPersonInvite>? keyPeopleInvites,
     String? error,
     bool? isLoading,
@@ -597,7 +597,7 @@ class KYCState {
     bool clearSelfieImage = false,
     List<String>? expiredContact,
   }) =>
-      KYCState(
+      VerificationState(
         currentStep: currentStep ?? this.currentStep,
         sessionId: sessionId ?? this.sessionId,
       sessionUrl: sessionUrl ?? this.sessionUrl,
@@ -681,7 +681,7 @@ class KYCState {
             : (applicantKeyPersonIndex ?? this.applicantKeyPersonIndex),
       );
 
-  KYCState clearError() => copyWith(error: null);
+  VerificationState clearError() => copyWith(error: null);
 }
 
 /// The registry check run when the applicant confirms their company.

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/theme.dart';
-import '../../providers/kyc_provider.dart';
+import '../../providers/verification_provider.dart';
 import '../../widgets/dashed_border.dart';
 import '../../widgets/icons/icons.dart';
 
@@ -18,7 +18,7 @@ const _options = [
   (
     key: 'address_attested',
     label: 'Attested',
-    icon: MyazaIcons.shieldCheck,
+    icon: UiIcons.shieldCheck,
     pill: Color(0xFF059669),
     tintLight: Color(0xFF059669),
     tintDark: Color(0xFF34D399),
@@ -26,7 +26,7 @@ const _options = [
   (
     key: 'address_corroborated',
     label: 'Corroborated',
-    icon: MyazaIcons.badgeCheck,
+    icon: UiIcons.badgeCheck,
     pill: Color(0xFF0284C7),
     tintLight: Color(0xFF0284C7),
     tintDark: Color(0xFF38BDF8),
@@ -34,7 +34,7 @@ const _options = [
   (
     key: 'address_collected',
     label: 'Collected',
-    icon: MyazaIcons.circleDashed,
+    icon: UiIcons.circleDashed,
     pill: Color(0xFF475569),
     tintLight: null,
     tintDark: null,
@@ -42,7 +42,7 @@ const _options = [
   (
     key: 'address_mismatch',
     label: 'Mismatch',
-    icon: MyazaIcons.circleX,
+    icon: UiIcons.circleX,
     pill: Color(0xFFDC2626),
     tintLight: Color(0xFFDC2626),
     tintDark: Color(0xFFF87171),
@@ -78,7 +78,7 @@ class AddressSandboxTabs extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Test result', style: text.label),
-            const SizedBox(height: MyazaSpacing.sm),
+            const SizedBox(height: UiSpacing.sm),
             Container(
               decoration: BoxDecoration(
                 border: Border.all(color: colors.border),
@@ -123,7 +123,7 @@ class AddressSandboxTabs extends ConsumerWidget {
                                       .read(kYCNotifierProvider.notifier)
                                       .setAddressSandboxOutcome(option.key),
                                   child: Center(
-                                    child: MyazaIcon(
+                                    child: UiIcon(
                                       option.icon,
                                       size: 18,
                                       color: i == index
@@ -144,7 +144,7 @@ class AddressSandboxTabs extends ConsumerWidget {
                 },
               ),
             ),
-            const SizedBox(height: MyazaSpacing.sm),
+            const SizedBox(height: UiSpacing.sm),
             Text(
               '${active.label} is returned instead of judging the pin.',
               style: text.bodySmall.copyWith(color: colors.textSecondary),

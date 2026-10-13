@@ -11,7 +11,7 @@ import '../i18n/text_scope.dart';
 //
 // The SDK injects its palette as a ThemeExtension around the flow's CONTENT,
 // which lives inside a modal route. A sheet opened from there is a SIBLING
-// route, not a descendant — so `Theme.of` there has no MyazaColorScheme and
+// route, not a descendant — so `Theme.of` there has no UiColorScheme and
 // `context.myazaColors` silently falls back to the LIGHT scheme (a white sheet
 // over a dark flow). Passing the current ThemeData explicitly into the sheet
 // re-establishes the extension no matter where the route lands.
@@ -25,28 +25,28 @@ import '../i18n/text_scope.dart';
 // gap is deliberately small so the float reads as intent rather than margin.
 
 /// The tight gap that detaches the floating card from the screen edges.
-/// Public so one-off sheets that cannot route through [showMyazaSheet]
+/// Public so one-off sheets that cannot route through [showUiSheet]
 /// (the Android NFC reading sheet) still share the exact geometry.
-const double kMyazaSheetInset = 8;
+const double kUiSheetInset = 8;
 
 /// The square-cornered-screen fallback for [myazaSheetRadius].
-const double kMyazaSheetRadius = 38;
+const double kUiSheetRadius = 38;
 
 /// The grab handle, so its position can be asserted rather than eyeballed.
-const Key kMyazaSheetHandleKey = Key('myaza-sheet-handle');
+const Key kUiSheetHandleKey = Key('myaza-sheet-handle');
 
 /// The float's corner radius is PRESENTATION GRAMMAR, not branding — and it is
 /// computed the way Apple computes nested corners: CONCENTRIC with the
 /// display, i.e. the device's own corner radius minus the gap, so the sheet's
 /// curve runs parallel to the phone's. Square-cornered screens have no curve
 /// to be concentric with, so they keep the share-sheet look instead. Never the
-/// brand-scaled [MyazaRadius] tokens: an org whose buttons are 4px square
+/// brand-scaled [UiRadius] tokens: an org whose buttons are 4px square
 /// should not get a squared-off bottom sheet. Mirrors the RN FloatingSheet.
 double myazaSheetRadius(BuildContext context) {
   final screen = displayCornerRadius(context);
   return screen > 0
-      ? math.max(screen - kMyazaSheetInset, 16.0)
-      : kMyazaSheetRadius;
+      ? math.max(screen - kUiSheetInset, 16.0)
+      : kUiSheetRadius;
 }
 
 /// The grab handle and close button every sheet wears.
@@ -62,8 +62,8 @@ double myazaSheetRadius(BuildContext context) {
 /// The header is also the drag surface, which comes free here for the reason it
 /// does not in RN: it is the one part of the panel that never scrolls, so a
 /// downward swipe on it reaches the sheet instead of the list.
-class _MyazaSheetHeader extends StatelessWidget {
-  const _MyazaSheetHeader();
+class _UiSheetHeader extends StatelessWidget {
+  const _UiSheetHeader();
 
   @override
   Widget build(BuildContext context) {
@@ -89,12 +89,12 @@ class _MyazaSheetHeader extends StatelessWidget {
             child: Container(
               // Keyed so a test can measure where it sits. The layout that put
               // it halfway down the panel read as correct in review.
-              key: kMyazaSheetHandleKey,
+              key: kUiSheetHandleKey,
               width: 36,
               height: 5,
               decoration: BoxDecoration(
                 color: myazaHandleColor(colors, light: colors.border),
-                borderRadius: BorderRadius.circular(MyazaRadius.full),
+                borderRadius: BorderRadius.circular(UiRadius.full),
               ),
             ),
           ),
@@ -117,7 +117,7 @@ class _MyazaSheetHeader extends StatelessWidget {
                 // draws; shrinking it to tidy the layout would not be.
                 constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
                 icon:
-                    MyazaIcon(MyazaIcons.x, size: 18, color: colors.textSecondary),
+                    UiIcon(UiIcons.x, size: 18, color: colors.textSecondary),
               ),
             ),
           ),
@@ -127,7 +127,7 @@ class _MyazaSheetHeader extends StatelessWidget {
   }
 }
 
-Future<T?> showMyazaSheet<T>(
+Future<T?> showUiSheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
   bool isScrollControlled = false,
@@ -144,7 +144,7 @@ Future<T?> showMyazaSheet<T>(
   // detaches the card at the sides and bottom detaches it at the top. The
   // flow's scope rides along so the sheet reads the flow's texts.
   final media = MediaQuery.of(context);
-  final maxHeight = media.size.height - media.padding.top - kMyazaSheetInset;
+  final maxHeight = media.size.height - media.padding.top - kUiSheetInset;
   final scope = flowScopeOf(context);
 
   return showModalBottomSheet<T>(
@@ -161,10 +161,10 @@ Future<T?> showMyazaSheet<T>(
       // edge the way the system does it.
       return Padding(
         padding: const EdgeInsets.fromLTRB(
-          kMyazaSheetInset,
+          kUiSheetInset,
           0,
-          kMyazaSheetInset,
-          kMyazaSheetInset,
+          kUiSheetInset,
+          kUiSheetInset,
         ),
         child: Material(
           color: colors.background,
@@ -189,7 +189,7 @@ Future<T?> showMyazaSheet<T>(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const _MyazaSheetHeader(),
+                        const _UiSheetHeader(),
                         Flexible(child: Builder(builder: builder)),
                       ],
                     )
@@ -205,7 +205,7 @@ Future<T?> showMyazaSheet<T>(
 /// Date picker carrying the SDK palette. `showDatePicker` builds a Material
 /// dialog off `ColorScheme`, not our extension, so without this it renders in
 /// the host app's colours — a light dialog over a dark flow.
-Future<DateTime?> showMyazaDatePicker(
+Future<DateTime?> showUiDatePicker(
   BuildContext context, {
   required DateTime initialDate,
   required DateTime firstDate,

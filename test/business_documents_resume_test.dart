@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/business_application.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/submit_recovery.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_state.dart';
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
 import 'package:myaza_kyc_sdk_flutter/src/providers/session_progress.dart';
 import 'package:myaza_kyc_sdk_flutter/src/providers/session_restore.dart';
 
@@ -13,8 +13,8 @@ import 'package:myaza_kyc_sdk_flutter/src/providers/session_restore.dart';
 void main() {
   group('company documents survive a resume', () {
     test('are saved with the application and restored as uploaded', () {
-      const before = KYCState(
-        currentStep: KYCStep.idType,
+      const before = VerificationState(
+        currentStep: VerificationStep.idType,
         businessDocuments: [
           BusinessDocumentUpload(
             type: 'incorporation_certificate',
@@ -31,7 +31,7 @@ void main() {
         {'type': 'incorporation_certificate', 'mediaId': 'med_cert', 'fileName': 'cert.pdf', 'isPdf': true},
       ]);
 
-      final after = restoredState(const KYCState(), progress);
+      final after = restoredState(const VerificationState(), progress);
       expect(after.businessDocuments, hasLength(1));
       final doc = after.businessDocuments.single;
       expect(doc.mediaId, 'med_cert');
@@ -42,7 +42,7 @@ void main() {
     });
 
     test('an entry without an upload is not restored', () {
-      final after = restoredState(const KYCState(), {
+      final after = restoredState(const VerificationState(), {
         'step': 'id-type',
         'data': {
           'businessApplication': {
@@ -59,27 +59,27 @@ void main() {
 
   group('Go back after a refused submission', () {
     const order = [
-      KYCStep.consent,
-      KYCStep.businessDetails,
-      KYCStep.businessDocuments,
-      KYCStep.businessKeyPeople,
-      KYCStep.applicantRole,
-      KYCStep.idType,
-      KYCStep.liveness,
-      KYCStep.submitted,
+      VerificationStep.consent,
+      VerificationStep.businessDetails,
+      VerificationStep.businessDocuments,
+      VerificationStep.businessKeyPeople,
+      VerificationStep.applicantRole,
+      VerificationStep.idType,
+      VerificationStep.liveness,
+      VerificationStep.submitted,
     ];
 
     test('lands on the step that owns the refusal', () {
-      expect(recoveryStepFor('missing_documents', order), KYCStep.businessDocuments);
-      expect(recoveryStepFor('missing_company_info', order), KYCStep.businessDetails);
-      expect(recoveryStepFor('key_people_required', order), KYCStep.businessKeyPeople);
-      expect(recoveryStepFor('invalid_media', order, mediaKey: 'selfie'), KYCStep.liveness);
+      expect(recoveryStepFor('missing_documents', order), VerificationStep.businessDocuments);
+      expect(recoveryStepFor('missing_company_info', order), VerificationStep.businessDetails);
+      expect(recoveryStepFor('key_people_required', order), VerificationStep.businessKeyPeople);
+      expect(recoveryStepFor('invalid_media', order, mediaKey: 'selfie'), VerificationStep.liveness);
     });
 
     test('falls back to the last step before submission', () {
-      expect(recoveryStepFor('something_else', order), KYCStep.liveness);
+      expect(recoveryStepFor('something_else', order), VerificationStep.liveness);
       // A named step this flow does not have.
-      expect(recoveryStepFor('questionnaire_invalid', order), KYCStep.liveness);
+      expect(recoveryStepFor('questionnaire_invalid', order), VerificationStep.liveness);
     });
 
     test('offers nothing where going back cannot help', () {

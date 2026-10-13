@@ -143,7 +143,7 @@ final class PresenceMonitor: NSObject, CLLocationManagerDelegate {
         "samples": entry["samples"] as? Int ?? 1,
       ]
     }
-    guard let url = URL(string: "\(config.baseUrl)/api/kyc/address/observations"),
+    guard let url = URL(string: "\(config.baseUrl)/api/v1/address/observations"),
           let body = try? JSONSerialization.data(withJSONObject: [
             "externalUserId": config.externalUserId,
             "observations": observations,

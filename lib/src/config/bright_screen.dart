@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'appearance_scheme.dart';
-import 'kyc_config.dart';
+import 'verification_config.dart';
 import 'theme.dart';
 
 // ─── Bright screen during liveness ────────────────────────────────────────────
@@ -82,16 +82,16 @@ Duration brightScreenTransition({required bool disableAnimations}) =>
 
 /// The palette the lit screen paints with: the organisation's BASE (light)
 /// appearance over the light scheme. Dark overrides never apply here.
-MyazaColorScheme brightScreenScheme(MyazaKYCAppearance? appearance) =>
-    applyAppearance(MyazaColorScheme.light, appearance);
+UiColorScheme brightScreenScheme(VerificationAppearance? appearance) =>
+    applyAppearance(UiColorScheme.light, appearance);
 
 /// The theme a frame paints with, [t] of the way from the person's own theme
 /// to the lit one (0 = theirs, 1 = fully lit). Colours blend; the dark/light
 /// flag (status-bar icons, the header's tint rule) flips at the midpoint.
-({MyazaColorScheme scheme, bool isDark, Color headerSurface}) blendBrightScreen({
-  required MyazaColorScheme userScheme,
+({UiColorScheme scheme, bool isDark, Color headerSurface}) blendBrightScreen({
+  required UiColorScheme userScheme,
   required bool userIsDark,
-  required MyazaColorScheme litScheme,
+  required UiColorScheme litScheme,
   required double t,
 }) {
   final clamped = t.clamp(0.0, 1.0);
@@ -99,13 +99,13 @@ MyazaColorScheme brightScreenScheme(MyazaKYCAppearance? appearance) =>
     return (
       scheme: userScheme,
       isDark: userIsDark,
-      headerSurface: kycHeaderSurface(userScheme, isDark: userIsDark),
+      headerSurface: verificationHeaderSurface(userScheme, isDark: userIsDark),
     );
   }
   final scheme = userScheme.lerp(litScheme, clamped);
   final header = Color.lerp(
-    kycHeaderSurface(userScheme, isDark: userIsDark),
-    kycHeaderSurface(litScheme, isDark: false),
+    verificationHeaderSurface(userScheme, isDark: userIsDark),
+    verificationHeaderSurface(litScheme, isDark: false),
     clamped,
   )!;
   return (scheme: scheme, isDark: userIsDark && clamped < 0.5, headerSurface: header);

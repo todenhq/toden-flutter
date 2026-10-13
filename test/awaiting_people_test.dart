@@ -8,7 +8,7 @@ import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
 // sat beside a list still loading, and an applicant could close the sheet
 // without ever seeing the people they have to chase (2026-09-29).
 
-class _Api extends KYCApiService {
+class _Api extends VerificationApiService {
   _Api(this.answers) : super(baseUrl: 'http://stub', apiKey: 'pk_test_stub');
 
   final List<SessionSummaryResponse> answers;

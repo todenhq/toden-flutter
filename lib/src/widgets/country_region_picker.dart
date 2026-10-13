@@ -4,7 +4,7 @@ import '../config/id_types.dart' show countryLabel;
 import '../config/regions.dart';
 import '../config/theme.dart';
 import 'country_option_tile.dart';
-import 'myaza_input.dart';
+import 'ui_input.dart';
 import 'icons/icons.dart';
 
 // ─── Country region picker ────────────────────────────────────────────────────
@@ -16,7 +16,7 @@ import 'icons/icons.dart';
 //
 // LAYOUT: the search box is pinned and the list takes ALL remaining height via
 // [Expanded] — the web SDK's `flex-1 min-h-0`. That needs a bounded height,
-// which the step body supplies through `KycBottomSheet.fillsViewport`. Don't
+// which the step body supplies through `VerificationBottomSheet.fillsViewport`. Don't
 // render this inside a scroll view: the list would get an unbounded height and
 // the Expanded would throw.
 
@@ -75,12 +75,12 @@ class _CountryRegionPickerState extends State<CountryRegionPicker> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        MyazaInput(
+        UiInput(
           hint: 'Search countries…',
-          prefix: MyazaIcon(MyazaIcons.search, size: 18, color: colors.textSecondary),
+          prefix: UiIcon(UiIcons.search, size: 18, color: colors.textSecondary),
           onChanged: (v) => setState(() => _query = v),
         ),
-        const SizedBox(height: MyazaSpacing.md),
+        const SizedBox(height: UiSpacing.md),
         Expanded(
           child: empty
               ? Center(
@@ -91,12 +91,12 @@ class _CountryRegionPickerState extends State<CountryRegionPicker> {
                   // The list runs to the PoweredBy footer, which owns the
                   // home-indicator clearance for the whole sheet — so only the
                   // visual gap is needed here.
-                  padding: const EdgeInsets.only(bottom: MyazaSpacing.md),
+                  padding: const EdgeInsets.only(bottom: UiSpacing.md),
                   children: [
                     if (pinned != null)
                       Padding(
                         padding:
-                            const EdgeInsets.only(bottom: MyazaSpacing.sm),
+                            const EdgeInsets.only(bottom: UiSpacing.sm),
                         child: CountryOptionTile(
                           code: pinned,
                           label: countryLabel(pinned),
@@ -109,10 +109,10 @@ class _CountryRegionPickerState extends State<CountryRegionPicker> {
                     for (final g in groups) ...[
                       Padding(
                         padding: const EdgeInsets.fromLTRB(
-                          MyazaSpacing.xs,
-                          MyazaSpacing.sm,
-                          MyazaSpacing.xs,
-                          MyazaSpacing.sm,
+                          UiSpacing.xs,
+                          UiSpacing.sm,
+                          UiSpacing.xs,
+                          UiSpacing.sm,
                         ),
                         child: Text(
                           g.region.toUpperCase(),
@@ -126,7 +126,7 @@ class _CountryRegionPickerState extends State<CountryRegionPicker> {
                       for (final c in g.countries)
                         Padding(
                           padding:
-                              const EdgeInsets.only(bottom: MyazaSpacing.sm),
+                              const EdgeInsets.only(bottom: UiSpacing.sm),
                           child: CountryOptionTile(
                             code: c.code,
                             label: c.name,

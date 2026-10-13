@@ -7,7 +7,7 @@
 /// A PORT of the web SDK's `lib/multi-id.ts`, kept identical in its logic: the
 /// server validates the pick sequence the client produced, so a client that
 /// computes options differently produces submissions the server rejects. If a
-/// rule changes here it changes in kyc-sdk-react, kyc-sdk-react-native,
+/// rule changes here it changes in sdk-react, sdk-react-native,
 /// kyc-core/src/lib/multi-id.ts and the dashboard's required-ids-model.ts in
 /// the same commit.
 library;

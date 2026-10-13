@@ -2,11 +2,11 @@ import 'api_service.dart';
 
 // ─── Contact-verification error copy ──────────────────────────────────────────
 //
-// Maps the server's `error` codes (KYCApiException.error) for the OTP send /
+// Maps the server's `error` codes (VerificationApiException.error) for the OTP send /
 // check endpoints to user-facing copy. Mirrors the web SDK's contact-errors.
 
 String describeSendError(Object err) {
-  final code = err is KYCApiException ? err.error : null;
+  final code = err is VerificationApiException ? err.error : null;
   return switch (code) {
     'invalid_destination' =>
       'That does not look valid. Please check and try again.',
@@ -20,7 +20,7 @@ String describeSendError(Object err) {
 }
 
 String describeCheckError(Object err) {
-  final code = err is KYCApiException ? err.error : null;
+  final code = err is VerificationApiException ? err.error : null;
   return switch (code) {
     'invalid_code' => 'That code is not correct. Please try again.',
     'challenge_expired' => 'This code has expired. Request a new one.',

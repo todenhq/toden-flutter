@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   final provider =
-      File('lib/src/providers/kyc_provider.dart').readAsStringSync();
+      File('lib/src/providers/verification_provider.dart').readAsStringSync();
 
   test('the submission fingerprint goes through the gate', () {
     expect(provider, contains('await collectFingerprint('));

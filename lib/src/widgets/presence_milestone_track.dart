@@ -33,7 +33,7 @@ class PresenceMilestoneTrack extends StatelessWidget {
     final colors = context.myazaColors;
     final text = context.myazaText;
     return Padding(
-      padding: const EdgeInsets.all(MyazaSpacing.md),
+      padding: const EdgeInsets.all(UiSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -64,7 +64,7 @@ class PresenceMilestoneTrack extends StatelessWidget {
                     child: Padding(
                       padding: EdgeInsets.only(
                         bottom:
-                            i < milestones.length - 1 ? MyazaSpacing.md : 0,
+                            i < milestones.length - 1 ? UiSpacing.md : 0,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,7 +151,7 @@ class PresenceMedallion extends StatelessWidget {
                       ]
                     : null,
               ),
-              child: MyazaIcon(milestone.icon,
+              child: UiIcon(milestone.icon,
                   size: size * 0.45,
                   color: active ? colors.onPrimary : colors.primary),
             ),

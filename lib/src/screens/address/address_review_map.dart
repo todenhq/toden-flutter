@@ -120,7 +120,7 @@ class _AddressReviewMapState extends State<AddressReviewMap> {
   /// picture is refused the SAME tree is kept, marker withheld: the live map
   /// the errorBuilder mounted stays where it is rather than being rebuilt in
   /// a new position (the framed one is a WebView, and a remount reloads it).
-  Widget _picture(MyazaColorScheme colors, {required bool marker}) {
+  Widget _picture(UiColorScheme colors, {required bool marker}) {
     return Stack(
       alignment: Alignment.center,
       children: [

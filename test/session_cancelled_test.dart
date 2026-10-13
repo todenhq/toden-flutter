@@ -3,9 +3,9 @@ import 'package:myaza_kyc_sdk_flutter/src/config/result_copy.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/result_wait.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/session_cancelled.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/submit_recovery.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_state.dart';
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
 import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/kyc_error_mapper.dart';
+import 'package:myaza_kyc_sdk_flutter/src/services/verification_error_mapper.dart';
 
 // An organisation can cancel a verification session midway. The server then
 // answers 409 { error: 'session_cancelled', message } from /session/start,
@@ -15,8 +15,8 @@ import 'package:myaza_kyc_sdk_flutter/src/services/kyc_error_mapper.dart';
 const _serverMessage =
     'This verification was cancelled. Contact the organisation that sent it if you think this is a mistake.';
 
-KYCApiException _cancelled([String? message = _serverMessage]) =>
-    KYCApiException(statusCode: 409, error: kSessionCancelledCode, message: message);
+VerificationApiException _cancelled([String? message = _serverMessage]) =>
+    VerificationApiException(statusCode: 409, error: kSessionCancelledCode, message: message);
 
 StatusResponse _read(String status, {String? reason}) => StatusResponse(
       verificationId: 'ver_1',
@@ -37,7 +37,7 @@ void main() {
     });
 
     test('ignores every other failure, including other 409s', () {
-      const used = KYCApiException(statusCode: 409, error: 'handoff_session_used');
+      const used = VerificationApiException(statusCode: 409, error: 'handoff_session_used');
       expect(sessionCancelledMessageFor(used), isNull);
       expect(sessionCancelledMessageFor(Exception('offline')), isNull);
       expect(sessionCancelledMessageFor(null), isNull);
@@ -50,8 +50,8 @@ void main() {
     });
 
     test('keeps every other start failure best-effort', () {
-      expect(sessionStartStopsFlow(const KYCApiException(statusCode: 500, error: 'internal_error')), isFalse);
-      expect(sessionStartStopsFlow(const KYCApiException(statusCode: 409, error: 'session_unavailable')), isFalse);
+      expect(sessionStartStopsFlow(const VerificationApiException(statusCode: 500, error: 'internal_error')), isFalse);
+      expect(sessionStartStopsFlow(const VerificationApiException(statusCode: 409, error: 'session_unavailable')), isFalse);
       expect(sessionStartStopsFlow(Exception('offline')), isFalse);
     });
   });
@@ -59,16 +59,16 @@ void main() {
   group('the submission', () {
     test('maps to its own error code, never a retry', () {
       for (final context in ErrorContext.values) {
-        final e = mapToKycError(_cancelled(), context: context);
+        final e = mapToVerificationError(_cancelled(), context: context);
         expect(e.code, kSessionCancelledCode);
         expect(e.message, _serverMessage);
       }
-      final bare = mapToKycError(_cancelled(null), context: ErrorContext.verify);
+      final bare = mapToVerificationError(_cancelled(null), context: ErrorContext.verify);
       expect(bare.message, isNot(contains('try again')));
     });
 
     test('offers no Go back', () {
-      const order = [KYCStep.consent, KYCStep.idType, KYCStep.idInput, KYCStep.liveness, KYCStep.submitted];
+      const order = [VerificationStep.consent, VerificationStep.idType, VerificationStep.idInput, VerificationStep.liveness, VerificationStep.submitted];
       expect(recoveryStepFor(kSessionCancelledCode, order), isNull);
     });
   });

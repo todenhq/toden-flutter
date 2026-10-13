@@ -1,17 +1,17 @@
 import '../config/document_capture_methods.dart';
 import '../config/id_types.dart';
-import '../config/kyc_config.dart';
+import '../config/verification_config.dart';
 import '../config/proof_of_address.dart';
 import '../config/supporting_documents.dart';
 import '../i18n/translate.dart';
 import '../providers/address_step_order.dart';
-import '../providers/kyc_state.dart';
+import '../providers/verification_state.dart';
 import '../providers/step_order.dart';
 import '../screens/contact_verification_channel.dart' show kChannelLabels;
 import '../config/address_flow.dart' show kAddressFlowOrder;
 
 // The sheet header's title and description for each step, split from
-// myaza_kyc_widget.dart (200-line rule). The customisable ones are catalogue
+// verification_widget.dart (200-line rule). The customisable ones are catalogue
 // texts; the rest (a filled-in value, a count) keep this SDK's wording.
 
 class StepMeta {
@@ -20,58 +20,58 @@ class StepMeta {
   const StepMeta(this.title, [this.description]);
 }
 
-StepMeta _base(KYCStep step, TextFn t, bool business, MyazaKYCConfig c) =>
+StepMeta _base(VerificationStep step, TextFn t, bool business, VerificationConfig c) =>
     switch (step) {
       // Consent and submitted have no header title: the screen owns it.
-      KYCStep.consent || KYCStep.submitted => const StepMeta(''),
-      KYCStep.idType => StepMeta(t('selectDocument.idType.title'),
+      VerificationStep.consent || VerificationStep.submitted => const StepMeta(''),
+      VerificationStep.idType => StepMeta(t('selectDocument.idType.title'),
           t('selectDocument.idType.description')),
-      KYCStep.documentCapture => const StepMeta('Capture Document'),
-      KYCStep.idInput => StepMeta(
+      VerificationStep.documentCapture => const StepMeta('Capture Document'),
+      VerificationStep.idInput => StepMeta(
           'Enter your ID number', t('selectDocument.idInput.description')),
-      KYCStep.liveness =>
+      VerificationStep.liveness =>
         StepMeta(t('presence.title'), t('presence.camera.description')),
-      KYCStep.contactEmail =>
+      VerificationStep.contactEmail =>
         StepMeta(t('contact.email.title'), t('contact.email.intro')),
-      KYCStep.contactPhone => StepMeta(t('contact.phone.title'),
+      VerificationStep.contactPhone => StepMeta(t('contact.phone.title'),
           "We'll send a one-time code to confirm this number belongs to you."),
-      KYCStep.countrySelect => StepMeta(t('selectDocument.country.title'),
+      VerificationStep.countrySelect => StepMeta(t('selectDocument.country.title'),
           t('selectDocument.country.description')),
-      KYCStep.nfc => StepMeta(t('nfc.title'), t('nfc.description')),
-      KYCStep.proofOfAddress => StepMeta(t('proofOfAddress.title')),
-      KYCStep.addressSearch => StepMeta(
+      VerificationStep.nfc => StepMeta(t('nfc.title'), t('nfc.description')),
+      VerificationStep.proofOfAddress => StepMeta(t('proofOfAddress.title')),
+      VerificationStep.addressSearch => StepMeta(
           t('address.search.title'), t('address.search.description')),
       // A KYB flow's pin is the BUSINESS PREMISES.
-      KYCStep.addressCollection => StepMeta(
+      VerificationStep.addressCollection => StepMeta(
           t(business ? 'address.pin.title.business' : 'address.pin.title'),
           t('address.pin.description')),
-      KYCStep.addressEntrance => StepMeta(t('address.entrance.title'),
+      VerificationStep.addressEntrance => StepMeta(t('address.entrance.title'),
           t('address.entrance.description.photo')),
-      KYCStep.addressReview => StepMeta(
+      VerificationStep.addressReview => StepMeta(
           t(business
               ? 'address.review.title.business'
               : 'address.review.title'),
           t('address.review.description')),
-      KYCStep.supportingDocuments => StepMeta(t('supportingDocuments.title')),
+      VerificationStep.supportingDocuments => StepMeta(t('supportingDocuments.title')),
       // The questionnaire's own title/description are the older fields.
-      KYCStep.questionnaire => StepMeta(
+      VerificationStep.questionnaire => StepMeta(
           t('questionnaire.title', legacy: c.questionnaire?.title),
           t('questionnaire.description', legacy: c.questionnaire?.description)),
-      KYCStep.businessDetails => StepMeta(t('business.details.title'),
+      VerificationStep.businessDetails => StepMeta(t('business.details.title'),
           t('business.details.description')),
-      KYCStep.businessKeyPeople =>
+      VerificationStep.businessKeyPeople =>
         StepMeta(t('keyPeople.title'), t('keyPeople.description')),
-      KYCStep.businessDocuments => StepMeta(t('business.documents.title'),
+      VerificationStep.businessDocuments => StepMeta(t('business.documents.title'),
           t('business.documents.description')),
-      KYCStep.applicantRole => StepMeta(t('business.applicant.title'),
+      VerificationStep.applicantRole => StepMeta(t('business.applicant.title'),
           t('business.applicant.description')),
     };
 
 /// The header for [step] in the flow's current [state].
 StepMeta flowStepMeta(
-  KYCStep step, {
-  required MyazaKYCConfig config,
-  required KYCState state,
+  VerificationStep step, {
+  required VerificationConfig config,
+  required VerificationState state,
   required TextFn t,
   required bool selfieComplete,
 }) {
@@ -79,16 +79,16 @@ StepMeta flowStepMeta(
   var meta = _base(step, t, isBusiness, config);
 
   // The entrance step framing street imagery describes THAT, not a camera.
-  if (step == KYCStep.addressEntrance && state.addressEntranceFraming) {
+  if (step == VerificationStep.addressEntrance && state.addressEntranceFraming) {
     meta = StepMeta(meta.title, t('address.entrance.description.framing'));
   }
   // The ID input step names the ID it wants.
-  if (step == KYCStep.idInput && state.selectedIdType != null) {
+  if (step == VerificationStep.idInput && state.selectedIdType != null) {
     meta = StepMeta('Enter your ${state.selectedIdType!.label}', meta.description);
   }
   // The line follows the COUNTS, resolved the way the screen resolves its
   // slots, or the header could name a number the body does not show.
-  if (step == KYCStep.supportingDocuments) {
+  if (step == VerificationStep.supportingDocuments) {
     meta = StepMeta(
       meta.title,
       supportingDocumentsIntro(
@@ -105,7 +105,7 @@ StepMeta flowStepMeta(
   }
   // Proof of address states its own recency window, and asks for the name
   // only where the workflow's name rule wants it for the picked kind.
-  if (step == KYCStep.proofOfAddress) {
+  if (step == VerificationStep.proofOfAddress) {
     final poa = config.proofOfAddress;
     final days = poa?.maxAgeDays ?? 90;
     final kind = state.poaDocumentType == null
@@ -121,13 +121,13 @@ StepMeta flowStepMeta(
       'within the last $days days.',
     );
   }
-  if (step == KYCStep.contactEmail || step == KYCStep.contactPhone) {
+  if (step == VerificationStep.contactEmail || step == VerificationStep.contactPhone) {
     meta = _contactMeta(step, meta, config, state);
   }
-  if (step == KYCStep.documentCapture) {
+  if (step == VerificationStep.documentCapture) {
     meta = _documentMeta(config, state, t);
   }
-  if (step == KYCStep.liveness && selfieComplete) {
+  if (step == VerificationStep.liveness && selfieComplete) {
     meta = StepMeta(t('presence.review.title'), t('presence.review.description'));
   }
   return meta;
@@ -137,8 +137,8 @@ StepMeta flowStepMeta(
 /// instruction once a code is out, naming the channel the user picked. Only
 /// state raised by THIS step counts: both contact steps are the same screen.
 StepMeta _contactMeta(
-    KYCStep step, StepMeta meta, MyazaKYCConfig config, KYCState state) {
-  final isPhone = step == KYCStep.contactPhone;
+    VerificationStep step, StepMeta meta, VerificationConfig config, VerificationState state) {
+  final isPhone = step == VerificationStep.contactPhone;
   final live = state.contactChannel == (isPhone ? 'phone' : 'email');
   final by = isPhone && live && state.contactVia.isNotEmpty
       ? ' by ${kChannelLabels[state.contactVia] ?? state.contactVia}'
@@ -161,7 +161,7 @@ StepMeta _contactMeta(
 /// Each phase of the document step is its own catalogue text, chosen the way
 /// the web SDK chooses (front of a two-sided ID, a single side, the preview,
 /// the back, the review), so a workflow can reword each whole.
-StepMeta _documentMeta(MyazaKYCConfig config, KYCState state, TextFn t) {
+StepMeta _documentMeta(VerificationConfig config, VerificationState state, TextFn t) {
   final doc = {'document': state.selectedIdType?.label ?? 'Document'};
   final twoSided = state.selectedIdType?.scanSides == ScanSides.frontAndBack;
   final up = documentCaptureMethodsFor(config).uploadOnly;

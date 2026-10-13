@@ -9,11 +9,11 @@ import '../config/proof_of_address.dart';
 import '../config/scope.dart';
 import '../config/theme.dart';
 import '../config/upload_limits.dart';
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/address_country_control.dart';
 import '../widgets/media_source_sheet.dart';
-import '../widgets/myaza_button.dart';
+import '../widgets/ui_button.dart';
 import 'proof_of_address_kinds.dart';
 import 'proof_of_address_parts.dart';
 import 'proof_of_address_pick.dart';
@@ -53,7 +53,7 @@ class _ProofOfAddressScreenState extends ConsumerState<ProofOfAddressScreen> {
   bool _previewIsPdf = false;
 
   ProofOfAddressConfig get _cfg =>
-      ref.read(kycConfigProvider).proofOfAddress ??
+      ref.read(verificationConfigProvider).proofOfAddress ??
       const ProofOfAddressConfig(enabled: true);
 
   /// The country the document is for — on the address scope the control at
@@ -61,7 +61,7 @@ class _ProofOfAddressScreenState extends ConsumerState<ProofOfAddressScreen> {
   /// papers per market.
   String? get _country =>
       ref.read(kYCNotifierProvider).selectedCountry ??
-      ref.read(kycConfigProvider).country;
+      ref.read(verificationConfigProvider).country;
 
   @override
   void initState() {
@@ -71,7 +71,7 @@ class _ProofOfAddressScreenState extends ConsumerState<ProofOfAddressScreen> {
   }
 
   String get _typeLabel =>
-      _cfg.labelFor(_type ?? PoaDocumentType.other, context.kycText);
+      _cfg.labelFor(_type ?? PoaDocumentType.other, context.verificationText);
 
   /// `setState` for the upload ops in the part file: a protected member may
   /// only be called from the State itself, so the extension goes through this.
@@ -98,7 +98,7 @@ class _ProofOfAddressScreenState extends ConsumerState<ProofOfAddressScreen> {
   Widget build(BuildContext context) {
     final text = context.myazaText;
     final selectedCountry = ref.watch(kYCNotifierProvider).selectedCountry;
-    final config = ref.watch(kycConfigProvider);
+    final config = ref.watch(verificationConfigProvider);
     final offered = _cfg.offeredTypesFor(selectedCountry ?? config.country);
     // The flag on the attachment area: on the address scope only a country the
     // applicant picked (the scope has no seeded country to show), else the
@@ -138,22 +138,22 @@ class _ProofOfAddressScreenState extends ConsumerState<ProofOfAddressScreen> {
         // Locked once a file is attached: switching the kind afterwards would
         // mislabel the document already uploaded.
         if (offered.length > 1) ...[
-          Text(context.kycText('proofOfAddress.documentType'), style: text.label),
-          const SizedBox(height: MyazaSpacing.xs),
+          Text(context.verificationText('proofOfAddress.documentType'), style: text.label),
+          const SizedBox(height: UiSpacing.xs),
           PoaDocumentTypeList(
             options: offered,
             value: _type,
             enabled: !uploaded && !_uploading,
-            labelFor: (kind) => _cfg.labelFor(kind, context.kycText),
+            labelFor: (kind) => _cfg.labelFor(kind, context.verificationText),
             onChanged: (v) => setState(() => _type = v),
           ),
-          const SizedBox(height: MyazaSpacing.lg),
+          const SizedBox(height: UiSpacing.lg),
         ],
 
         // ── Drop zone / uploaded row ─────────────────────────────────────────
         if (uploaded && !_uploading)
           PoaUploadedRow(
-            fileName: _fileName ?? context.kycText('proofOfAddress.uploaded'),
+            fileName: _fileName ?? context.verificationText('proofOfAddress.uploaded'),
             typeLabel: _typeLabel,
             previewBytes: _previewBytes,
             isPdf: _previewIsPdf,
@@ -169,14 +169,14 @@ class _ProofOfAddressScreenState extends ConsumerState<ProofOfAddressScreen> {
           ),
 
         if (_error != null) ...[
-          const SizedBox(height: MyazaSpacing.sm),
+          const SizedBox(height: UiSpacing.sm),
           Text(_error!,
-              style: text.bodySmall.copyWith(color: MyazaColors.error)),
+              style: text.bodySmall.copyWith(color: UiColors.error)),
         ],
 
-        const SizedBox(height: MyazaSpacing.xl),
-        MyazaButton(
-          label: context.kycText('common.continue'),
+        const SizedBox(height: UiSpacing.xl),
+        UiButton(
+          label: context.verificationText('common.continue'),
           onPressed: uploaded && !_uploading && countryDeclared
               ? () => ref.read(kYCNotifierProvider.notifier).nextStep()
               : null,

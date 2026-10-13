@@ -15,7 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 // runs, and only misbehaves on a device somebody happens to tilt.
 
 const _hosts = [
-  'lib/src/widgets/myaza_kyc_widget.dart',
+  'lib/src/widgets/verification_widget.dart',
 ];
 
 void main() {

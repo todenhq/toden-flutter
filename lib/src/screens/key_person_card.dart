@@ -49,7 +49,7 @@ class KeyPersonCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
     final text = context.myazaText;
-    final radius = BorderRadius.circular(MyazaRadius.sm);
+    final radius = BorderRadius.circular(UiRadius.sm);
 
     final name = entry.name.trim().isEmpty ? 'Unnamed person' : entry.name.trim();
     final country =
@@ -78,12 +78,12 @@ class KeyPersonCard extends StatelessWidget {
     ].join(' · ');
 
     return Container(
-      margin: const EdgeInsets.only(bottom: MyazaSpacing.sm),
+      margin: const EdgeInsets.only(bottom: UiSpacing.sm),
       decoration: BoxDecoration(
         color: colors.background,
         borderRadius: radius,
         border: Border.all(
-            color: incomplete ? MyazaColors.error : colors.border),
+            color: incomplete ? UiColors.error : colors.border),
       ),
       child: Material(
         color: Colors.transparent,
@@ -91,7 +91,7 @@ class KeyPersonCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: radius,
           child: Padding(
-            padding: const EdgeInsets.all(MyazaSpacing.md - 2),
+            padding: const EdgeInsets.all(UiSpacing.md - 2),
             child: Row(
               children: [
                 // Monogram avatar with the ID-issuing-country flag badge.
@@ -129,14 +129,14 @@ class KeyPersonCard extends StatelessWidget {
                             ),
                             child: ClipOval(
                               child:
-                                  MyazaCountryFlag(country: country, size: 16),
+                                  UiCountryFlag(country: country, size: 16),
                             ),
                           ),
                         ),
                     ],
                   ),
                 ),
-                const SizedBox(width: MyazaSpacing.sm + 4),
+                const SizedBox(width: UiSpacing.sm + 4),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,7 +159,7 @@ class KeyPersonCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: text.bodySmall
-                                .copyWith(color: MyazaColors.error)),
+                                .copyWith(color: UiColors.error)),
                       ] else if (detail.isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(detail,
@@ -171,12 +171,12 @@ class KeyPersonCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: MyazaSpacing.sm),
-                MyazaIcon(MyazaIcons.pencil,
+                const SizedBox(width: UiSpacing.sm),
+                UiIcon(UiIcons.pencil,
                     size: 16, color: colors.textSecondary),
                 if (onRemove != null)
                   Padding(
-                    padding: const EdgeInsets.only(left: MyazaSpacing.xs),
+                    padding: const EdgeInsets.only(left: UiSpacing.xs),
                     child: IconButton(
                       onPressed: onRemove,
                       visualDensity: VisualDensity.compact,
@@ -184,7 +184,7 @@ class KeyPersonCard extends StatelessWidget {
                       constraints:
                           const BoxConstraints(minWidth: 36, minHeight: 36),
                       padding: EdgeInsets.zero,
-                      icon: MyazaIcon(MyazaIcons.x,
+                      icon: UiIcon(UiIcons.x,
                           size: 16, color: colors.textMuted),
                     ),
                   ),

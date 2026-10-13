@@ -102,7 +102,7 @@ void main() {
       final gate = DocumentTextGate();
       final start = DateTime(2026, 7, 29, 12);
       final screen = [
-        'The passport flow resolves via GET /api/kyc/workflows/:id',
+        'The passport flow resolves via GET /api/v1/workflows/:id',
         'idOptions: { passport: { govDbCheck: false } }',
         'requiresDocumentCapture is true for passport',
         'See the passport section of the docs for details',

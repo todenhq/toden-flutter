@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
-import 'myaza_spinner.dart';
+import 'ui_spinner.dart';
 
 // ─── Variants ─────────────────────────────────────────────────────────────────
 
-enum MyazaButtonVariant { primary, outline, ghost, destructive }
+enum UiButtonVariant { primary, outline, ghost, destructive }
 
 // ─── Button ───────────────────────────────────────────────────────────────────
 
-class MyazaButton extends StatelessWidget {
+class UiButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
-  final MyazaButtonVariant variant;
+  final UiButtonVariant variant;
   final bool isLoading;
   final bool fullWidth;
   final Widget? leadingIcon;
 
-  const MyazaButton({
+  const UiButton({
     super.key,
     required this.label,
     this.onPressed,
-    this.variant = MyazaButtonVariant.primary,
+    this.variant = UiButtonVariant.primary,
     this.isLoading = false,
     this.fullWidth = true,
     this.leadingIcon,
@@ -29,67 +29,67 @@ class MyazaButton extends StatelessWidget {
 
   // ── Convenience constructors ───────────────────────────────────────────────
 
-  const MyazaButton.outline({
+  const UiButton.outline({
     super.key,
     required this.label,
     this.onPressed,
     this.isLoading = false,
     this.fullWidth = true,
     this.leadingIcon,
-  }) : variant = MyazaButtonVariant.outline;
+  }) : variant = UiButtonVariant.outline;
 
-  const MyazaButton.ghost({
+  const UiButton.ghost({
     super.key,
     required this.label,
     this.onPressed,
     this.isLoading = false,
     this.fullWidth = true,
     this.leadingIcon,
-  }) : variant = MyazaButtonVariant.ghost;
+  }) : variant = UiButtonVariant.ghost;
 
-  const MyazaButton.destructive({
+  const UiButton.destructive({
     super.key,
     required this.label,
     this.onPressed,
     this.isLoading = false,
     this.fullWidth = true,
     this.leadingIcon,
-  }) : variant = MyazaButtonVariant.destructive;
+  }) : variant = UiButtonVariant.destructive;
 
   // ── Style helpers (context-aware) ──────────────────────────────────────────
 
-  // Not `const`: MyazaRadius scales with appearance.borderRadius, so this is
+  // Not `const`: UiRadius scales with appearance.borderRadius, so this is
   // resolved per build rather than frozen at compile time.
   static BorderRadius get _radius =>
-      BorderRadius.all(Radius.circular(MyazaRadius.sm));
+      BorderRadius.all(Radius.circular(UiRadius.sm));
 
-  Color _bg(MyazaColorScheme colors) => switch (variant) {
-        MyazaButtonVariant.primary     => colors.primary,
-        MyazaButtonVariant.destructive => MyazaColors.error,
+  Color _bg(UiColorScheme colors) => switch (variant) {
+        UiButtonVariant.primary     => colors.primary,
+        UiButtonVariant.destructive => UiColors.error,
         _                              => Colors.transparent,
       };
 
-  Color _fg(MyazaColorScheme colors) => switch (variant) {
-        MyazaButtonVariant.primary     => colors.onPrimary,
-        MyazaButtonVariant.destructive => Colors.white,
-        MyazaButtonVariant.outline     => colors.primary,
-        MyazaButtonVariant.ghost       => colors.primary,
+  Color _fg(UiColorScheme colors) => switch (variant) {
+        UiButtonVariant.primary     => colors.onPrimary,
+        UiButtonVariant.destructive => Colors.white,
+        UiButtonVariant.outline     => colors.primary,
+        UiButtonVariant.ghost       => colors.primary,
       };
 
-  Color _disabledBg(MyazaColorScheme colors) => switch (variant) {
-        MyazaButtonVariant.primary     => colors.primary.withValues(alpha: 0.5),
-        MyazaButtonVariant.destructive => MyazaColors.error.withValues(alpha: 0.5),
+  Color _disabledBg(UiColorScheme colors) => switch (variant) {
+        UiButtonVariant.primary     => colors.primary.withValues(alpha: 0.5),
+        UiButtonVariant.destructive => UiColors.error.withValues(alpha: 0.5),
         _                              => Colors.transparent,
       };
 
-  BorderSide? _border(MyazaColorScheme colors) => switch (variant) {
-        MyazaButtonVariant.outline =>
+  BorderSide? _border(UiColorScheme colors) => switch (variant) {
+        UiButtonVariant.outline =>
           BorderSide(color: colors.primary, width: 1.5),
         _ => null,
       };
 
-  BorderSide? _disabledBorder(MyazaColorScheme colors) => switch (variant) {
-        MyazaButtonVariant.outline =>
+  BorderSide? _disabledBorder(UiColorScheme colors) => switch (variant) {
+        UiButtonVariant.outline =>
           BorderSide(color: colors.primary.withValues(alpha: 0.4), width: 1.5),
         _ => null,
       };
@@ -118,7 +118,7 @@ class MyazaButton extends StatelessWidget {
               key: const ValueKey('loading'),
               width: 20,
               height: 20,
-              child: MyazaSpinner(
+              child: UiSpinner(
                 strokeWidth: 2,
                 color: effectiveFg,
               ),
@@ -172,16 +172,16 @@ class MyazaButton extends StatelessWidget {
       shape: WidgetStateProperty.all(shape),
       elevation: WidgetStateProperty.all(0),
       padding: WidgetStateProperty.all(
-        const EdgeInsets.symmetric(horizontal: MyazaSpacing.md),
+        const EdgeInsets.symmetric(horizontal: UiSpacing.md),
       ),
       minimumSize: WidgetStateProperty.all(
-        Size(fullWidth ? double.infinity : 0, MyazaSizing.buttonHeight),
+        Size(fullWidth ? double.infinity : 0, UiSizing.buttonHeight),
       ),
     );
 
     return SizedBox(
       width: fullWidth ? double.infinity : null,
-      height: MyazaSizing.buttonHeight,
+      height: UiSizing.buttonHeight,
       child: ElevatedButton(
         onPressed: isDisabled ? null : onPressed,
         style: buttonStyle,

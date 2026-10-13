@@ -58,8 +58,8 @@ class SignatureExpandPill extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                MyazaIcon(
-                  expanded ? MyazaIcons.minimize2 : MyazaIcons.maximize2,
+                UiIcon(
+                  expanded ? UiIcons.minimize2 : UiIcons.maximize2,
                   size: 12,
                   color: _kPillInk,
                 ),
@@ -101,7 +101,7 @@ class SignatureTextAction extends StatelessWidget {
   final bool fullWidth;
 
   /// Drawn before the label, in the same colour.
-  final MyazaIconData? icon;
+  final UiIconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -128,7 +128,7 @@ class SignatureTextAction extends StatelessWidget {
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  MyazaIcon(icon, size: 14, color: colors.primary),
+                  UiIcon(icon, size: 14, color: colors.primary),
                   const SizedBox(width: 4),
                   Text(label),
                 ],

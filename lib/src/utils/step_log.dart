@@ -9,7 +9,7 @@
 // lib/step-log.ts and the RN SDK's src/lib/step-log.ts; keep all three in
 // lockstep, including the kebab-case wire names below.
 
-import '../providers/kyc_state.dart' show KYCStep;
+import '../providers/verification_state.dart' show VerificationStep;
 
 /// Canonical wire names shared with the web/RN SDKs — the server's timeline
 /// titles key off these, so Flutter must not leak its camelCase enum names.
@@ -17,28 +17,28 @@ import '../providers/kyc_state.dart' show KYCStep;
 /// Public because the resubmission filter (`step_resubmit.dart`) matches a
 /// reviewer's chosen steps against exactly these names. Two maps would be two
 /// chances to disagree about what `document-capture` is called.
-const Map<KYCStep, String> kStepWireNames = {
-  KYCStep.consent: 'consent',
-  KYCStep.contactEmail: 'email-verification',
-  KYCStep.contactPhone: 'phone-verification',
-  KYCStep.countrySelect: 'country-select',
-  KYCStep.idType: 'id-type',
-  KYCStep.documentCapture: 'document-capture',
-  KYCStep.idInput: 'id-input',
-  KYCStep.nfc: 'nfc',
-  KYCStep.liveness: 'liveness',
-  KYCStep.proofOfAddress: 'proof-of-address',
-  KYCStep.supportingDocuments: 'supporting-documents',
-  KYCStep.addressSearch: 'address-search',
-  KYCStep.addressCollection: 'address-collection',
-  KYCStep.addressEntrance: 'address-entrance',
-  KYCStep.addressReview: 'address-review',
-  KYCStep.questionnaire: 'questionnaire',
-  KYCStep.businessDetails: 'business-details',
-  KYCStep.businessKeyPeople: 'business-key-people',
-  KYCStep.businessDocuments: 'business-documents',
-  KYCStep.applicantRole: 'applicant-role',
-  KYCStep.submitted: 'submitted',
+const Map<VerificationStep, String> kStepWireNames = {
+  VerificationStep.consent: 'consent',
+  VerificationStep.contactEmail: 'email-verification',
+  VerificationStep.contactPhone: 'phone-verification',
+  VerificationStep.countrySelect: 'country-select',
+  VerificationStep.idType: 'id-type',
+  VerificationStep.documentCapture: 'document-capture',
+  VerificationStep.idInput: 'id-input',
+  VerificationStep.nfc: 'nfc',
+  VerificationStep.liveness: 'liveness',
+  VerificationStep.proofOfAddress: 'proof-of-address',
+  VerificationStep.supportingDocuments: 'supporting-documents',
+  VerificationStep.addressSearch: 'address-search',
+  VerificationStep.addressCollection: 'address-collection',
+  VerificationStep.addressEntrance: 'address-entrance',
+  VerificationStep.addressReview: 'address-review',
+  VerificationStep.questionnaire: 'questionnaire',
+  VerificationStep.businessDetails: 'business-details',
+  VerificationStep.businessKeyPeople: 'business-key-people',
+  VerificationStep.businessDocuments: 'business-documents',
+  VerificationStep.applicantRole: 'applicant-role',
+  VerificationStep.submitted: 'submitted',
 };
 
 class StepLog {
@@ -64,7 +64,7 @@ class StepLog {
   /// what the applicant was doing earlier in it: pick one ID, go back, settle
   /// on another, and labelling the earlier step from the committed check names
   /// an ID they had not chosen yet.
-  static void record(KYCStep step, {int? slot, String? idType}) {
+  static void record(VerificationStep step, {int? slot, String? idType}) {
     if (_entries.length >= _maxEntries) return;
     final name = kStepWireNames[step] ?? step.name;
     // A revisit on a NEW check, or on a DIFFERENT ID, is a different visit.

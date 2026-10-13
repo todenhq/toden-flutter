@@ -40,17 +40,17 @@ class BusinessPickedSection extends StatelessWidget {
           registrationNumber: registrationNumber,
           onChange: onChange,
         ),
-        const SizedBox(height: MyazaSpacing.lg),
+        const SizedBox(height: UiSpacing.lg),
         // Says what the button is about to do: Continue runs a real lookup
         // against the register, which takes a moment and is charged to the
         // organisation. "Continue" alone made a paid outbound call look like
         // moving to the next page.
         Text(
-          context.kycText('business.details.checkNote'),
+          context.verificationText('business.details.checkNote'),
           style: text.bodySmall.copyWith(color: colors.textSecondary),
         ),
         if (isSandbox) ...[
-          const SizedBox(height: MyazaSpacing.lg),
+          const SizedBox(height: UiSpacing.lg),
           const BusinessSandboxToggle(),
         ],
       ],

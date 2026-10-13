@@ -106,7 +106,7 @@ class _SupportingDocumentCardState extends State<SupportingDocumentCard> {
         widget.onSign != null;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: MyazaSpacing.md),
+      padding: const EdgeInsets.only(bottom: UiSpacing.md),
       child: Container(
         decoration: BoxDecoration(
           // The card is the LIFTED surface and the wells inside it are the page
@@ -115,13 +115,13 @@ class _SupportingDocumentCardState extends State<SupportingDocumentCard> {
           // card read as the page and its wells floated above it.
           color: done ? colors.primary50 : colors.backgroundSecondary,
           border: Border.all(color: done ? colors.primary200 : colors.border),
-          borderRadius: BorderRadius.circular(MyazaRadius.md),
+          borderRadius: BorderRadius.circular(UiRadius.md),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.all(MyazaSpacing.md),
+              padding: const EdgeInsets.all(UiSpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -130,7 +130,7 @@ class _SupportingDocumentCardState extends State<SupportingDocumentCard> {
                     children: [
                       DocumentMarker(
                           done: done, position: position, total: total),
-                      const SizedBox(width: MyazaSpacing.sm + 4),
+                      const SizedBox(width: UiSpacing.sm + 4),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,12 +154,12 @@ class _SupportingDocumentCardState extends State<SupportingDocumentCard> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: MyazaSpacing.sm),
+                      const SizedBox(width: UiSpacing.sm),
                       DocumentStatePill(required: required),
                     ],
                   ),
                   if (reads.isNotEmpty) ...[
-                    const SizedBox(height: MyazaSpacing.sm + 4),
+                    const SizedBox(height: UiSpacing.sm + 4),
                     DocumentReads(reads: reads),
                   ],
                 ],
@@ -167,7 +167,7 @@ class _SupportingDocumentCardState extends State<SupportingDocumentCard> {
             ),
             Divider(height: 1, thickness: 1, color: colors.border),
             Padding(
-              padding: const EdgeInsets.all(MyazaSpacing.sm + 4),
+              padding: const EdgeInsets.all(UiSpacing.sm + 4),
               child: signing
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -186,10 +186,10 @@ class _SupportingDocumentCardState extends State<SupportingDocumentCard> {
                               : null,
                         ),
                         if (error != null) ...[
-                          const SizedBox(height: MyazaSpacing.sm),
+                          const SizedBox(height: UiSpacing.sm),
                           Text(error,
                               style: text.bodySmall
-                                  .copyWith(color: MyazaColors.error)),
+                                  .copyWith(color: UiColors.error)),
                         ],
                       ],
                     )
@@ -209,10 +209,10 @@ class _SupportingDocumentCardState extends State<SupportingDocumentCard> {
                             },
                           ),
                           if (error != null) ...[
-                            const SizedBox(height: MyazaSpacing.sm),
+                            const SizedBox(height: UiSpacing.sm),
                             Text(error,
                                 style: text.bodySmall
-                                    .copyWith(color: MyazaColors.error)),
+                                    .copyWith(color: UiColors.error)),
                           ],
                         ] else
                           BusinessDocumentSlot(

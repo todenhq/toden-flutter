@@ -6,11 +6,11 @@ import '../config/business_details_validity.dart';
 import '../config/business_prefill.dart';
 import '../config/registration_hint.dart';
 import '../config/theme.dart';
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 import '../providers/step_order.dart' show effectiveCountry;
 import '../widgets/country_field.dart';
-import '../widgets/myaza_button.dart';
-import '../widgets/myaza_select.dart';
+import '../widgets/ui_button.dart';
+import '../widgets/ui_select.dart';
 import 'business_check_panel.dart';
 import 'business_details_fields.dart';
 import 'business_picked_section.dart';
@@ -44,10 +44,10 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
   };
 
   WorkflowBusinessConfig get _cfg =>
-      ref.read(kycConfigProvider).business ??
+      ref.read(verificationConfigProvider).business ??
       WorkflowBusinessConfig(
         country: effectiveCountry(
-            ref.read(kycConfigProvider), ref.read(kYCNotifierProvider)),
+            ref.read(verificationConfigProvider), ref.read(kYCNotifierProvider)),
       );
 
   @override
@@ -171,8 +171,8 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (countries.length > 1) ...[
-          Text(context.kycText('business.details.countryLabel'), style: text.label),
-          const SizedBox(height: MyazaSpacing.xs),
+          Text(context.verificationText('business.details.countryLabel'), style: text.label),
+          const SizedBox(height: UiSpacing.xs),
           CountryField(
             country: country,
             codes: countries,
@@ -183,21 +183,21 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
               _set('product', '');
             },
           ),
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
         ],
         if (products.length > 1) ...[
           Text('Verification type', style: text.label),
-          const SizedBox(height: MyazaSpacing.xs),
-          MyazaSelect<String>(
+          const SizedBox(height: UiSpacing.xs),
+          UiSelect<String>(
             value: product,
             sheetTitle: 'Verification type',
             options: [
               for (final p in products)
-                MyazaSelectOption(value: p, label: businessProduct(p).label),
+                UiSelectOption(value: p, label: businessProduct(p).label),
             ],
             onChanged: (v) => _set('product', v),
           ),
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
         ],
 
         // HIDDEN, not unmounted, once a company is chosen: unmounting threw
@@ -255,17 +255,17 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
           ),
 
         if (checkPanelVisible(s.businessCheck.status)) ...[
-          const SizedBox(height: MyazaSpacing.lg),
+          const SizedBox(height: UiSpacing.lg),
           BusinessCheckPanel(status: s.businessCheck.status),
         ],
 
-        const SizedBox(height: MyazaSpacing.lg),
-        MyazaButton(
+        const SizedBox(height: UiSpacing.lg),
+        UiButton(
           label: checking
               ? 'Checking…'
               : _phase == 'details'
-                  ? context.kycText('business.details.confirm')
-                  : context.kycText('common.continue'),
+                  ? context.verificationText('business.details.confirm')
+                  : context.verificationText('common.continue'),
           isLoading: checking,
           onPressed:
               !isFormValid || checking ? null : () => _persistAndContinue(country, product),

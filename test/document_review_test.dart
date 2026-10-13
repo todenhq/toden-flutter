@@ -158,9 +158,9 @@ void main() {
         reason: 'the overlay must read as a new layer, not a tint');
 
     // And a close control that is an actual target, not a bare glyph.
-    final closeSize = tester.getSize(findMyazaIcon(MyazaIcons.x));
+    final closeSize = tester.getSize(findUiIcon(UiIcons.x));
     expect(closeSize.width, greaterThan(0));
-    await tester.tap(findMyazaIcon(MyazaIcons.x));
+    await tester.tap(findUiIcon(UiIcons.x));
     await tester.pumpAndSettle();
     expect(find.byType(DocumentReviewZoom), findsNothing);
   });

@@ -8,8 +8,8 @@ import '../i18n/text_scope.dart';
 import '../providers/step_resubmit.dart';
 import 'consent_legal_notice.dart';
 import 'consent_process_steps.dart';
-import '../providers/kyc_provider.dart';
-import '../widgets/myaza_button.dart';
+import '../providers/verification_provider.dart';
+import '../widgets/ui_button.dart';
 import '../widgets/icons/icons.dart';
 
 // ─── Consent screen ───────────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
     final text = context.myazaText;
-    final config = ref.watch(kycConfigProvider);
+    final config = ref.watch(verificationConfigProvider);
     final notifier = ref.read(kYCNotifierProvider.notifier);
     final firstName = config.userData?.firstName ?? '';
     final isBusiness = config.subjectType == 'business';
@@ -62,7 +62,7 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
     // The shared copy is a catalogue text; the named, business and scope
     // variants keep this SDK's wording. An older consent.title/description
     // (tokens filled) wins over every variant, as it always did.
-    final t = ref.watch(kycTextProvider);
+    final t = ref.watch(verificationTextProvider);
     final variantTitle = firstName.isNotEmpty
         ? 'Welcome, {firstName}'
         : isBusiness
@@ -102,30 +102,30 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: MyazaSpacing.sm),
+        const SizedBox(height: UiSpacing.sm),
 
         if (redoNote != null) ...[
           Container(
-            padding: const EdgeInsets.all(MyazaSpacing.md),
+            padding: const EdgeInsets.all(UiSpacing.md),
             decoration: BoxDecoration(
               color: colors.warningBg,
-              borderRadius: BorderRadius.circular(MyazaRadius.lg),
+              borderRadius: BorderRadius.circular(UiRadius.lg),
               border: Border.all(
-                color: MyazaColors.warning.withValues(alpha: 0.4),
+                color: UiColors.warning.withValues(alpha: 0.4),
               ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const MyazaIcon(MyazaIcons.refreshCw, size: 16, color: MyazaColors.warning),
-                const SizedBox(width: MyazaSpacing.sm),
+                const UiIcon(UiIcons.refreshCw, size: 16, color: UiColors.warning),
+                const SizedBox(width: UiSpacing.sm),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'A few things to redo',
-                        style: text.bodyMedium.copyWith(color: MyazaColors.warning),
+                        style: text.bodyMedium.copyWith(color: UiColors.warning),
                       ),
                       const SizedBox(height: 2),
                       Text(redoNote, style: text.bodySmall.copyWith(color: colors.textSecondary)),
@@ -135,12 +135,12 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
               ],
             ),
           ),
-          const SizedBox(height: MyazaSpacing.lg),
+          const SizedBox(height: UiSpacing.lg),
         ],
 
         // ── Shield hero ──────────────────────────────────────────────────────
         Center(child: _ShieldHero(colors: colors)),
-        const SizedBox(height: MyazaSpacing.lg),
+        const SizedBox(height: UiSpacing.lg),
 
         // ── Welcome heading ──────────────────────────────────────────────────
         Text(
@@ -148,13 +148,13 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
           style: text.heading1,
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: MyazaSpacing.sm),
+        const SizedBox(height: UiSpacing.sm),
         Text(
           description,
           style: text.bodyMedium,
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: MyazaSpacing.lg),
+        const SizedBox(height: UiSpacing.lg),
 
         // ── Process steps card ───────────────────────────────────────────────
         _ProcessStepsCard(
@@ -163,7 +163,7 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
           heading: t('welcome.process.heading').toUpperCase(),
           steps: steps,
         ),
-        const SizedBox(height: MyazaSpacing.lg),
+        const SizedBox(height: UiSpacing.lg),
 
         // ── Consent notice ───────────────────────────────────────────────────
         // Consent is given by ACTING now, so the notice sits immediately above
@@ -176,20 +176,20 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
           capturesFace: capturesFace,
           recordsVideo: recordsVideo,
         ),
-        const SizedBox(height: MyazaSpacing.lg),
+        const SizedBox(height: UiSpacing.lg),
 
         // ── Continue ─────────────────────────────────────────────────────────
-        MyazaButton(
+        UiButton(
           label: t('common.continue'),
           onPressed: notifier.nextStep,
         ),
-        const SizedBox(height: MyazaSpacing.sm),
+        const SizedBox(height: UiSpacing.sm),
 
         // ── Reassurance footer ───────────────────────────────────────────────
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            MyazaIcon(MyazaIcons.lock, size: 13, color: colors.textMuted),
+            UiIcon(UiIcons.lock, size: 13, color: colors.textMuted),
             const SizedBox(width: 6),
             Text(t('welcome.secureNote'), style: text.bodySmall),
           ],
@@ -206,7 +206,7 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
 // Recolors with the active primary color.
 
 class _ShieldHero extends StatelessWidget {
-  final MyazaColorScheme colors;
+  final UiColorScheme colors;
 
   const _ShieldHero({required this.colors});
 
@@ -248,7 +248,7 @@ class _ShieldHero extends StatelessWidget {
                 ),
               ],
             ),
-            child: MyazaIcon(MyazaIcons.shieldCheck, size: 28, color: colors.onPrimary),
+            child: UiIcon(UiIcons.shieldCheck, size: 28, color: colors.onPrimary),
           ),
         ],
       ),
@@ -259,8 +259,8 @@ class _ShieldHero extends StatelessWidget {
 // ─── Process steps card ───────────────────────────────────────────────────────
 
 class _ProcessStepsCard extends StatelessWidget {
-  final MyazaColorScheme colors;
-  final MyazaThemeText text;
+  final UiColorScheme colors;
+  final UiThemeText text;
   final String heading;
   final List<ConsentProcessStep> steps;
 
@@ -276,9 +276,9 @@ class _ProcessStepsCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: colors.backgroundSecondary,
-        borderRadius: BorderRadius.circular(MyazaRadius.lg),
+        borderRadius: BorderRadius.circular(UiRadius.lg),
       ),
-      padding: const EdgeInsets.all(MyazaSpacing.md + 4),
+      padding: const EdgeInsets.all(UiSpacing.md + 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -290,7 +290,7 @@ class _ProcessStepsCard extends StatelessWidget {
               color: colors.textMuted,
             ),
           ),
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
           for (int i = 0; i < steps.length; i++) ...[
             if (i > 0) const SizedBox(height: 14),
             _StepRow(step: steps[i], colors: colors, text: text),
@@ -303,8 +303,8 @@ class _ProcessStepsCard extends StatelessWidget {
 
 class _StepRow extends StatelessWidget {
   final ConsentProcessStep step;
-  final MyazaColorScheme colors;
-  final MyazaThemeText text;
+  final UiColorScheme colors;
+  final UiThemeText text;
 
   const _StepRow({
     required this.step,
@@ -322,11 +322,11 @@ class _StepRow extends StatelessWidget {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: colors.primary.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(MyazaRadius.xs),
+            borderRadius: BorderRadius.circular(UiRadius.xs),
           ),
-          child: MyazaIcon(step.icon, size: 18, color: colors.primary),
+          child: UiIcon(step.icon, size: 18, color: colors.primary),
         ),
-        const SizedBox(width: MyazaSpacing.sm + 4),
+        const SizedBox(width: UiSpacing.sm + 4),
         Expanded(
           child: Text(
             step.label,

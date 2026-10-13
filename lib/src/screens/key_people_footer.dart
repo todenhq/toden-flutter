@@ -20,13 +20,13 @@ class KeyPeopleHint extends StatelessWidget {
     return CustomPaint(
       painter: DashedRoundedBorder(
         color: colors.border,
-        radius: MyazaRadius.sm,
+        radius: UiRadius.sm,
       ),
       child: Container(
-        padding: const EdgeInsets.all(MyazaSpacing.md),
+        padding: const EdgeInsets.all(UiSpacing.md),
         decoration: BoxDecoration(
           color: colors.backgroundSecondary,
-          borderRadius: BorderRadius.circular(MyazaRadius.sm),
+          borderRadius: BorderRadius.circular(UiRadius.sm),
         ),
         child: child,
       ),
@@ -61,12 +61,12 @@ class KeyPeopleTotals extends StatelessWidget {
       children: [
         Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: MyazaSpacing.md,
-            vertical: MyazaSpacing.sm + 4,
+            horizontal: UiSpacing.md,
+            vertical: UiSpacing.sm + 4,
           ),
           decoration: BoxDecoration(
             color: over ? colors.errorBg : colors.backgroundSecondary,
-            borderRadius: BorderRadius.circular(MyazaRadius.sm),
+            borderRadius: BorderRadius.circular(UiRadius.sm),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -74,25 +74,25 @@ class KeyPeopleTotals extends StatelessWidget {
               Text(
                 'Total ownership listed',
                 style: text.bodyMedium.copyWith(
-                  color: over ? MyazaColors.error : colors.textSecondary,
+                  color: over ? UiColors.error : colors.textSecondary,
                 ),
               ),
               Text(
                 '${formatPct(totalPct)}%',
                 style: text.bodyMedium.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: over ? MyazaColors.error : colors.textDark,
+                  color: over ? UiColors.error : colors.textDark,
                 ),
               ),
             ],
           ),
         ),
         if (over) ...[
-          const SizedBox(height: MyazaSpacing.xs),
+          const SizedBox(height: UiSpacing.xs),
           Text(
             "Together the percentages can't exceed 100%, so reduce them by "
             '${formatPct(totalPct - 100)}%.',
-            style: text.bodyMedium.copyWith(color: MyazaColors.error),
+            style: text.bodyMedium.copyWith(color: UiColors.error),
           ),
         ],
       ],

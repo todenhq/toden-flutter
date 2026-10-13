@@ -85,7 +85,7 @@ class _ScanPainter extends CustomPainter {
   /// 0 at the top of the window, 1 at the bottom.
   final double t;
 
-  static const Color _light = MyazaColors.success;
+  static const Color _light = UiColors.success;
 
   @override
   void paint(Canvas canvas, Size size) {

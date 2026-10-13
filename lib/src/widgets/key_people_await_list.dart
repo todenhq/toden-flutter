@@ -87,21 +87,21 @@ class KeyPeopleAwaitList extends StatelessWidget {
     var entranceIndex = 0;
 
     return Padding(
-      padding: const EdgeInsets.only(top: MyazaSpacing.lg),
+      padding: const EdgeInsets.only(top: UiSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            context.kycText(outstanding == 0
+            context.verificationText(outstanding == 0
                 ? 'keyPeople.await.allDone'
                 : 'keyPeople.await.intro'),
             textAlign: TextAlign.center,
             style: text.bodySmall.copyWith(color: colors.textMuted),
           ),
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
           for (final (label, groupRows) in groups) ...[
             Padding(
-              padding: const EdgeInsets.only(bottom: MyazaSpacing.xs + 2),
+              padding: const EdgeInsets.only(bottom: UiSpacing.xs + 2),
               child: Text(
                 label,
                 style: text.bodySmall.copyWith(
@@ -113,21 +113,21 @@ class KeyPeopleAwaitList extends StatelessWidget {
             ),
             for (final (i, row) in groupRows.indexed) ...[
               // Air between cards: back to back they read as one block.
-              if (i > 0) const SizedBox(height: MyazaSpacing.sm),
+              if (i > 0) const SizedBox(height: UiSpacing.sm),
               _entrance(KeyPeopleAwaitCard(row: row), entranceIndex++, reduceMotion),
             ],
-            const SizedBox(height: MyazaSpacing.sm),
+            const SizedBox(height: UiSpacing.sm),
           ],
           if (outstanding > 0)
             Padding(
               // Clear air below: this caption is the list's last element and
               // the Done button renders immediately after it.
               padding: const EdgeInsets.only(
-                top: MyazaSpacing.xs,
-                bottom: MyazaSpacing.lg,
+                top: UiSpacing.xs,
+                bottom: UiSpacing.lg,
               ),
               child: Text(
-                context.kycText('keyPeople.await.linkValidity'),
+                context.verificationText('keyPeople.await.linkValidity'),
                 textAlign: TextAlign.center,
                 style: text.bodySmall.copyWith(color: colors.textMuted),
               ),

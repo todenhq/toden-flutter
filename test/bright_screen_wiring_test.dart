@@ -23,7 +23,7 @@ void main() {
   });
 
   test('the flow lights itself from that, and holds the screen bright', () {
-    final flow = _source('lib/src/widgets/myaza_kyc_widget.dart');
+    final flow = _source('lib/src/widgets/verification_widget.dart');
     expect(flow, contains('livenessBrightScreenActive('));
     expect(flow, contains('config.livenessBrightScreen'));
     expect(flow, contains('BrightScreenBoost('));
@@ -33,7 +33,7 @@ void main() {
   });
 
   test('the camera flag is scoped per flow', () {
-    final scope = _source('lib/src/widgets/kyc_flow_scope.dart');
+    final scope = _source('lib/src/widgets/verification_flow_scope.dart');
     expect(scope, contains('livenessCameraOnProvider.overrideWith'));
   });
 }

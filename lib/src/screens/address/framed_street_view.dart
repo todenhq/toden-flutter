@@ -10,11 +10,11 @@ import '../../config/map_frame.dart';
 import '../../config/street_view_fov.dart';
 import '../../config/theme.dart';
 import '../../utils/map_tiles.dart' show MapLatLng, mapSurfaceHeight;
-import '../../widgets/myaza_button.dart';
+import '../../widgets/ui_button.dart';
 import '../../widgets/sticky_actions.dart';
 import 'street_view_chrome.dart';
 import '../../i18n/text_scope.dart';
-import '../../widgets/myaza_spinner.dart';
+import '../../widgets/ui_spinner.dart';
 
 // ─── Framed Street View ──────────────────────────────────────────────────────
 //
@@ -150,7 +150,7 @@ class _FramedStreetViewState extends State<FramedStreetView> {
             SizedBox(
               height: height,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(MyazaRadius.md),
+                borderRadius: BorderRadius.circular(UiRadius.md),
                 child: Stack(children: [
                   Positioned.fill(
                     child: ColoredBox(
@@ -177,7 +177,7 @@ class _FramedStreetViewState extends State<FramedStreetView> {
                         child: Center(
                           child: SizedBox.square(
                             dimension: 20,
-                            child: MyazaSpinner(
+                            child: UiSpinner(
                               strokeWidth: 2,
                               color: colors.primary,
                             ),
@@ -190,9 +190,9 @@ class _FramedStreetViewState extends State<FramedStreetView> {
               ),
             ),
             if (_ready) ...[
-              const SizedBox(height: MyazaSpacing.sm),
+              const SizedBox(height: UiSpacing.sm),
               Text(
-                context.kycText('address.entrance.frameHint'),
+                context.verificationText('address.entrance.frameHint'),
                 textAlign: TextAlign.center,
                 style: text.bodySmall.copyWith(color: colors.textSecondary),
               ),
@@ -202,14 +202,14 @@ class _FramedStreetViewState extends State<FramedStreetView> {
         actions: Row(children: [
           if (!widget.hideSkip) ...[
             Expanded(
-              child: MyazaButton.outline(
-                  label: context.kycText('common.skip'), onPressed: widget.onSkip),
+              child: UiButton.outline(
+                  label: context.verificationText('common.skip'), onPressed: widget.onSkip),
             ),
-            const SizedBox(width: MyazaSpacing.sm),
+            const SizedBox(width: UiSpacing.sm),
           ],
           Expanded(
-            child: MyazaButton(
-              label: context.kycText('address.entrance.useView'),
+            child: UiButton(
+              label: context.verificationText('address.entrance.useView'),
               onPressed: _ready ? () => _capture(viewport) : null,
             ),
           ),

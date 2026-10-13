@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../config/theme.dart';
-import '../../widgets/myaza_input.dart';
+import '../../widgets/ui_input.dart';
 import '../../widgets/icons/icons.dart';
-import '../../widgets/myaza_spinner.dart';
+import '../../widgets/ui_spinner.dart';
 
 /// The minimum a query must reach before either backend is asked. Below it the
 /// answer is noise and the request is wasted.
@@ -29,19 +29,19 @@ class AddressAutocompleteField extends StatelessWidget {
     return Semantics(
       textField: true,
       label: 'Search your address',
-      child: MyazaInput(
+      child: UiInput(
       controller: controller,
       hint: 'Search your address, e.g. 12 Adeola Odeku Street',
       autofocus: true,
       autocorrect: false,
       textInputAction: TextInputAction.search,
       onChanged: onChanged,
-      prefix: MyazaIcon(MyazaIcons.search, size: 16, color: colors.textSecondary),
+      prefix: UiIcon(UiIcons.search, size: 16, color: colors.textSecondary),
       suffix: busy
           ? SizedBox(
               width: 16,
               height: 16,
-              child: MyazaSpinner(
+              child: UiSpinner(
                   strokeWidth: 2, color: colors.textSecondary),
             )
           : null,
@@ -87,7 +87,7 @@ class _AddressBasicSearchFieldState extends State<AddressBasicSearchField> {
           child: Semantics(
             textField: true,
             label: 'Search your address',
-            child: MyazaInput(
+            child: UiInput(
               controller: widget.controller,
               hint: 'Search your address, e.g. 12 Adeola Odeku Street',
               autocorrect: false,
@@ -99,7 +99,7 @@ class _AddressBasicSearchFieldState extends State<AddressBasicSearchField> {
             ),
           ),
         ),
-        const SizedBox(width: MyazaSpacing.sm),
+        const SizedBox(width: UiSpacing.sm),
         Semantics(
           button: true,
           label: 'Search',
@@ -107,23 +107,23 @@ class _AddressBasicSearchFieldState extends State<AddressBasicSearchField> {
             color: Colors.transparent,
             child: InkWell(
               onTap: enabled ? widget.onSubmit : null,
-              borderRadius: BorderRadius.circular(MyazaRadius.sm),
+              borderRadius: BorderRadius.circular(UiRadius.sm),
               child: Container(
-                width: MyazaSizing.inputHeight,
-                height: MyazaSizing.inputHeight,
+                width: UiSizing.inputHeight,
+                height: UiSizing.inputHeight,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   border: Border.all(color: colors.border),
-                  borderRadius: BorderRadius.circular(MyazaRadius.sm),
+                  borderRadius: BorderRadius.circular(UiRadius.sm),
                 ),
                 child: widget.busy
                     ? SizedBox(
                         width: 16,
                         height: 16,
-                        child: MyazaSpinner(
+                        child: UiSpinner(
                             strokeWidth: 2, color: colors.primary),
                       )
-                    : MyazaIcon(MyazaIcons.search,
+                    : UiIcon(UiIcons.search,
                         size: 18,
                         color: enabled ? colors.primary : colors.gray400),
               ),

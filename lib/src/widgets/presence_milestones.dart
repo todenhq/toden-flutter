@@ -17,7 +17,7 @@ import 'icons/icons.dart';
 /// One node on the track. [active] nodes are filled; the rest are TINTED, not
 /// greyed out: they are the plan, not disabled controls.
 class PresenceMilestone {
-  final MyazaIconData icon;
+  final UiIconData icon;
   final String stage;
   final String title;
   final String caption;
@@ -59,12 +59,12 @@ class PresenceHeaderBand extends StatelessWidget {
       width: double.infinity,
       color: colors.primary.withValues(alpha: 0.06),
       padding: const EdgeInsets.fromLTRB(
-          MyazaSpacing.md, MyazaSpacing.md, MyazaSpacing.md, 12),
+          UiSpacing.md, UiSpacing.md, UiSpacing.md, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           badge,
-          const SizedBox(height: MyazaSpacing.xs),
+          const SizedBox(height: UiSpacing.xs),
           Text(title,
               style: compact
                   ? text.bodyMedium.copyWith(
@@ -95,13 +95,13 @@ class PresenceBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: colors.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(MyazaRadius.full),
+        borderRadius: BorderRadius.circular(UiRadius.full),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           leading,
-          const SizedBox(width: MyazaSpacing.sm),
+          const SizedBox(width: UiSpacing.sm),
           // Web's `text-[11px] font-semibold uppercase tracking-wider`, the
           // same numbers RN draws, so the three badges are one badge. The
           // label may SHRINK: the pill sits in rows that clear a thumbnail,
@@ -143,7 +143,7 @@ class PresenceCard extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border.all(color: colors.primary.withValues(alpha: 0.15)),
         // Web's rounded-2xl (16), the radius RN and the review card wear.
-        borderRadius: BorderRadius.circular(MyazaRadius.md),
+        borderRadius: BorderRadius.circular(UiRadius.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

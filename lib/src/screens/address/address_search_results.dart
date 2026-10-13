@@ -31,7 +31,7 @@ class AddressSearchResults extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         border: Border.all(color: colors.border),
-        borderRadius: BorderRadius.circular(MyazaRadius.md),
+        borderRadius: BorderRadius.circular(UiRadius.md),
       ),
       child: rows.isEmpty
           ? Padding(
@@ -86,10 +86,10 @@ class AddressSearchResultRow extends StatelessWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(top: 2),
-                  child: MyazaIcon(MyazaIcons.mapPin,
+                  child: UiIcon(UiIcons.mapPin,
                       size: 16, color: colors.primary),
                 ),
-                const SizedBox(width: MyazaSpacing.sm),
+                const SizedBox(width: UiSpacing.sm),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

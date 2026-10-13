@@ -5,9 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/business_application.dart';
 import '../config/theme.dart';
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 import '../services/api_service.dart';
-import '../widgets/myaza_button.dart';
+import '../widgets/ui_button.dart';
 import '../config/upload_limits.dart';
 import 'business_document_slot.dart';
 import 'document_pick.dart';
@@ -88,7 +88,7 @@ class _BusinessDocumentsScreenState
         ),
       );
       setState(() => _uploadingKey = null);
-    } on KYCApiException catch (e) {
+    } on VerificationApiException catch (e) {
       _fail(key, e.message ?? 'Upload failed. Please try again.');
       widget.onError?.call(e);
     } catch (_) {
@@ -118,7 +118,7 @@ class _BusinessDocumentsScreenState
   @override
   Widget build(BuildContext context) {
     final slots =
-        resolveBusinessDocumentTypes(ref.watch(kycConfigProvider).business);
+        resolveBusinessDocumentTypes(ref.watch(verificationConfigProvider).business);
     final uploads = ref.watch(kYCNotifierProvider).businessDocuments;
 
     BusinessDocumentUpload? uploadFor(String key) {
@@ -135,7 +135,7 @@ class _BusinessDocumentsScreenState
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // No lead paragraph: the step HEADER carries "Upload the supporting
-        // documents…" (myaza_kyc_widget.dart step meta, matching the web SDK's
+        // documents…" (verification_widget.dart step meta, matching the web SDK's
         // StepHeader) — repeating it here read as two descriptions stacked.
         for (final slot in slots)
           BusinessDocumentSlot(
@@ -152,9 +152,9 @@ class _BusinessDocumentsScreenState
             onRemove: () => _remove(slot.key),
           ),
 
-        const SizedBox(height: MyazaSpacing.lg),
-        MyazaButton(
-          label: context.kycText('common.continue'),
+        const SizedBox(height: UiSpacing.lg),
+        UiButton(
+          label: context.verificationText('common.continue'),
           onPressed: requiredComplete && _uploadingKey == null
               ? () => ref.read(kYCNotifierProvider.notifier).nextStep()
               : null,

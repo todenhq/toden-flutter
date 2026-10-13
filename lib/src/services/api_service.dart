@@ -27,17 +27,17 @@ part 'api_device.dart';
 // which SDK versions are in the wild and gate breaking API changes by version.
 // Keep in sync with pubspec.yaml `version`.
 
-const String kSdkVersion = '3.6.0';
+const String kSdkVersion = '3.7.0';
 
 // ─── Exception ────────────────────────────────────────────────────────────────
 
-class KYCApiException implements Exception {
+class VerificationApiException implements Exception {
   final int statusCode;
   final String error;
   final String? message;
   final Map<String, dynamic>? details;
 
-  const KYCApiException({
+  const VerificationApiException({
     required this.statusCode,
     required this.error,
     this.message,
@@ -46,12 +46,12 @@ class KYCApiException implements Exception {
 
   @override
   String toString() =>
-      'KYCApiException($statusCode): $error${message != null ? ' — $message' : ''}';
+      'VerificationApiException($statusCode): $error${message != null ? ' — $message' : ''}';
 }
 
 // ─── Upload ───────────────────────────────────────────────────────────────────
 
-/// Allowed media types for the /api/kyc/upload endpoint.
+/// Allowed media types for the /api/v1/upload endpoint.
 /// Matches the server's `TypeSchema` in routes/sdk/upload.ts.
 class MediaType {
   static const documentFront = 'document_front';
@@ -70,7 +70,7 @@ class MediaType {
   static const silentCapture = 'silent_capture';
 }
 
-/// Response from `POST /api/kyc/upload` — the stored mediaId referenced later
+/// Response from `POST /api/v1/upload` — the stored mediaId referenced later
 /// in the verify request.
 class UploadResponse {
   final String mediaId;
@@ -81,7 +81,7 @@ class UploadResponse {
       UploadResponse(mediaId: json['mediaId'] as String);
 }
 
-/// Response from `POST /api/kyc/document-capture/check`: what the server's
+/// Response from `POST /api/v1/document-capture/check`: what the server's
 /// decision-time detectors made of one uploaded document side. `false` =
 /// looked and found nothing (ask for a retake), `true` = fine, `null` = not
 /// applicable or could not look (treated as fine).
@@ -654,7 +654,7 @@ class VerifyResponse {
 
 // ─── Contact verification (email / phone OTP) ────────────────────────────────
 
-/// Response from `POST /api/kyc/contact/send`.
+/// Response from `POST /api/v1/contact/send`.
 class ContactSendResponse {
   final String challengeId;
   final String? expiresAt;
@@ -674,7 +674,7 @@ class ContactSendResponse {
       );
 }
 
-/// Response from `POST /api/kyc/contact/check` — the single-use proof token.
+/// Response from `POST /api/v1/contact/check` — the single-use proof token.
 class ContactCheckResponse {
   final bool verified;
   final String token;
@@ -829,7 +829,7 @@ class StatusResponse {
 
 // ─── Config (ID-type access + per-ID feature flags) ─────────────────────────
 
-/// Per-ID feature toggles returned by /api/kyc/config. Mirrors the server's
+/// Per-ID feature toggles returned by /api/v1/config. Mirrors the server's
 /// `resolveFeatureAccess` output after global kill-switch + per-ID override
 /// + org-wide default precedence.
 class SdkIdTypeFeatures {
@@ -961,7 +961,7 @@ class SdkConfigResponse {
       );
 }
 
-// ─── Workflow resolution (GET /api/kyc/workflows/:id) ────────────────────────
+// ─── Workflow resolution (GET /api/v1/workflows/:id) ────────────────────────
 
 /// The template config carried by a resolved workflow. Only the keys the
 /// Flutter SDK currently supports are parsed into typed fields; the full
@@ -978,7 +978,7 @@ class WorkflowFlowConfig {
   final bool? allowDocumentScan;
   final bool? enableLiveness;
   final bool? showThemeToggle;
-  /// Raw wire value; parsed by MyazaProgressStyle.fromJson at merge time.
+  /// Raw wire value; parsed by VerificationProgressStyle.fromJson at merge time.
   final String? progressStyle;
   final bool? disableClose;
   final Map<String, dynamic>? appearance;
@@ -1031,7 +1031,7 @@ class WorkflowFlowConfig {
       );
 }
 
-/// Response from `GET /api/kyc/workflows/:id` — one round trip hydrates the SDK
+/// Response from `GET /api/v1/workflows/:id` — one round trip hydrates the SDK
 /// (config + granted idTypes + branding), so `/config` is skipped.
 class WorkflowResolution {
   final String flowId;
@@ -1046,7 +1046,7 @@ class WorkflowResolution {
   /// resolved server-side. Null when absent or dangling.
   final ApplicantWorkflow? applicantWorkflow;
 
-  /// The same address-capability facts `/api/kyc/config` serves, mirrored on
+  /// The same address-capability facts `/api/v1/config` serves, mirrored on
   /// the workflow resolution BECAUSE a workflow mount skips `/config`: without
   /// them a workflow embed silently lost the search step, the framed Google
   /// map, the Street View framer and the geo default while a prop-configured
@@ -1147,7 +1147,7 @@ class HealthResponse {
 
 // ─── API service ─────────────────────────────────────────────────────────────
 
-class KYCApiService {
+class VerificationApiService {
   final Dio _dio;
 
   /// Resolved base URL the SDK talks to (see `resolveBaseUrl`).
@@ -1158,7 +1158,7 @@ class KYCApiService {
   /// Supplied only while Device Intelligence is on (fingerprint_payload.dart).
   final Future<String?> Function()? deviceId;
 
-  KYCApiService({
+  VerificationApiService({
     required this.baseUrl,
     required this.apiKey,
     this.deviceId,
@@ -1189,7 +1189,7 @@ class KYCApiService {
 
   // ── Upload — store a media file during capture ────────────────────────────
   //
-  // Single multipart/form-data request to POST /api/kyc/upload. The bytes go to
+  // Single multipart/form-data request to POST /api/v1/upload. The bytes go to
   // our server, which stores them in R2 and returns { mediaId } — referenced
   // later in the verify request.
   // [type] must be one of MediaType.* (document_front | document_back | selfie | *_video).
@@ -1220,7 +1220,7 @@ class KYCApiService {
 
       final uploadDeviceId = await _uploadDeviceId();
       final res = await _dio.post<Map<String, dynamic>>(
-        '/api/kyc/upload',
+        '/api/v1/upload',
         data: form,
         options: Options(
           contentType: 'multipart/form-data',
@@ -1247,7 +1247,7 @@ class KYCApiService {
     try {
       final uploadDeviceId = await _uploadDeviceId();
       final res = await _dio.post<Map<String, dynamic>>(
-        '/api/kyc/upload/signature',
+        '/api/v1/upload/signature',
         data: drawing.toJson(),
         options: Options(
           contentType: 'application/json',
@@ -1286,7 +1286,7 @@ class KYCApiService {
     try {
       final response = await _dio
           .post<Map<String, dynamic>>(
-            '/api/kyc/document-capture/check',
+            '/api/v1/document-capture/check',
             data: {
               'mediaId': mediaId,
               'side': side,
@@ -1329,7 +1329,7 @@ class KYCApiService {
   Future<VerifyResponse> verify(VerifyRequest request) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
-        '/api/kyc/verify',
+        '/api/v1/verify',
         data: request.toJson(),
         options: Options(contentType: 'application/json'),
       );
@@ -1357,7 +1357,7 @@ class KYCApiService {
   }) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
-        '/api/kyc/session/start',
+        '/api/v1/session/start',
         data: {
           if (externalUserId != null) 'externalUserId': externalUserId,
           if (deviceRef != null) 'deviceRef': deviceRef,
@@ -1377,7 +1377,7 @@ class KYCApiService {
   Future<void> saveProgress(String sessionId, Map<String, dynamic> progress) async {
     try {
       await _dio.put<void>(
-        '/api/kyc/session/${Uri.encodeComponent(sessionId)}/progress',
+        '/api/v1/session/${Uri.encodeComponent(sessionId)}/progress',
         data: progress,
         options: Options(contentType: 'application/json'),
       );
@@ -1400,7 +1400,7 @@ class KYCApiService {
   }) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
-        '/api/kyc/business/select',
+        '/api/v1/business/select',
         data: {
           'sessionId': sessionId,
           'country': country,
@@ -1431,7 +1431,7 @@ class KYCApiService {
   }) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
-        '/api/kyc/business/search',
+        '/api/v1/business/search',
         queryParameters: {
           'country': country,
           'query': query,
@@ -1450,7 +1450,7 @@ class KYCApiService {
   Future<BusinessRegionsResponse> businessRegions(String country) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
-        '/api/kyc/business/regions',
+        '/api/v1/business/regions',
         queryParameters: {'country': country},
       );
       return BusinessRegionsResponse.fromJson(response.data!);
@@ -1464,7 +1464,7 @@ class KYCApiService {
   Future<StatusResponse> status(String verificationId) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
-        '/api/kyc/status/$verificationId',
+        '/api/v1/status/$verificationId',
       );
       return StatusResponse.fromJson(response.data!);
     } on DioException catch (e) {
@@ -1485,7 +1485,7 @@ class KYCApiService {
   Future<SessionSummaryResponse> sessionSummary(String sessionId) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
-        '/api/kyc/session/${Uri.encodeComponent(sessionId)}/summary',
+        '/api/v1/session/${Uri.encodeComponent(sessionId)}/summary',
       );
       return SessionSummaryResponse.fromJson(response.data!);
     } on DioException catch (e) {
@@ -1502,7 +1502,7 @@ class KYCApiService {
   /// is exactly the read this SDK did before Active Authentication existed.
   Future<AaChallenge> nfcChallenge() async {
     try {
-      final response = await _dio.post<Map<String, dynamic>>('/api/kyc/nfc/challenge');
+      final response = await _dio.post<Map<String, dynamic>>('/api/v1/nfc/challenge');
       final body = response.data!;
       return AaChallenge(
         id: body['challengeId'] as String,
@@ -1515,7 +1515,7 @@ class KYCApiService {
 
   Future<SdkConfigResponse> config() async {
     try {
-      final response = await _dio.get<Map<String, dynamic>>('/api/kyc/config');
+      final response = await _dio.get<Map<String, dynamic>>('/api/v1/config');
       return SdkConfigResponse.fromJson(rebaseServerAssets(response.data!, baseUrl));
     } on DioException catch (e) {
       throw _mapDioError(e);
@@ -1524,7 +1524,7 @@ class KYCApiService {
 
   // ── Workflow resolution — hydrate the SDK from a published flow ──────────────
   //
-  // GET /api/kyc/workflows/:id. Auth: publishable key (Bearer pk_*). Returns the
+  // GET /api/v1/workflows/:id. Auth: publishable key (Bearer pk_*). Returns the
   // flow config + granted idTypes + branding in one round trip, so /config is
   // skipped. A wrong org / environment / unpublished / unknown id is a uniform
   // 404 (mapped to `workflow_not_found` by the server).
@@ -1532,7 +1532,7 @@ class KYCApiService {
   Future<WorkflowResolution> workflow(String workflowId) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
-        '/api/kyc/workflows/${Uri.encodeComponent(workflowId)}',
+        '/api/v1/workflows/${Uri.encodeComponent(workflowId)}',
       );
       return WorkflowResolution.fromJson(rebaseServerAssets(response.data!, baseUrl));
     } on DioException catch (e) {
@@ -1554,7 +1554,7 @@ class KYCApiService {
   }) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
-        '/api/kyc/contact/send',
+        '/api/v1/contact/send',
         data: {
           'channel': channel,
           'destination': destination,
@@ -1578,7 +1578,7 @@ class KYCApiService {
   }) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
-        '/api/kyc/contact/check',
+        '/api/v1/contact/check',
         data: {'challengeId': challengeId, 'code': code},
         options: Options(contentType: 'application/json'),
       );
@@ -1592,7 +1592,7 @@ class KYCApiService {
 
   Future<HealthResponse> healthCheck() async {
     try {
-      final response = await _dio.get<Map<String, dynamic>>('/api/kyc/health');
+      final response = await _dio.get<Map<String, dynamic>>('/api/health');
       return HealthResponse.fromJson(response.data!);
     } on DioException catch (e) {
       throw _mapDioError(e);
@@ -1601,7 +1601,7 @@ class KYCApiService {
 
   // ── Error mapping ──────────────────────────────────────────────────────────
 
-  KYCApiException _mapDioError(DioException e, {String? fallbackError}) {
+  VerificationApiException _mapDioError(DioException e, {String? fallbackError}) {
     final statusCode = e.response?.statusCode ?? 0;
     final data = e.response?.data;
     String error = fallbackError ?? 'network_error';
@@ -1628,7 +1628,7 @@ class KYCApiService {
       message ??= 'Invalid or revoked API key.';
     }
 
-    return KYCApiException(
+    return VerificationApiException(
       statusCode: statusCode,
       error: error,
       message: message,

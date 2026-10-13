@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../config/contact_verification.dart';
 import '../config/theme.dart';
-import 'myaza_input.dart';
+import 'ui_input.dart';
 
 // ─── OTP input ────────────────────────────────────────────────────────────────
 //
@@ -60,7 +60,7 @@ class _OtpInputState extends State<OtpInput> {
   @override
   Widget build(BuildContext context) {
     if (widget.style == OtpInputStyle.text) {
-      return MyazaInput(
+      return UiInput(
         controller: _controller,
         hint: '•' * widget.length,
         keyboardType: TextInputType.number,
@@ -85,7 +85,7 @@ class _OtpInputState extends State<OtpInput> {
               Expanded(
                 child: Padding(
                   padding: EdgeInsets.only(
-                    right: i == widget.length - 1 ? 0 : MyazaSpacing.xs,
+                    right: i == widget.length - 1 ? 0 : UiSpacing.xs,
                   ),
                   child: AspectRatio(
                     aspectRatio: 0.82,
@@ -99,7 +99,7 @@ class _OtpInputState extends State<OtpInput> {
                               : colors.border,
                           width: i < _controller.text.length ? 1.5 : 1.0,
                         ),
-                        borderRadius: BorderRadius.circular(MyazaRadius.md),
+                        borderRadius: BorderRadius.circular(UiRadius.md),
                       ),
                       child: Text(
                         i < _controller.text.length ? _controller.text[i] : '',

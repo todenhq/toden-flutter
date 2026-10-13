@@ -6,7 +6,7 @@ import 'icons/icons.dart';
 
 // ─── Input ────────────────────────────────────────────────────────────────────
 
-class MyazaInput extends StatefulWidget {
+class UiInput extends StatefulWidget {
   final String? label;
 
   /// Marks the label with an asterisk in the error colour: a field the flow
@@ -33,7 +33,7 @@ class MyazaInput extends StatefulWidget {
   final VoidCallback? onTap;
 
   /// Compact overrides for inline fields (e.g. the 40px search-results filter,
-  /// mirroring the RN MyazaInput's height/fontSize props). Null = the standard
+  /// mirroring the RN UiInput's height/fontSize props). Null = the standard
   /// 48px field at body size.
   final double? height;
   final double? fontSize;
@@ -44,7 +44,7 @@ class MyazaInput extends StatefulWidget {
   /// keyboard preferred. Defaults on, like the platform.
   final bool autocorrect;
 
-  const MyazaInput({
+  const UiInput({
     super.key,
     this.label,
     this.required = false,
@@ -73,10 +73,10 @@ class MyazaInput extends StatefulWidget {
   });
 
   @override
-  State<MyazaInput> createState() => _MyazaInputState();
+  State<UiInput> createState() => _UiInputState();
 }
 
-class _MyazaInputState extends State<MyazaInput> {
+class _UiInputState extends State<UiInput> {
   late bool _obscured;
 
   @override
@@ -89,7 +89,7 @@ class _MyazaInputState extends State<MyazaInput> {
 
   static OutlineInputBorder _border(Color color, {double width = 1.0}) =>
       OutlineInputBorder(
-        borderRadius: BorderRadius.circular(MyazaRadius.sm),
+        borderRadius: BorderRadius.circular(UiRadius.sm),
         borderSide: BorderSide(color: color, width: width),
       );
 
@@ -101,8 +101,8 @@ class _MyazaInputState extends State<MyazaInput> {
     final text   = context.myazaText;
     final hasError = widget.errorText != null && widget.errorText!.isNotEmpty;
     final fieldStyle = widget.fontSize != null
-        ? text.body.copyWith(fontSize: widget.fontSize)
-        : text.body;
+        ? text.input.copyWith(fontSize: widget.fontSize)
+        : text.input;
     // The standard field is 48px = 22px of text + 13px padding either side;
     // a height override keeps the text centred by taking the difference off
     // the vertical padding.
@@ -115,8 +115,8 @@ class _MyazaInputState extends State<MyazaInput> {
     if (widget.obscureText) {
       suffixIcon = GestureDetector(
         onTap: () => setState(() => _obscured = !_obscured),
-        child: MyazaIcon(
-          _obscured ? MyazaIcons.eyeOff : MyazaIcons.eye,
+        child: UiIcon(
+          _obscured ? UiIcons.eyeOff : UiIcons.eye,
           size: 20,
           color: colors.textMuted,
         ),
@@ -168,7 +168,7 @@ class _MyazaInputState extends State<MyazaInput> {
         suffixIcon: suffixIcon != null
             ? Padding(
                 // RN's input holds its suffix `md` in from the edge.
-                padding: const EdgeInsets.only(right: MyazaSpacing.md),
+                padding: const EdgeInsets.only(right: UiSpacing.md),
                 child: Align(alignment: Alignment.centerRight, child: suffixIcon),
               )
             : null,
@@ -176,20 +176,20 @@ class _MyazaInputState extends State<MyazaInput> {
             const BoxConstraints(minWidth: 40, minHeight: 0),
         // Borders
         enabledBorder: _border(
-          hasError ? MyazaColors.error : colors.border,
+          hasError ? UiColors.error : colors.border,
           width: hasError ? 1.5 : 1.0,
         ),
         focusedBorder: _border(
-          hasError ? MyazaColors.error : colors.primary,
+          hasError ? UiColors.error : colors.primary,
           width: 2.0,
         ),
-        errorBorder: _border(MyazaColors.error, width: 1.5),
-        focusedErrorBorder: _border(MyazaColors.error, width: 2.0),
+        errorBorder: _border(UiColors.error, width: 1.5),
+        focusedErrorBorder: _border(UiColors.error, width: 2.0),
         disabledBorder: _border(colors.gray300),
         // Sizing — use contentPadding to achieve 48px height for single-line
         // (or the caller's height override, e.g. the 40px results filter)
         contentPadding: EdgeInsets.symmetric(
-          horizontal: MyazaSpacing.md,
+          horizontal: UiSpacing.md,
           vertical: verticalPad,
         ),
         filled: true,
@@ -220,30 +220,30 @@ class _MyazaInputState extends State<MyazaInput> {
               if (widget.required)
                 TextSpan(
                   text: ' *',
-                  style: text.label.copyWith(color: MyazaColors.error),
+                  style: text.label.copyWith(color: UiColors.error),
                 ),
             ],
           )),
-          const SizedBox(height: MyazaSpacing.xs),
+          const SizedBox(height: UiSpacing.xs),
         ],
         field,
         if (hasError) ...[
-          const SizedBox(height: MyazaSpacing.xs),
+          const SizedBox(height: UiSpacing.xs),
           Row(
             children: [
-              const MyazaIcon(MyazaIcons.circleAlert,
-                  size: 14, color: MyazaColors.error),
+              const UiIcon(UiIcons.circleAlert,
+                  size: 14, color: UiColors.error),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   widget.errorText!,
-                  style: text.bodySmall.copyWith(color: MyazaColors.error),
+                  style: text.bodySmall.copyWith(color: UiColors.error),
                 ),
               ),
             ],
           ),
         ] else if (widget.helperText != null) ...[
-          const SizedBox(height: MyazaSpacing.xs),
+          const SizedBox(height: UiSpacing.xs),
           Text(widget.helperText!, style: text.bodySmall),
         ],
       ],

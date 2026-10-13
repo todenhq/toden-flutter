@@ -35,13 +35,13 @@ class KeyPersonKindToggle extends StatelessWidget {
           selected: selected,
           label: label,
           child: InkWell(
-            borderRadius: BorderRadius.circular(MyazaRadius.lg),
+            borderRadius: BorderRadius.circular(UiRadius.lg),
             onTap: () => onChanged(value),
             child: Container(
               height: 44,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(MyazaRadius.lg),
+                borderRadius: BorderRadius.circular(UiRadius.lg),
                 border: Border.all(
                   color: selected ? colors.primary : colors.border,
                 ),
@@ -66,10 +66,10 @@ class KeyPersonKindToggle extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text('Who is this?', style: text.label),
-        const SizedBox(height: MyazaSpacing.xs),
+        const SizedBox(height: UiSpacing.xs),
         Row(children: [
           option(false, 'A person'),
-          const SizedBox(width: MyazaSpacing.sm),
+          const SizedBox(width: UiSpacing.sm),
           option(true, 'A company'),
         ]),
       ],

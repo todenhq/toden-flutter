@@ -1,4 +1,4 @@
-import '../services/api_service.dart' show KYCApiException;
+import '../services/api_service.dart' show VerificationApiException;
 
 // ─── A cancelled session ─────────────────────────────────────────────────────
 //
@@ -30,7 +30,7 @@ const String kSessionCancelledMessage =
 
 /// Whether [error] is the server refusing a cancelled session.
 bool isSessionCancelledError(Object? error) =>
-    error is KYCApiException && error.error == kSessionCancelledCode;
+    error is VerificationApiException && error.error == kSessionCancelledCode;
 
 /// The words to show for a cancellation: the server's own message when it sent
 /// one, otherwise the SDK's sentence.
@@ -42,7 +42,7 @@ String sessionCancelledText(String? serverMessage) {
 /// The message for a cancelled-session refusal, or null when [error] is
 /// anything else.
 String? sessionCancelledMessageFor(Object? error) => isSessionCancelledError(error)
-    ? sessionCancelledText((error as KYCApiException).message)
+    ? sessionCancelledText((error as VerificationApiException).message)
     : null;
 
 /// Whether a failed `/session/start` must STOP the flow.

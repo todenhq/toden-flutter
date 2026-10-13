@@ -4,7 +4,7 @@ import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/upload_limits.dart';
 import 'package:myaza_kyc_sdk_flutter/src/screens/proof_of_address_parts.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/myaza_spinner.dart';
+import 'package:myaza_kyc_sdk_flutter/src/widgets/ui_spinner.dart';
 
 // The proof-of-address step used to say "Tap to upload an image or PDF" — which
 // never told the user WHICH of the offered document kinds to supply, and after
@@ -12,7 +12,7 @@ import 'package:myaza_kyc_sdk_flutter/src/widgets/myaza_spinner.dart';
 // the drop zone names the document, and the uploaded row is removable.
 
 Widget host(Widget child) => MaterialApp(
-      theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+      theme: ThemeData(extensions: const [UiColorScheme.light]),
       home: Scaffold(body: SizedBox(width: 390, child: child)),
     );
 
@@ -49,7 +49,7 @@ void main() {
       )));
 
       expect(find.text('Uploading…'), findsOneWidget);
-      expect(find.byType(MyazaSpinner), findsOneWidget);
+      expect(find.byType(UiSpinner), findsOneWidget);
 
       await tester.tap(find.byType(PoaDropzone), warnIfMissed: false);
       await tester.pump();

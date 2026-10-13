@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
 import '../i18n/text_scope.dart';
-import 'myaza_spinner.dart';
+import 'ui_spinner.dart';
 
 /// Held while the register is reconciled against what the applicant typed.
 ///
@@ -49,12 +49,12 @@ class _KeyPeoplePendingState extends State<KeyPeoplePending>
   Widget build(BuildContext context) {
     final text = context.myazaText;
     final colors = context.myazaColors;
-    final t = context.kycText;
+    final t = context.verificationText;
     final opacity = Tween<double>(begin: 1.0, end: 0.45)
         .animate(CurvedAnimation(parent: _pulse, curve: Curves.easeInOut));
 
     return Padding(
-      padding: const EdgeInsets.only(top: MyazaSpacing.lg),
+      padding: const EdgeInsets.only(top: UiSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -71,12 +71,12 @@ class _KeyPeoplePendingState extends State<KeyPeoplePending>
                       SizedBox(
                         width: 16,
                         height: 16,
-                        child: MyazaSpinner(
+                        child: UiSpinner(
                           strokeWidth: 2,
                           color: colors.primary,
                         ),
                       ),
-                      const SizedBox(width: MyazaSpacing.sm),
+                      const SizedBox(width: UiSpacing.sm),
                       Flexible(
                         child: Text(
                           t('keyPeople.pending.title'),
@@ -86,7 +86,7 @@ class _KeyPeoplePendingState extends State<KeyPeoplePending>
                       ),
                     ],
                   ),
-                  const SizedBox(height: MyazaSpacing.xs),
+                  const SizedBox(height: UiSpacing.xs),
                   // Naming the authority is the reassurance: the pause is the
                   // official register being consulted, not the app hanging.
                   Text(
@@ -98,7 +98,7 @@ class _KeyPeoplePendingState extends State<KeyPeoplePending>
               ),
             ),
           ),
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
           // The ghost roster: geometry, not information — hidden from
           // assistive tech, the live region above carries the message.
           ExcludeSemantics(
@@ -109,7 +109,7 @@ class _KeyPeoplePendingState extends State<KeyPeoplePending>
                   alignment: Alignment.centerLeft,
                   child: _GhostBar(opacity: opacity, width: 64, height: 10, color: colors.border),
                 ),
-                const SizedBox(height: MyazaSpacing.xs + 2),
+                const SizedBox(height: UiSpacing.xs + 2),
                 _GhostCard(opacity: opacity, colors: colors, withLink: true),
                 _GhostCard(opacity: opacity, colors: colors),
               ],
@@ -125,17 +125,17 @@ class _GhostCard extends StatelessWidget {
   const _GhostCard({required this.opacity, required this.colors, this.withLink = false});
 
   final Animation<double> opacity;
-  final MyazaColorScheme colors;
+  final UiColorScheme colors;
   final bool withLink;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: MyazaSpacing.sm),
-      padding: const EdgeInsets.all(MyazaSpacing.md),
+      margin: const EdgeInsets.only(bottom: UiSpacing.sm),
+      padding: const EdgeInsets.all(UiSpacing.md),
       decoration: BoxDecoration(
         color: colors.backgroundSecondary,
-        borderRadius: BorderRadius.circular(MyazaRadius.md),
+        borderRadius: BorderRadius.circular(UiRadius.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -153,12 +153,12 @@ class _GhostCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: MyazaSpacing.sm),
+              const SizedBox(width: UiSpacing.sm),
               _GhostBar(opacity: opacity, width: 76, height: 22, color: colors.border, round: true),
             ],
           ),
           if (withLink) ...[
-            const SizedBox(height: MyazaSpacing.sm + 4),
+            const SizedBox(height: UiSpacing.sm + 4),
             _GhostBar(opacity: opacity, height: 38, color: colors.primary100, round: true),
           ],
         ],

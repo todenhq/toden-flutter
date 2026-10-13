@@ -30,7 +30,7 @@ extension _PoaUploadOps on _ProofOfAddressScreenState {
           .read(kYCNotifierProvider.notifier)
           .setProofOfAddress(mediaId, (_type ?? PoaDocumentType.other).key);
       _rebuild(() => _uploading = false);
-    } on KYCApiException catch (e) {
+    } on VerificationApiException catch (e) {
       _failUpload(e.message ?? 'Upload failed. Please try again.');
       widget.onError?.call(e);
     } catch (e) {

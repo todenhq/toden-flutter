@@ -3,10 +3,10 @@ import 'dart:math';
 import 'package:flutter/material.dart' show Color;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-// KYCEnvironment is internal (not exported from the barrel) — import the source
+// VerificationEnvironment is internal (not exported from the barrel) — import the source
 // for the detection tests.
-import 'package:myaza_kyc_sdk_flutter/src/config/kyc_config.dart'
-    show KYCEnvironment, parseHexColor;
+import 'package:myaza_kyc_sdk_flutter/src/config/verification_config.dart'
+    show VerificationEnvironment, parseHexColor;
 // Workflow merge machinery is internal — imported from source for its tests.
 import 'package:myaza_kyc_sdk_flutter/src/config/workflow_merge.dart';
 import 'package:myaza_kyc_sdk_flutter/src/providers/step_order.dart';
@@ -113,9 +113,9 @@ void main() {
 
   // ── Config defaults ──────────────────────────────────────────────────────────
 
-  group('MyazaKYCConfig defaults', () {
+  group('VerificationConfig defaults', () {
     test('enableSelfie defaults to true', () {
-      const config = MyazaKYCConfig(
+      const config = VerificationConfig(
         apiKey: 'key',
         country: 'NG',
       );
@@ -128,12 +128,12 @@ void main() {
   // ── Workflow merge (flow wins, props fill gaps) ──────────────────────────────
 
   group('mergeWorkflowIntoConfig', () {
-    const base = MyazaKYCConfig(
+    const base = VerificationConfig(
       apiKey: 'pk_test_x',
       country: 'NG',
       idTypes: ['bvn'],
       enableLiveness: true,
-      appearance: MyazaKYCAppearance(companyName: 'Acme', logo: 'default'),
+      appearance: VerificationAppearance(companyName: 'Acme', logo: 'default'),
       userId: 'usr_1',
     );
 
@@ -236,51 +236,51 @@ void main() {
   // ── Step order (single source of truth for navigation + progress) ────────────
 
   group('buildStepOrder', () {
-    const config = MyazaKYCConfig(apiKey: 'pk_test_x', country: 'NG');
+    const config = VerificationConfig(apiKey: 'pk_test_x', country: 'NG');
 
     test('number-only ID → id-input path (no document-capture)', () {
       final state =
-          const KYCState().copyWith(selectedIdType: curatedIdType('NG', 'bvn'));
+          const VerificationState().copyWith(selectedIdType: curatedIdType('NG', 'bvn'));
       expect(buildStepOrder(config, state), [
-        KYCStep.consent,
-        KYCStep.idType,
-        KYCStep.idInput,
-        KYCStep.liveness,
-        KYCStep.submitted,
+        VerificationStep.consent,
+        VerificationStep.idType,
+        VerificationStep.idInput,
+        VerificationStep.liveness,
+        VerificationStep.submitted,
       ]);
     });
 
     test('document ID → document-capture path (no id-input)', () {
-      final state = const KYCState()
+      final state = const VerificationState()
           .copyWith(selectedIdType: curatedIdType('NG', 'passport'));
       expect(buildStepOrder(config, state), [
-        KYCStep.consent,
-        KYCStep.idType,
-        KYCStep.documentCapture,
-        KYCStep.liveness,
-        KYCStep.submitted,
+        VerificationStep.consent,
+        VerificationStep.idType,
+        VerificationStep.documentCapture,
+        VerificationStep.liveness,
+        VerificationStep.submitted,
       ]);
     });
 
     test('liveness disabled → liveness step omitted', () {
-      const noLive = MyazaKYCConfig(
+      const noLive = VerificationConfig(
         apiKey: 'pk_test_x',
         country: 'NG',
         enableLiveness: false,
       );
       final state =
-          const KYCState().copyWith(selectedIdType: curatedIdType('NG', 'bvn'));
-      expect(buildStepOrder(noLive, state).contains(KYCStep.liveness), isFalse);
+          const VerificationState().copyWith(selectedIdType: curatedIdType('NG', 'bvn'));
+      expect(buildStepOrder(noLive, state).contains(VerificationStep.liveness), isFalse);
     });
 
     test('before an ID is picked, defaults to the document-capture path', () {
-      final order = buildStepOrder(config, const KYCState());
-      expect(order.contains(KYCStep.documentCapture), isTrue);
-      expect(order.contains(KYCStep.idInput), isFalse);
+      final order = buildStepOrder(config, const VerificationState());
+      expect(order.contains(VerificationStep.documentCapture), isTrue);
+      expect(order.contains(VerificationStep.idInput), isFalse);
     });
 
     test('multi-region config inserts a country-select step before id-type', () {
-      const multi = MyazaKYCConfig(
+      const multi = VerificationConfig(
         apiKey: 'pk_test_x',
         country: 'NG',
         countries: [
@@ -289,22 +289,22 @@ void main() {
         ],
       );
       final state =
-          const KYCState().copyWith(selectedIdType: curatedIdType('NG', 'bvn'));
+          const VerificationState().copyWith(selectedIdType: curatedIdType('NG', 'bvn'));
       final order = buildStepOrder(multi, state);
-      expect(order.contains(KYCStep.countrySelect), isTrue);
-      expect(order.indexOf(KYCStep.countrySelect),
-          lessThan(order.indexOf(KYCStep.idType)));
+      expect(order.contains(VerificationStep.countrySelect), isTrue);
+      expect(order.indexOf(VerificationStep.countrySelect),
+          lessThan(order.indexOf(VerificationStep.idType)));
     });
 
     test('single-country config has no country-select step', () {
       final state =
-          const KYCState().copyWith(selectedIdType: curatedIdType('NG', 'bvn'));
-      expect(buildStepOrder(config, state).contains(KYCStep.countrySelect),
+          const VerificationState().copyWith(selectedIdType: curatedIdType('NG', 'bvn'));
+      expect(buildStepOrder(config, state).contains(VerificationStep.countrySelect),
           isFalse);
     });
 
     test('a picked country overrides the config country (effectiveCountry)', () {
-      const multi = MyazaKYCConfig(
+      const multi = VerificationConfig(
         apiKey: 'pk_test_x',
         country: 'NG',
         countries: [
@@ -312,9 +312,9 @@ void main() {
           WorkflowCountryOption(country: 'GH'),
         ],
       );
-      expect(effectiveCountry(multi, const KYCState()), 'NG'); // default
+      expect(effectiveCountry(multi, const VerificationState()), 'NG'); // default
       expect(
-        effectiveCountry(multi, const KYCState().copyWith(selectedCountry: 'GH')),
+        effectiveCountry(multi, const VerificationState().copyWith(selectedCountry: 'GH')),
         'GH',
       );
     });
@@ -361,7 +361,7 @@ void main() {
     });
 
     test('an active questionnaire inserts a step after liveness', () {
-      const cfg = MyazaKYCConfig(
+      const cfg = VerificationConfig(
         apiKey: 'pk_test_x',
         country: 'NG',
         questionnaire: QuestionnaireConfig(fields: [
@@ -369,13 +369,13 @@ void main() {
         ]),
       );
       final state =
-          const KYCState().copyWith(selectedIdType: curatedIdType('NG', 'bvn'));
+          const VerificationState().copyWith(selectedIdType: curatedIdType('NG', 'bvn'));
       final order = buildStepOrder(cfg, state);
-      expect(order.contains(KYCStep.questionnaire), isTrue);
-      expect(order.indexOf(KYCStep.questionnaire),
-          greaterThan(order.indexOf(KYCStep.liveness)));
-      expect(order.indexOf(KYCStep.questionnaire),
-          lessThan(order.indexOf(KYCStep.submitted)));
+      expect(order.contains(VerificationStep.questionnaire), isTrue);
+      expect(order.indexOf(VerificationStep.questionnaire),
+          greaterThan(order.indexOf(VerificationStep.liveness)));
+      expect(order.indexOf(VerificationStep.questionnaire),
+          lessThan(order.indexOf(VerificationStep.submitted)));
     });
   });
 
@@ -398,19 +398,19 @@ void main() {
     });
 
     test('enabled config inserts a PoA step between liveness and submitted', () {
-      const cfg = MyazaKYCConfig(
+      const cfg = VerificationConfig(
         apiKey: 'pk_test_x',
         country: 'NG',
         proofOfAddress: ProofOfAddressConfig(enabled: true),
       );
       final state =
-          const KYCState().copyWith(selectedIdType: curatedIdType('NG', 'bvn'));
+          const VerificationState().copyWith(selectedIdType: curatedIdType('NG', 'bvn'));
       final order = buildStepOrder(cfg, state);
-      expect(order.contains(KYCStep.proofOfAddress), isTrue);
-      expect(order.indexOf(KYCStep.proofOfAddress),
-          greaterThan(order.indexOf(KYCStep.liveness)));
-      expect(order.indexOf(KYCStep.proofOfAddress),
-          lessThan(order.indexOf(KYCStep.submitted)));
+      expect(order.contains(VerificationStep.proofOfAddress), isTrue);
+      expect(order.indexOf(VerificationStep.proofOfAddress),
+          greaterThan(order.indexOf(VerificationStep.liveness)));
+      expect(order.indexOf(VerificationStep.proofOfAddress),
+          lessThan(order.indexOf(VerificationStep.submitted)));
     });
 
     test('document-type keys are the stable contract', () {
@@ -448,34 +448,34 @@ void main() {
     });
 
     test('email + phone steps sit after consent, email before phone', () {
-      const cfg = MyazaKYCConfig(
+      const cfg = VerificationConfig(
         apiKey: 'pk_test_x',
         country: 'NG',
         emailVerification: EmailVerificationConfig(enabled: true),
         phoneVerification: PhoneVerificationConfig(enabled: true),
       );
       final state =
-          const KYCState().copyWith(selectedIdType: curatedIdType('NG', 'bvn'));
+          const VerificationState().copyWith(selectedIdType: curatedIdType('NG', 'bvn'));
       final order = buildStepOrder(cfg, state);
-      expect(order.indexOf(KYCStep.contactEmail),
-          greaterThan(order.indexOf(KYCStep.consent)));
-      expect(order.indexOf(KYCStep.contactEmail),
-          lessThan(order.indexOf(KYCStep.contactPhone)));
-      expect(order.indexOf(KYCStep.contactPhone),
-          lessThan(order.indexOf(KYCStep.idType)));
+      expect(order.indexOf(VerificationStep.contactEmail),
+          greaterThan(order.indexOf(VerificationStep.consent)));
+      expect(order.indexOf(VerificationStep.contactEmail),
+          lessThan(order.indexOf(VerificationStep.contactPhone)));
+      expect(order.indexOf(VerificationStep.contactPhone),
+          lessThan(order.indexOf(VerificationStep.idType)));
     });
 
     test('only the enabled contact channel adds a step', () {
-      const emailOnly = MyazaKYCConfig(
+      const emailOnly = VerificationConfig(
         apiKey: 'pk_test_x',
         country: 'NG',
         emailVerification: EmailVerificationConfig(enabled: true),
       );
       final state =
-          const KYCState().copyWith(selectedIdType: curatedIdType('NG', 'bvn'));
+          const VerificationState().copyWith(selectedIdType: curatedIdType('NG', 'bvn'));
       final order = buildStepOrder(emailOnly, state);
-      expect(order.contains(KYCStep.contactEmail), isTrue);
-      expect(order.contains(KYCStep.contactPhone), isFalse);
+      expect(order.contains(VerificationStep.contactEmail), isTrue);
+      expect(order.contains(VerificationStep.contactPhone), isFalse);
     });
   });
 
@@ -504,41 +504,41 @@ void main() {
     });
 
     test('step order inserts nfc after document-capture for a chip-capable ID', () {
-      const cfg = MyazaKYCConfig(
+      const cfg = VerificationConfig(
         apiKey: 'pk_test_x',
         country: 'NG',
         nfc: NfcConfig(enabled: true),
       );
-      final state = const KYCState()
+      final state = const VerificationState()
           .copyWith(selectedIdType: curatedIdType('NG', 'passport'));
       final order = buildStepOrder(cfg, state);
-      expect(order.contains(KYCStep.nfc), isTrue);
-      expect(order.indexOf(KYCStep.nfc),
-          greaterThan(order.indexOf(KYCStep.documentCapture)));
-      expect(order.indexOf(KYCStep.nfc),
-          lessThan(order.indexOf(KYCStep.liveness)));
+      expect(order.contains(VerificationStep.nfc), isTrue);
+      expect(order.indexOf(VerificationStep.nfc),
+          greaterThan(order.indexOf(VerificationStep.documentCapture)));
+      expect(order.indexOf(VerificationStep.nfc),
+          lessThan(order.indexOf(VerificationStep.liveness)));
     });
 
     test('no nfc step for a non-chip-capable ID even when enabled', () {
-      const cfg = MyazaKYCConfig(
+      const cfg = VerificationConfig(
         apiKey: 'pk_test_x',
         country: 'NG',
         nfc: NfcConfig(enabled: true),
       );
       final state =
-          const KYCState().copyWith(selectedIdType: curatedIdType('NG', 'bvn'));
-      expect(buildStepOrder(cfg, state).contains(KYCStep.nfc), isFalse);
+          const VerificationState().copyWith(selectedIdType: curatedIdType('NG', 'bvn'));
+      expect(buildStepOrder(cfg, state).contains(VerificationStep.nfc), isFalse);
     });
 
     test('workflow idTypes selection excludes an unselected chip ID', () {
-      const cfg = MyazaKYCConfig(
+      const cfg = VerificationConfig(
         apiKey: 'pk_test_x',
         country: 'NG',
         nfc: NfcConfig(enabled: true, idTypes: ['GH/ghana-card']),
       );
-      final state = const KYCState()
+      final state = const VerificationState()
           .copyWith(selectedIdType: curatedIdType('NG', 'passport'));
-      expect(buildStepOrder(cfg, state).contains(KYCStep.nfc), isFalse);
+      expect(buildStepOrder(cfg, state).contains(VerificationStep.nfc), isFalse);
     });
   });
 
@@ -567,7 +567,7 @@ void main() {
     });
 
     test('merge sets subjectType=business, parses block, falls back country', () {
-      const base = MyazaKYCConfig(apiKey: 'pk_test_x', country: 'ZZ');
+      const base = VerificationConfig(apiKey: 'pk_test_x', country: 'ZZ');
       final merged = mergeWorkflowIntoConfig(
         base,
         const WorkflowFlowConfig(subjectType: 'business', raw: {
@@ -586,18 +586,18 @@ void main() {
     });
 
     test('business step order: consent → business-details → submitted', () {
-      const cfg = MyazaKYCConfig(
+      const cfg = VerificationConfig(
         apiKey: 'pk_test_x',
         country: 'NG',
         subjectType: 'business',
         business: WorkflowBusinessConfig(country: 'NG'),
       );
-      expect(buildStepOrder(cfg, const KYCState()),
-          [KYCStep.consent, KYCStep.businessDetails, KYCStep.submitted]);
+      expect(buildStepOrder(cfg, const VerificationState()),
+          [VerificationStep.consent, VerificationStep.businessDetails, VerificationStep.submitted]);
     });
 
     test('business flow inserts questionnaire when active', () {
-      const cfg = MyazaKYCConfig(
+      const cfg = VerificationConfig(
         apiKey: 'pk_test_x',
         country: 'NG',
         subjectType: 'business',
@@ -607,11 +607,11 @@ void main() {
               key: 'q', label: 'Q', type: QuestionnaireFieldType.text),
         ]),
       );
-      expect(buildStepOrder(cfg, const KYCState()), [
-        KYCStep.consent,
-        KYCStep.businessDetails,
-        KYCStep.questionnaire,
-        KYCStep.submitted,
+      expect(buildStepOrder(cfg, const VerificationState()), [
+        VerificationStep.consent,
+        VerificationStep.businessDetails,
+        VerificationStep.questionnaire,
+        VerificationStep.submitted,
       ]);
     });
   });
@@ -701,12 +701,12 @@ void main() {
 
   group('environment detection', () {
     test('derives the environment from the key prefix (pk_ and sk_)', () {
-      expect(detectEnvironment('pk_dev_abc'), KYCEnvironment.development);
-      expect(detectEnvironment('sk_dev_abc'), KYCEnvironment.development);
-      expect(detectEnvironment('pk_test_abc'), KYCEnvironment.sandbox);
-      expect(detectEnvironment('sk_test_abc'), KYCEnvironment.sandbox);
-      expect(detectEnvironment('pk_live_abc'), KYCEnvironment.production);
-      expect(detectEnvironment('sk_live_abc'), KYCEnvironment.production);
+      expect(detectEnvironment('pk_dev_abc'), VerificationEnvironment.development);
+      expect(detectEnvironment('sk_dev_abc'), VerificationEnvironment.development);
+      expect(detectEnvironment('pk_test_abc'), VerificationEnvironment.sandbox);
+      expect(detectEnvironment('sk_test_abc'), VerificationEnvironment.sandbox);
+      expect(detectEnvironment('pk_live_abc'), VerificationEnvironment.production);
+      expect(detectEnvironment('sk_live_abc'), VerificationEnvironment.production);
     });
 
     test('throws on an unrecognized / malformed key prefix', () {

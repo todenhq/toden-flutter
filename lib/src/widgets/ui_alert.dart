@@ -5,67 +5,67 @@ import 'icons/icons.dart';
 
 // ─── Variant ──────────────────────────────────────────────────────────────────
 
-enum MyazaAlertVariant { error, success, warning, info }
+enum UiAlertVariant { error, success, warning, info }
 
-extension _MyazaAlertVariantStyle on MyazaAlertVariant {
+extension _UiAlertVariantStyle on UiAlertVariant {
   Color get accentColor => switch (this) {
-        MyazaAlertVariant.error   => MyazaColors.error,
-        MyazaAlertVariant.success => MyazaColors.success,
-        MyazaAlertVariant.warning => MyazaColors.warning,
-        MyazaAlertVariant.info    => MyazaColors.info,
+        UiAlertVariant.error   => UiColors.error,
+        UiAlertVariant.success => UiColors.success,
+        UiAlertVariant.warning => UiColors.warning,
+        UiAlertVariant.info    => UiColors.info,
       };
 
-  Color bgColor(MyazaColorScheme colors) => switch (this) {
-        MyazaAlertVariant.error   => colors.errorBg,
-        MyazaAlertVariant.success => colors.successBg,
-        MyazaAlertVariant.warning => colors.warningBg,
-        MyazaAlertVariant.info    => colors.infoBg,
+  Color bgColor(UiColorScheme colors) => switch (this) {
+        UiAlertVariant.error   => colors.errorBg,
+        UiAlertVariant.success => colors.successBg,
+        UiAlertVariant.warning => colors.warningBg,
+        UiAlertVariant.info    => colors.infoBg,
       };
 
-  MyazaIconData get icon => switch (this) {
-        MyazaAlertVariant.error   => MyazaIcons.circleAlert,
-        MyazaAlertVariant.success => MyazaIcons.circleCheck,
-        MyazaAlertVariant.warning => MyazaIcons.triangleAlert,
-        MyazaAlertVariant.info    => MyazaIcons.info,
+  UiIconData get icon => switch (this) {
+        UiAlertVariant.error   => UiIcons.circleAlert,
+        UiAlertVariant.success => UiIcons.circleCheck,
+        UiAlertVariant.warning => UiIcons.triangleAlert,
+        UiAlertVariant.info    => UiIcons.info,
       };
 }
 
 // ─── Alert ────────────────────────────────────────────────────────────────────
 
-class MyazaAlert extends StatelessWidget {
+class UiAlert extends StatelessWidget {
   final String title;
   final String? message;
-  final MyazaAlertVariant variant;
+  final UiAlertVariant variant;
   final VoidCallback? onDismiss;
 
-  const MyazaAlert({
+  const UiAlert({
     super.key,
     required this.title,
     this.message,
-    this.variant = MyazaAlertVariant.info,
+    this.variant = UiAlertVariant.info,
     this.onDismiss,
   });
 
-  const MyazaAlert.error({
+  const UiAlert.error({
     super.key,
     required this.title,
     this.message,
     this.onDismiss,
-  }) : variant = MyazaAlertVariant.error;
+  }) : variant = UiAlertVariant.error;
 
-  const MyazaAlert.success({
+  const UiAlert.success({
     super.key,
     required this.title,
     this.message,
     this.onDismiss,
-  }) : variant = MyazaAlertVariant.success;
+  }) : variant = UiAlertVariant.success;
 
-  const MyazaAlert.warning({
+  const UiAlert.warning({
     super.key,
     required this.title,
     this.message,
     this.onDismiss,
-  }) : variant = MyazaAlertVariant.warning;
+  }) : variant = UiAlertVariant.warning;
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +77,7 @@ class MyazaAlert extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(MyazaRadius.sm),
+        borderRadius: BorderRadius.circular(UiRadius.sm),
         border: Border.all(color: accent.withValues(alpha: 0.25)),
       ),
       clipBehavior: Clip.hardEdge,
@@ -92,14 +92,14 @@ class MyazaAlert extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: MyazaSpacing.md,
-                  vertical: MyazaSpacing.sm + 2,
+                  horizontal: UiSpacing.md,
+                  vertical: UiSpacing.sm + 2,
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    MyazaIcon(variant.icon, size: 18, color: accent),
-                    const SizedBox(width: MyazaSpacing.sm),
+                    UiIcon(variant.icon, size: 18, color: accent),
+                    const SizedBox(width: UiSpacing.sm),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,10 +122,10 @@ class MyazaAlert extends StatelessWidget {
                       ),
                     ),
                     if (onDismiss != null) ...[
-                      const SizedBox(width: MyazaSpacing.sm),
+                      const SizedBox(width: UiSpacing.sm),
                       GestureDetector(
                         onTap: onDismiss,
-                        child: MyazaIcon(MyazaIcons.x, size: 16, color: accent),
+                        child: UiIcon(UiIcons.x, size: 16, color: accent),
                       ),
                     ],
                   ],

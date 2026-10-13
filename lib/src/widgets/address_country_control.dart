@@ -6,7 +6,7 @@ import '../config/id_types.dart' show countryLabel;
 import '../config/inferred_country.dart';
 import '../config/scope.dart';
 import '../config/theme.dart';
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 import 'country_field.dart';
 import 'country_flag.dart';
 
@@ -40,7 +40,7 @@ class AddressCountryControl extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final config = ref.watch(kycConfigProvider);
+    final config = ref.watch(verificationConfigProvider);
     if (configScope(config.scope) != 'address') return const SizedBox.shrink();
 
     final state = ref.watch(kYCNotifierProvider);
@@ -64,26 +64,26 @@ class AddressCountryControl extends ConsumerWidget {
     if (offered.length == 1) {
       final only = offered.single;
       return Padding(
-        padding: const EdgeInsets.only(bottom: MyazaSpacing.lg),
+        padding: const EdgeInsets.only(bottom: UiSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text('Country', style: text.label),
-            const SizedBox(height: MyazaSpacing.xs),
+            const SizedBox(height: UiSpacing.xs),
             Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: MyazaSpacing.md,
-                vertical: MyazaSpacing.md,
+                horizontal: UiSpacing.md,
+                vertical: UiSpacing.md,
               ),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(MyazaRadius.sm),
+                borderRadius: BorderRadius.circular(UiRadius.sm),
                 border: Border.all(color: colors.border),
                 color: colors.backgroundSecondary,
               ),
               child: Row(
                 children: [
-                  MyazaCountryFlag(country: only, size: 20),
-                  const SizedBox(width: MyazaSpacing.sm),
+                  UiCountryFlag(country: only, size: 20),
+                  const SizedBox(width: UiSpacing.sm),
                   Expanded(
                     child: Text(
                       countryLabel(only),
@@ -101,12 +101,12 @@ class AddressCountryControl extends ConsumerWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: MyazaSpacing.lg),
+      padding: const EdgeInsets.only(bottom: UiSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text('Country', style: text.label),
-          const SizedBox(height: MyazaSpacing.xs),
+          const SizedBox(height: UiSpacing.xs),
           CountryField(
             country: value,
             codes: offered,

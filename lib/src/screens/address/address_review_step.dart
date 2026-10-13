@@ -7,10 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'address_sandbox_tabs.dart';
 import '../../config/address_field_modes.dart';
 import '../../config/theme.dart';
-import '../../providers/kyc_provider.dart';
+import '../../providers/verification_provider.dart';
 import '../../services/api_service.dart';
-import '../../providers/kyc_state.dart';
-import '../../widgets/myaza_button.dart';
+import '../../providers/verification_state.dart';
+import '../../widgets/ui_button.dart';
 import 'address_flow_scaffold.dart';
 import 'address_review_card.dart';
 import '../../i18n/text_scope.dart';
@@ -31,7 +31,7 @@ class AddressReviewStep extends ConsumerStatefulWidget {
 class _AddressReviewStepState extends ConsumerState<AddressReviewStep>
     with AddressFlowScaffold<AddressReviewStep> {
   @override
-  KYCStep get step => KYCStep.addressReview;
+  VerificationStep get step => VerificationStep.addressReview;
 
   /// The framed Street View entrance, fetched through the SERVER: the browser
   /// key lives in the framed page, never in this SDK, so a frame captured
@@ -65,7 +65,7 @@ class _AddressReviewStepState extends ConsumerState<AddressReviewStep>
 
   void _edit() => ref
       .read(kYCNotifierProvider.notifier)
-      .goToStep(KYCStep.addressCollection);
+      .goToStep(VerificationStep.addressCollection);
 
   @override
   Widget buildBody(BuildContext context) {
@@ -101,13 +101,13 @@ class _AddressReviewStepState extends ConsumerState<AddressReviewStep>
           buildError(context),
           if (missing.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: MyazaSpacing.sm),
+              padding: const EdgeInsets.only(top: UiSpacing.sm),
               child: Wrap(
                 crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: MyazaSpacing.xs,
+                spacing: UiSpacing.xs,
                 children: [
                   Text(missingFieldsNudge(missing),
-                      style: text.bodySmall.copyWith(color: MyazaColors.error)),
+                      style: text.bodySmall.copyWith(color: UiColors.error)),
                   GestureDetector(
                     onTap: _edit,
                     child: Text('Edit details',
@@ -119,11 +119,11 @@ class _AddressReviewStepState extends ConsumerState<AddressReviewStep>
                 ],
               ),
             ),
-          const SizedBox(height: MyazaSpacing.lg),
+          const SizedBox(height: UiSpacing.lg),
           const AddressSandboxTabs(),
-          const SizedBox(height: MyazaSpacing.md),
-          MyazaButton(
-            label: context.kycText('address.review.confirm'),
+          const SizedBox(height: UiSpacing.md),
+          UiButton(
+            label: context.verificationText('address.review.confirm'),
             isLoading: flow.confirming,
             onPressed: pin == null || flow.confirming || missing.isNotEmpty
                 ? null

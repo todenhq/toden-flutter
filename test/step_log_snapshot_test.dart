@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_state.dart';
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
 import 'package:myaza_kyc_sdk_flutter/src/utils/step_log.dart';
 
 // The step log powers the dashboard's verification timeline.
@@ -15,7 +15,7 @@ void main() {
   setUp(StepLog.reset);
 
   test('survives a plain step', () {
-    StepLog.record(KYCStep.consent);
+    StepLog.record(VerificationStep.consent);
     final snap = StepLog.snapshot();
     expect(snap, isNotNull);
     expect((snap!['steps'] as List).single['step'], 'consent');
@@ -23,7 +23,7 @@ void main() {
   });
 
   test('survives a multi-ID step carrying an int slot — the case that threw', () {
-    StepLog.record(KYCStep.idType, slot: 2, idType: 'passport');
+    StepLog.record(VerificationStep.idType, slot: 2, idType: 'passport');
     final steps = StepLog.snapshot()!['steps'] as List;
     expect(steps.single['slot'], 2);
     expect(steps.single['idType'], 'passport');
@@ -32,18 +32,18 @@ void main() {
   test('emits the kebab-case wire names, never the Dart enum names', () {
     // The server's timeline titles key off these, and camelCase would match
     // nothing — the events would be dropped rather than mislabelled.
-    StepLog.record(KYCStep.documentCapture);
-    StepLog.record(KYCStep.contactEmail);
+    StepLog.record(VerificationStep.documentCapture);
+    StepLog.record(VerificationStep.contactEmail);
     final steps = StepLog.snapshot()!['steps'] as List;
     expect(steps.map((e) => e['step']), ['document-capture', 'email-verification']);
   });
 
   test('collapses a consecutive duplicate but keeps a genuine revisit', () {
-    StepLog.record(KYCStep.idType, slot: 1, idType: 'nin');
-    StepLog.record(KYCStep.idType, slot: 1, idType: 'nin');
+    StepLog.record(VerificationStep.idType, slot: 1, idType: 'nin');
+    StepLog.record(VerificationStep.idType, slot: 1, idType: 'nin');
     // A NEW check on the same screen is a different visit, not a duplicate —
     // the server cannot tell a slot advance from a back-press without this.
-    StepLog.record(KYCStep.idType, slot: 2, idType: 'bvn');
+    StepLog.record(VerificationStep.idType, slot: 2, idType: 'bvn');
     expect((StepLog.snapshot()!['steps'] as List).length, 2);
   });
 

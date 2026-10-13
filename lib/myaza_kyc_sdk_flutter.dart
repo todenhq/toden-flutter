@@ -2,26 +2,26 @@
 ///
 /// Import this single file to access everything:
 ///   import 'package:kyc_sdk_flutter/kyc_sdk_flutter.dart';
-library kyc_sdk_flutter;
+library myaza_kyc_sdk_flutter;
 
 // Config
-export 'src/config/kyc_config.dart'
+export 'src/config/verification_config.dart'
     show
-        MyazaProgressStyle,
-        MyazaThemeMode,
-        MyazaKYCAppearance,
-        KYCConsentContent,
-        KYCSuccessContent,
+        VerificationProgressStyle,
+        VerificationThemeMode,
+        VerificationAppearance,
+        VerificationConsentContent,
+        VerificationSuccessContent,
         LivenessConfig,
         VoiceGuidanceConfig,
         UserData,
         WorkflowCountryOption,
-        MyazaKYCConfig,
-        KYCSubmission,
-        KYCError;
+        VerificationConfig,
+        VerificationSubmission,
+        VerificationError;
 
 // The verdict callback payload (a flow that waits for its result in the app).
-export 'src/config/kyc_result.dart' show KYCResult;
+export 'src/config/verification_result.dart' show VerificationResult;
 
 // The biometric scopes' flow options (selfie review, where the verdict lands,
 // the Done button), resolved the same way on the server and every SDK.
@@ -120,7 +120,7 @@ export 'src/config/address_flow.dart'
 // Presence verification (Address Intelligence Phase 2): the foreground
 // reporter the HOST APP calls on app open, plus the on-device pin store.
 export 'src/presence/presence_reporter.dart'
-    show MyazaAddressPresence, PresenceReportReason, PresenceReportResult;
+    show AddressPresence, PresenceReportReason, PresenceReportResult;
 // savePresencePin is the org-side handoff for STANDALONE address
 // verification: when capture happened on a hosted web link (or the org's own
 // backend already holds the address), the host app hands the SDK the pin so
@@ -133,7 +133,7 @@ export 'src/presence/background_presence.dart'
     show
         BackgroundPresenceReason,
         EnableBackgroundResult,
-        MyazaBackgroundPresence,
+        BackgroundPresence,
         kGeofenceRadiusMeters;
 // The Android foreground-service tier (the OkHi reliability move): a
 // persistent notification keeps the process alive on phones whose battery
@@ -143,7 +143,7 @@ export 'src/presence/foreground_presence.dart'
     show
         EnableForegroundServiceResult,
         ForegroundServiceReason,
-        MyazaPresenceService,
+        PresenceService,
         PresenceNotification;
 export 'src/presence/presence_status.dart'
     show
@@ -230,11 +230,11 @@ export 'src/services/validators.dart'
 
 export 'src/config/theme.dart'
     show
-        MyazaColors,
-        MyazaTypography,
-        MyazaRadius,
-        MyazaSpacing,
-        MyazaSizing;
+        UiColors,
+        UiTypography,
+        UiRadius,
+        UiSpacing,
+        UiSizing;
 
 // Liveness types
 export 'src/liveness/liveness_types.dart'
@@ -269,24 +269,27 @@ export 'src/services/model_readiness.dart'
         primeFaceModel,
         primeTextModel;
 
-export 'src/providers/kyc_state.dart'
+export 'src/providers/verification_state.dart'
     show
-        KYCStep,
-        KYCMediaIds,
-        KYCSubmissionResult,
-        KYCState;
+        VerificationStep,
+        VerificationMediaIds,
+        VerificationSubmissionResult,
+        VerificationState;
 
 // Widgets
-export 'src/widgets/myaza_button.dart' show MyazaButton, MyazaButtonVariant;
-export 'src/widgets/myaza_input.dart' show MyazaInput;
-export 'src/widgets/myaza_card.dart' show MyazaCard;
-export 'src/widgets/myaza_alert.dart' show MyazaAlert, MyazaAlertVariant;
+export 'src/widgets/ui_button.dart' show UiButton, UiButtonVariant;
+export 'src/widgets/ui_input.dart' show UiInput;
+export 'src/widgets/ui_card.dart' show UiCard;
+export 'src/widgets/ui_alert.dart' show UiAlert, UiAlertVariant;
 export 'src/widgets/step_header.dart' show StepHeader;
-export 'src/widgets/kyc_bottom_sheet.dart' show KycBottomSheet;
+export 'src/widgets/verification_bottom_sheet.dart' show VerificationBottomSheet;
 
-// Entry widget (MyazaKYC.show + MyazaKYCWidget)
+// Entry widget (Verification.show + VerificationWidget)
 //
 // Face re-authentication runs through this same entry point: mount it with a
 // workflow whose scope is `biometric-authentication` and the flow walks the
 // liveness step and submits to /verify like every other scope.
-export 'src/widgets/myaza_kyc_widget.dart' show MyazaKYC, MyazaKYCWidget;
+export 'src/widgets/verification_widget.dart' show Verification, VerificationWidget;
+
+// The earlier names, kept as deprecated aliases.
+export 'src/deprecated_names.dart';

@@ -34,13 +34,13 @@ class BusinessPickedCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Business', style: text.label),
-        const SizedBox(height: MyazaSpacing.sm),
+        const SizedBox(height: UiSpacing.sm),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             border: Border.all(color: colors.primary),
             color: colors.primary50,
-            borderRadius: BorderRadius.circular(MyazaRadius.sm),
+            borderRadius: BorderRadius.circular(UiRadius.sm),
           ),
           child: Row(
             children: [
@@ -54,7 +54,7 @@ class BusinessPickedCard extends StatelessWidget {
                   color: colors.primary,
                   shape: BoxShape.circle,
                 ),
-                child: MyazaIcon(MyazaIcons.building2,
+                child: UiIcon(UiIcons.building2,
                     size: 20, color: colors.onPrimary),
               ),
               const SizedBox(width: 12),
@@ -73,7 +73,7 @@ class BusinessPickedCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        MyazaCountryFlag(country: country, size: 14),
+                        UiCountryFlag(country: country, size: 14),
                         const SizedBox(width: 6),
                         Text(
                           registrationNumber,
@@ -88,14 +88,14 @@ class BusinessPickedCard extends StatelessWidget {
               const SizedBox(width: 12),
               InkWell(
                 onTap: onChange,
-                borderRadius: BorderRadius.circular(MyazaRadius.xs),
+                borderRadius: BorderRadius.circular(UiRadius.xs),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 4, vertical: MyazaSpacing.xs),
+                      horizontal: 4, vertical: UiSpacing.xs),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      MyazaIcon(MyazaIcons.pencil,
+                      UiIcon(UiIcons.pencil,
                           size: 14, color: colors.textDark),
                       const SizedBox(width: 6),
                       Text(

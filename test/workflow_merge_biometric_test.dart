@@ -6,7 +6,7 @@ import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
 // The biometric block rides the workflow merge PER FIELD, like appearance: a
 // flow that only switches the review on must not wipe a host's hidden Done.
 void main() {
-  const base = MyazaKYCConfig(
+  const base = VerificationConfig(
     apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     country: 'NG',
     biometric: BiometricFlowConfig(doneButton: false),
@@ -33,7 +33,7 @@ void main() {
         },
       },
     });
-    const host = MyazaKYCConfig(
+    const host = VerificationConfig(
       apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       country: 'NG',
       userData: UserData(firstName: 'Ada'),

@@ -113,13 +113,13 @@ class _DocumentReviewState extends State<DocumentReview> {
               width: 20,
               height: 20,
               decoration: BoxDecoration(
-                color: MyazaColors.success.withValues(alpha: 0.15),
+                color: UiColors.success.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: const MyazaIcon(MyazaIcons.check,
-                  size: 13, color: MyazaColors.success),
+              child: const UiIcon(UiIcons.check,
+                  size: 13, color: UiColors.success),
             ),
-            const SizedBox(width: MyazaSpacing.xs),
+            const SizedBox(width: UiSpacing.xs),
             Text(
               widget.uploadOnly
                   ? (twoSided ? 'Both sides added' : 'Photo added')
@@ -128,7 +128,7 @@ class _DocumentReviewState extends State<DocumentReview> {
             ),
           ],
         ),
-        const SizedBox(height: MyazaSpacing.md),
+        const SizedBox(height: UiSpacing.md),
 
         Expanded(
           child: LayoutBuilder(
@@ -146,7 +146,7 @@ class _DocumentReviewState extends State<DocumentReview> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     for (var i = 0; i < sides.length; i++) ...[
-                      if (i > 0) const SizedBox(width: MyazaSpacing.sm),
+                      if (i > 0) const SizedBox(width: UiSpacing.sm),
                       Expanded(
                         child: DocumentReviewThumb(
                           side: sides[i],
@@ -160,9 +160,9 @@ class _DocumentReviewState extends State<DocumentReview> {
                     ],
                   ],
                 ),
-                const SizedBox(height: MyazaSpacing.xs),
+                const SizedBox(height: UiSpacing.xs),
                     Text(
-                      context.kycText('uploadDocument.review.tapToEnlarge'),
+                      context.verificationText('uploadDocument.review.tapToEnlarge'),
                       style: text.bodySmall.copyWith(color: colors.textMuted),
                       textAlign: TextAlign.center,
                     ),
@@ -183,9 +183,9 @@ class _DocumentReviewState extends State<DocumentReview> {
         Padding(
           key: kDocumentReviewFooterKey,
           padding: EdgeInsets.only(
-            top: MyazaSpacing.md,
+            top: UiSpacing.md,
             bottom: MediaQueryData.fromView(View.of(context)).viewPadding.bottom +
-                MyazaSpacing.sm,
+                UiSpacing.sm,
           ),
           child: widget.footer,
         ),

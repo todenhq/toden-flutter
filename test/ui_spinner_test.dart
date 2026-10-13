@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/myaza_pulse_loader.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/myaza_spinner.dart';
+import 'package:myaza_kyc_sdk_flutter/src/widgets/ui_pulse_loader.dart';
+import 'package:myaza_kyc_sdk_flutter/src/widgets/ui_spinner.dart';
 
 // One loading spinner across the SDK: the web SDK's and the dashboard's own
 // (their `Loader2`, Hugeicons' Loading02). Material's indicator is a different
@@ -26,20 +26,20 @@ void main() {
   });
 
   test('fills a small loader box and half of a large one', () {
-    expect(MyazaPulseLoader.spinnerSize(20), 20);
-    expect(MyazaPulseLoader.spinnerSize(64), 32);
-    expect(MyazaPulseLoader.spinnerSize(80), 40);
+    expect(UiPulseLoader.spinnerSize(20), 20);
+    expect(UiPulseLoader.spinnerSize(64), 32);
+    expect(UiPulseLoader.spinnerSize(80), 40);
   });
 
   testWidgets('fills the box it is given, and is 36 across without one', (tester) async {
     await tester.pumpWidget(const MaterialApp(
-      home: Center(child: SizedBox(width: 20, height: 20, child: MyazaSpinner())),
+      home: Center(child: SizedBox(width: 20, height: 20, child: UiSpinner())),
     ));
     expect(tester.getSize(find.byType(RotationTransition).last), const Size(20, 20));
     await tester.pumpWidget(const MaterialApp(
       home: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: UnconstrainedBox(child: MyazaSpinner()),
+        child: UnconstrainedBox(child: UiSpinner()),
       ),
     ));
     expect(tester.getSize(find.byType(RotationTransition).last), const Size(36, 36));
@@ -50,7 +50,7 @@ void main() {
     final offenders = Directory('lib')
         .listSync(recursive: true)
         .whereType<File>()
-        .where((f) => f.path.endsWith('.dart') && !f.path.endsWith('myaza_spinner.dart'))
+        .where((f) => f.path.endsWith('.dart') && !f.path.endsWith('ui_spinner.dart'))
         .where((f) => f.readAsStringSync().contains('CircularProgressIndicator'))
         .map((f) => f.path)
         .toList();

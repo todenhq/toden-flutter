@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/kyc_bottom_sheet.dart';
+import 'package:myaza_kyc_sdk_flutter/src/widgets/verification_bottom_sheet.dart';
 
 /// iOS's numeric keypad has no done/return key, so a money field could summon
 /// a keyboard the user had no way to put away. The sheet now unfocuses on a
@@ -11,7 +11,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: KycBottomSheet(
+          body: VerificationBottomSheet(
             title: 'A few more questions',
             isFullScreen: true,
             child: Column(
@@ -30,7 +30,7 @@ void main() {
     expect(node.hasFocus, isTrue);
 
     // A tap on the empty area BELOW the field — not on any control.
-    await tester.tapAt(tester.getCenter(find.byType(KycBottomSheet)) + const Offset(0, 120));
+    await tester.tapAt(tester.getCenter(find.byType(VerificationBottomSheet)) + const Offset(0, 120));
     await tester.pump();
     expect(node.hasFocus, isFalse);
   });
@@ -42,7 +42,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: KycBottomSheet(
+          body: VerificationBottomSheet(
             title: 'A few more questions',
             isFullScreen: true,
             child: TextField(focusNode: node),

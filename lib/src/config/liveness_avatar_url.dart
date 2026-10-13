@@ -6,7 +6,7 @@ import '../utils/resolve_url.dart';
 // They used to be four GIFs inside this package — 5.7 MB, shipped to every
 // device whatever the workflow asked for, for a badge that is on screen for a
 // few seconds of the liveness step. They are served by the API instead
-// (`/api/kyc/assets/liveness/<gesture>.<ext>`), precached when liveness opens,
+// (`/api/v1/assets/liveness/<gesture>.<ext>`), precached when liveness opens,
 // and held in Flutter's image cache from then on.
 //
 // WEBP here, GIF on React Native — the one place the two SDKs deliberately
@@ -48,7 +48,7 @@ String? livenessAvatarUrl(
   if (gesture == null) return null;
   try {
     final base = resolveBaseUrl(apiKey, devUrl: devUrl);
-    return '$base/api/kyc/assets/liveness/'
+    return '$base/api/v1/assets/liveness/'
         '$gesture-transparent.$_livenessAvatarExtension';
   } catch (_) {
     return null;

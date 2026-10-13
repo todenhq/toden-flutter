@@ -39,7 +39,7 @@ class KeyPeopleUboExemption extends StatelessWidget {
     final colors = context.myazaColors;
 
     return Padding(
-      padding: const EdgeInsets.only(top: MyazaSpacing.sm + 4),
+      padding: const EdgeInsets.only(top: UiSpacing.sm + 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -50,7 +50,7 @@ class KeyPeopleUboExemption extends StatelessWidget {
               opacity: hasUbos ? 0.5 : 1,
               child: InkWell(
                 onTap: hasUbos ? null : () => onChanged(!checked),
-                borderRadius: BorderRadius.circular(MyazaRadius.sm),
+                borderRadius: BorderRadius.circular(UiRadius.sm),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -67,11 +67,11 @@ class KeyPeopleUboExemption extends StatelessWidget {
                         color: checked ? colors.primary : Colors.transparent,
                       ),
                       child: checked
-                          ? MyazaIcon(MyazaIcons.check,
+                          ? UiIcon(UiIcons.check,
                               size: 13, color: colors.onPrimary)
                           : null,
                     ),
-                    const SizedBox(width: MyazaSpacing.sm + 4),
+                    const SizedBox(width: UiSpacing.sm + 4),
                     Expanded(
                       child: Text(
                         'UBOs cannot be identified due to public share '

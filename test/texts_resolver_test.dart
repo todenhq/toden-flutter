@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/kyc_config.dart';
+import 'package:myaza_kyc_sdk_flutter/src/config/verification_config.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/workflow_merge.dart';
 import 'package:myaza_kyc_sdk_flutter/src/i18n/customisable_texts.dart';
 import 'package:myaza_kyc_sdk_flutter/src/i18n/text_scope.dart';
@@ -90,7 +90,7 @@ void main() {
   });
 
   group('the flow text function', () {
-    const base = MyazaKYCConfig(
+    const base = VerificationConfig(
       apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       country: 'NG',
       userData: UserData(firstName: 'Ada', lastName: 'Obi', businessName: 'Acme'),
@@ -104,7 +104,7 @@ void main() {
     });
 
     test('shows the texts in the configured language', () {
-      final config = MyazaKYCConfig(
+      final config = VerificationConfig(
         apiKey: base.apiKey,
         country: 'NG',
         texts: const {
@@ -147,7 +147,7 @@ void main() {
         'idTypes': <dynamic>[],
       });
       final merged = mergeWorkflowIntoConfig(
-        MyazaKYCConfig(
+        VerificationConfig(
           apiKey: base.apiKey,
           country: 'NG',
           texts: const {'fr': {'common.done': 'Terminé'}},

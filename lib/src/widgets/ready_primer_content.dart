@@ -13,7 +13,7 @@ import 'icons/icons.dart';
 @immutable
 class ReadyChecklistItem {
   const ReadyChecklistItem(this.icon, this.labelKey);
-  final MyazaIconData icon;
+  final UiIconData icon;
 
   /// Text key of the line (see i18n/).
   final String labelKey;
@@ -28,7 +28,7 @@ class ReadyContent {
     required this.checklist,
   });
 
-  final MyazaIconData icon;
+  final UiIconData icon;
   /// Text keys of the heading and the paragraph (see i18n/).
   final String titleKey;
   final String bodyKey;
@@ -38,38 +38,38 @@ class ReadyContent {
 }
 
 const readyDocument = ReadyContent(
-  icon: MyazaIcons.scanLine,
+  icon: UiIcons.scanLine,
   titleKey: 'primer.document.title',
   bodyKey: 'primer.document.body',
   checklist: [
-    ReadyChecklistItem(MyazaIcons.idCard, 'primer.document.checklist1'),
-    ReadyChecklistItem(MyazaIcons.sun, 'primer.document.checklist2'),
-    ReadyChecklistItem(MyazaIcons.timer, 'primer.document.checklist3'),
+    ReadyChecklistItem(UiIcons.idCard, 'primer.document.checklist1'),
+    ReadyChecklistItem(UiIcons.sun, 'primer.document.checklist2'),
+    ReadyChecklistItem(UiIcons.timer, 'primer.document.checklist3'),
   ],
 );
 
 const readyLiveness = ReadyContent(
-  icon: MyazaIcons.scanFace,
+  icon: UiIcons.scanFace,
   titleKey: 'primer.selfie.title',
   bodyKey: 'primer.selfie.body',
   checklist: [
-    ReadyChecklistItem(MyazaIcons.userRound, 'primer.selfie.checklist1'),
-    ReadyChecklistItem(MyazaIcons.glasses, 'primer.selfie.checklist2'),
-    ReadyChecklistItem(MyazaIcons.sun, 'primer.selfie.checklist4'),
-    ReadyChecklistItem(MyazaIcons.sparkles, 'primer.selfie.checklist5'),
+    ReadyChecklistItem(UiIcons.userRound, 'primer.selfie.checklist1'),
+    ReadyChecklistItem(UiIcons.glasses, 'primer.selfie.checklist2'),
+    ReadyChecklistItem(UiIcons.sun, 'primer.selfie.checklist4'),
+    ReadyChecklistItem(UiIcons.sparkles, 'primer.selfie.checklist5'),
   ],
 );
 
 /// Passive Liveness asks for no prompts, so its description says so.
 const readyLivenessPassive = ReadyContent(
-  icon: MyazaIcons.scanFace,
+  icon: UiIcons.scanFace,
   titleKey: 'primer.selfie.title',
   bodyKey: 'primer.selfie.bodyPassive',
   checklist: [
-    ReadyChecklistItem(MyazaIcons.userRound, 'primer.selfie.checklist1'),
-    ReadyChecklistItem(MyazaIcons.glasses, 'primer.selfie.checklist2'),
-    ReadyChecklistItem(MyazaIcons.sun, 'primer.selfie.checklist4'),
-    ReadyChecklistItem(MyazaIcons.sparkles, 'primer.selfie.checklist5'),
+    ReadyChecklistItem(UiIcons.userRound, 'primer.selfie.checklist1'),
+    ReadyChecklistItem(UiIcons.glasses, 'primer.selfie.checklist2'),
+    ReadyChecklistItem(UiIcons.sun, 'primer.selfie.checklist4'),
+    ReadyChecklistItem(UiIcons.sparkles, 'primer.selfie.checklist5'),
   ],
 );
 

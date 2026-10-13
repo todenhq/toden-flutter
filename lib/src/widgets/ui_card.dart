@@ -4,7 +4,7 @@ import '../config/theme.dart';
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
-class MyazaCard extends StatelessWidget {
+class UiCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
   final VoidCallback? onTap;
@@ -12,7 +12,7 @@ class MyazaCard extends StatelessWidget {
   final bool hasBorder;
   final double? borderRadius;
 
-  const MyazaCard({
+  const UiCard({
     super.key,
     required this.child,
     this.padding,
@@ -25,7 +25,7 @@ class MyazaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
-    final radius = BorderRadius.circular(borderRadius ?? MyazaRadius.md);
+    final radius = BorderRadius.circular(borderRadius ?? UiRadius.md);
 
     final decoration = BoxDecoration(
       color: backgroundColor ?? colors.background,
@@ -36,7 +36,7 @@ class MyazaCard extends StatelessWidget {
     if (onTap == null) {
       return Container(
         decoration: decoration,
-        padding: padding ?? const EdgeInsets.all(MyazaSpacing.md),
+        padding: padding ?? const EdgeInsets.all(UiSpacing.md),
         child: child,
       );
     }
@@ -50,7 +50,7 @@ class MyazaCard extends StatelessWidget {
         highlightColor: colors.primary.withValues(alpha: 0.04),
         child: Ink(
           decoration: decoration,
-          padding: padding ?? const EdgeInsets.all(MyazaSpacing.md),
+          padding: padding ?? const EdgeInsets.all(UiSpacing.md),
           child: child,
         ),
       ),

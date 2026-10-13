@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_state.dart';
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
 import 'package:myaza_kyc_sdk_flutter/src/providers/session_progress.dart';
 import 'package:myaza_kyc_sdk_flutter/src/providers/session_restore.dart';
 
@@ -14,7 +14,7 @@ import 'package:myaza_kyc_sdk_flutter/src/providers/session_restore.dart';
 void main() {
   test('round-trips the smart address (JSON ints included) and door photo', () {
     // JSON decodes 6 as int and 6.4281 as double — restore must take both.
-    final s = restoredState(const KYCState(), {
+    final s = restoredState(const VerificationState(), {
       'step': 'address-collection',
       'mediaIds': {'addressPhoto': 'med_9'},
       'data': {
@@ -33,7 +33,7 @@ void main() {
         },
       },
     });
-    expect(s.currentStep, KYCStep.addressCollection);
+    expect(s.currentStep, VerificationStep.addressCollection);
     expect(s.mediaIds.addressPhoto, 'med_9');
     expect(s.address?.lat, 6.0);
     expect(s.address?.lng, 3.4219);
@@ -51,7 +51,7 @@ void main() {
     expect(s.address?.capturedAt, isNull);
 
     final snapshot = progressFromState(s);
-    final replayed = restoredState(const KYCState(), snapshot);
+    final replayed = restoredState(const VerificationState(), snapshot);
     expect(replayed.address?.lat, 6.0);
     expect(replayed.address?.directions, 'black gate');
     expect(replayed.address?.label, '11 Bassey Street, Idim Ita, Calabar');
@@ -62,7 +62,7 @@ void main() {
   test('a wrong-typed address field is dropped, never crashed on', () {
     // The snapshot was written by WHATEVER build saved it, so a field that
     // arrives as the wrong shape degrades to restoring less.
-    final s = restoredState(const KYCState(), {
+    final s = restoredState(const VerificationState(), {
       'step': 'address-collection',
       'mediaIds': const <String, String>{},
       'data': {
@@ -89,7 +89,7 @@ void main() {
   });
 
   test('a snapshot with an unreadable pin is ignored, never half-restored', () {
-    final s = restoredState(const KYCState(), {
+    final s = restoredState(const VerificationState(), {
       'step': 'consent',
       'mediaIds': const <String, String>{},
       'data': {

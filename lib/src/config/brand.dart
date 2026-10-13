@@ -3,25 +3,23 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 /// Vendor brand constants for the SDK's own attribution — NOT the integrating
-/// org's branding (that comes from `/api/kyc/config`).
+/// org's branding (that comes from `/api/v1/config`).
 ///
-/// The platform is **Myaza Trust**, a product of **Myaza** (the parent company).
-/// Always the full product name: bare "Myaza" is the company, and a pipe
-/// ("Myaza | Trust") reads as a separator between two items rather than one
-/// name. See the naming rule in kyc-dashboard/CLAUDE.md.
-const String kProductName = 'Myaza Trust';
+/// The platform is **Toden** (it was Myaza Trust).
+const String kProductName = 'Toden';
 
 /// The product site — where "who are these people?" gets answered.
-const String kProductUrl = 'https://trust.myaza.co';
+const String kProductUrl = 'https://toden.co';
 
 /// Package name — required by `Image.asset(..., package:)` so the wordmark
 /// resolves from THIS package's bundle rather than the host app's.
 const String kPackageName = 'myaza_kyc_sdk_flutter';
 
-/// Wordmark assets. The icon keeps its brand colours in both themes; only the
-/// "myaza" lettering flips, so there are two files rather than a tint.
-const String kWordmarkAssetLight = 'assets/brand/myaza-wordmark-light.png';
-const String kWordmarkAssetDark = 'assets/brand/myaza-wordmark-dark.png';
+/// The Toden logo (the split-shield T beside "toden"). The ink flips with the
+/// surface and the shield's purple half steps lighter on dark, so there are two
+/// files rather than a tint. Rendered from kyc-dashboard's logo.svg.
+const String kWordmarkAssetLight = 'assets/brand/toden-wordmark-light.png';
+const String kWordmarkAssetDark = 'assets/brand/toden-wordmark-dark.png';
 
 /// End-user legal documents referenced by the consent screen. These are MYAZA's
 /// terms — the person consents to us processing their data as the verification
@@ -31,14 +29,14 @@ const String kWordmarkAssetDark = 'assets/brand/myaza-wordmark-dark.png';
 /// cost to every integrator, taken deliberately: consent given by tapping
 /// Continue is only INFORMED if the documents it references can be opened, and
 /// a printed address the user must retype is a poor substitute for that.
-const String kTermsUrl = 'https://trust.myaza.co/legal/terms';
-const String kPrivacyUrl = 'https://trust.myaza.co/legal/privacy';
+const String kTermsUrl = 'https://toden.co/legal/terms';
+const String kPrivacyUrl = 'https://toden.co/legal/privacy';
 
 /// Version of the consent wording. Consent is given by ACTING (tapping
 /// Continue) rather than ticking a box, so bump this whenever the copy changes
 /// materially and store it with the verification — otherwise nothing proves
 /// which disclosure was on screen. Keep in step with the web SDK's value.
-const String kConsentVersion = '2026-08-06.1';
+const String kConsentVersion = '2026-10-12.1';
 
 /// Tones the footer mark may use — the design system's INK and LIGHT text
 /// colours, not the brand purple.
@@ -48,12 +46,12 @@ const String kConsentVersion = '2026-08-06.1';
 /// the least important element on screen and reads as a clash rather than a
 /// signature. Every comparable vendor mark is monochrome for the same reason.
 ///
-/// Nothing is lost by it — the wordmark ASSET keeps its brand fills, so the
-/// Myaza identity is still carried by the logo while the text recedes.
+/// Nothing is lost by it — the logo ASSET keeps the shield's purple half, so
+/// the Toden identity is still carried by the logo while the text recedes.
 ///
 /// Mirrors the web and React Native SDKs — keep the list and the rule in step.
 const List<Color> _markTones = [
-  Color(0xFF070330),
+  Color(0xFF080A12),
   Color(0xFFF6F5FE),
 ];
 
@@ -70,7 +68,7 @@ double _contrastRatio(Color a, Color b) {
 ///
 /// The footer mark must NOT follow the org's palette: it is our attribution, and
 /// an org whose brand sits close to ours would otherwise get a mark that either
-/// stops reading as Myaza or vanishes into the background. Chosen by CONTRAST
+/// stops reading as ours or vanishes into the background. Chosen by CONTRAST
 /// rather than by light/dark, because an org can set any background — including
 /// mid-tones where neither variant is obviously right.
 ///

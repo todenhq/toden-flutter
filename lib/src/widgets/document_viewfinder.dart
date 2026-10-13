@@ -12,7 +12,7 @@ import 'document_scan_overlay.dart';
 import 'native_camera_preview.dart';
 import 'icons/icons.dart';
 import '../i18n/text_scope.dart';
-import 'myaza_spinner.dart';
+import 'ui_spinner.dart';
 
 /// Keys for the two controls whose overlap is a real (and once-shipped) bug:
 /// the hint sat behind the shutter. Layout tests target these.
@@ -160,7 +160,7 @@ class DocumentViewfinder extends StatelessWidget {
                 top: topInset,
                 left: 10,
                 child: _CircleButton(
-                  icon: MyazaIcons.arrowLeft,
+                  icon: UiIcons.arrowLeft,
                   onTap: onBack!,
                 ),
               ),
@@ -170,8 +170,8 @@ class DocumentViewfinder extends StatelessWidget {
             if (idType != null)
               Positioned(
                 top: topInset + 46,
-                left: MyazaSpacing.lg,
-                right: MyazaSpacing.lg,
+                left: UiSpacing.lg,
+                right: UiSpacing.lg,
                 child: Center(
                   child: DocumentInfoPill(idType: idType!, country: country),
                 ),
@@ -198,13 +198,13 @@ class DocumentViewfinder extends StatelessWidget {
                     // along the bottom of the page") wraps inside the screen
                     // instead of running to the edges.
                     padding: const EdgeInsets.fromLTRB(
-                        MyazaSpacing.lg, 0, MyazaSpacing.lg, MyazaSpacing.md),
+                        UiSpacing.lg, 0, UiSpacing.lg, UiSpacing.md),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 5),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(MyazaRadius.full),
+                        borderRadius: BorderRadius.circular(UiRadius.full),
                       ),
                       child: Text(
                         documentHintText(hint, label: hintLabel),
@@ -227,10 +227,10 @@ class DocumentViewfinder extends StatelessWidget {
                   if (onUpload != null && !isProcessing) ...[
                     TextButton.icon(
                       onPressed: onUpload,
-                      icon: const MyazaIcon(MyazaIcons.upload,
+                      icon: const UiIcon(UiIcons.upload,
                           size: 15, color: Colors.white),
                       label: Text(
-                        context.kycText('uploadDocument.camera.uploadInstead'),
+                        context.verificationText('uploadDocument.camera.uploadInstead'),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,
@@ -238,7 +238,7 @@ class DocumentViewfinder extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: MyazaSpacing.sm),
+                    const SizedBox(height: UiSpacing.sm),
                   ],
                   // Shutter row: the torch sits beside the shutter rather than
                   // up in the corner — it is a capture control, and this is
@@ -331,15 +331,15 @@ class _ViewfinderPlaceholder extends StatelessWidget {
             ? Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const MyazaIcon(MyazaIcons.videoOff,
+                  const UiIcon(UiIcons.videoOff,
                       color: Colors.white54, size: 36),
-                  const SizedBox(height: MyazaSpacing.sm),
+                  const SizedBox(height: UiSpacing.sm),
                   Text('Camera unavailable',
                       style: context.myazaText.bodySmall
                           .copyWith(color: Colors.white70)),
                 ],
               )
-            : MyazaSpinner(
+            : UiSpinner(
                 color: context.myazaColors.primary, strokeWidth: 2),
       ),
     );
@@ -356,8 +356,8 @@ class _SideBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: isBack ? MyazaColors.success : context.myazaColors.primary,
-        borderRadius: BorderRadius.circular(MyazaRadius.full),
+        color: isBack ? UiColors.success : context.myazaColors.primary,
+        borderRadius: BorderRadius.circular(UiRadius.full),
       ),
       child: Text(
         isBack ? 'BACK' : 'FRONT',
@@ -418,8 +418,8 @@ class _ShutterButton extends StatelessWidget {
             // A scan glyph rather than a camera one: this shutter reads a
             // document, and the corner-bracket shape echoes the guide the user
             // is lining the document up inside.
-            child: MyazaIcon(
-              MyazaIcons.scanLine,
+            child: UiIcon(
+              UiIcons.scanLine,
               size: 24,
               color: isEnabled ? Colors.white : Colors.white54,
             ),
@@ -439,7 +439,7 @@ class _ProcessingPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(MyazaRadius.full),
+        borderRadius: BorderRadius.circular(UiRadius.full),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -447,7 +447,7 @@ class _ProcessingPill extends StatelessWidget {
           const SizedBox(
             width: 14,
             height: 14,
-            child: MyazaSpinner(color: Colors.white, strokeWidth: 2),
+            child: UiSpinner(color: Colors.white, strokeWidth: 2),
           ),
           const SizedBox(width: 8),
           Text(
@@ -477,8 +477,8 @@ class _TorchButton extends StatelessWidget {
           shape: BoxShape.circle,
           color: on ? Colors.white : Colors.black.withValues(alpha: 0.45),
         ),
-        child: MyazaIcon(
-          on ? MyazaIcons.zap : MyazaIcons.zapOff,
+        child: UiIcon(
+          on ? UiIcons.zap : UiIcons.zapOff,
           size: 18,
           color: on ? context.myazaColors.primary : Colors.white,
         ),
@@ -490,7 +490,7 @@ class _TorchButton extends StatelessWidget {
 /// A round translucent control for the in-frame top row (back, and anything
 /// else the hidden chrome used to carry).
 class _CircleButton extends StatelessWidget {
-  final MyazaIconData icon;
+  final UiIconData icon;
   final VoidCallback onTap;
 
   const _CircleButton({required this.icon, required this.onTap});
@@ -506,7 +506,7 @@ class _CircleButton extends StatelessWidget {
           shape: BoxShape.circle,
           color: Colors.black.withValues(alpha: 0.45),
         ),
-        child: MyazaIcon(icon, size: 18, color: Colors.white),
+        child: UiIcon(icon, size: 18, color: Colors.white),
       ),
     );
   }

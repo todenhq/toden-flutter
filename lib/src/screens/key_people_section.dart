@@ -61,7 +61,7 @@ class KeyPeopleSectionView extends StatelessWidget {
             style: text.bodyMedium.copyWith(color: colors.textSecondary)),
 
         if (members.isNotEmpty) ...[
-          const SizedBox(height: MyazaSpacing.sm + 4),
+          const SizedBox(height: UiSpacing.sm + 4),
           for (final index in members)
             KeyPersonCard(
               entry: rows[index],
@@ -73,7 +73,7 @@ class KeyPeopleSectionView extends StatelessWidget {
         ],
 
         if (quickAdd.isNotEmpty && canAdd) ...[
-          const SizedBox(height: MyazaSpacing.sm + 4),
+          const SizedBox(height: UiSpacing.sm + 4),
           Text(
             'Quick add from people you already entered',
             style: text.bodySmall.copyWith(
@@ -82,7 +82,7 @@ class KeyPeopleSectionView extends StatelessWidget {
               letterSpacing: 0.6,
             ),
           ),
-          const SizedBox(height: MyazaSpacing.sm),
+          const SizedBox(height: UiSpacing.sm),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -97,7 +97,7 @@ class KeyPeopleSectionView extends StatelessWidget {
         ],
 
         if (canAdd) ...[
-          const SizedBox(height: MyazaSpacing.sm + 4),
+          const SizedBox(height: UiSpacing.sm + 4),
           KeyPeopleAddTile(label: addLabel, onTap: onAdd),
         ],
 

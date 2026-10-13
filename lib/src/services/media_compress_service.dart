@@ -27,7 +27,7 @@ void _logSize(String label, int beforeBytes, int afterBytes) {
   final pct = beforeBytes > 0
       ? (100 - afterBytes / beforeBytes * 100).toStringAsFixed(0)
       : '0';
-  debugPrint('[MyazaKYC] $label: ${kb(beforeBytes)} → ${kb(afterBytes)} (-$pct%)');
+  debugPrint('[Verification] $label: ${kb(beforeBytes)} → ${kb(afterBytes)} (-$pct%)');
 }
 
 // ─── Video ──────────────────────────────────────────────────────────────────

@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../utils/map_tiles.dart' show MapLatLng;
 import '../../config/theme.dart';
-import '../../providers/kyc_provider.dart';
-import '../../providers/kyc_state.dart';
+import '../../providers/verification_provider.dart';
+import '../../providers/verification_state.dart';
 import 'address_flow_scaffold.dart';
 import 'address_location_row.dart';
 import 'address_pin_move.dart';
@@ -27,7 +27,7 @@ class AddressSearchStep extends ConsumerStatefulWidget {
 class _AddressSearchStepState extends ConsumerState<AddressSearchStep>
     with AddressFlowScaffold<AddressSearchStep> {
   @override
-  KYCStep get step => KYCStep.addressSearch;
+  VerificationStep get step => VerificationStep.addressSearch;
 
   @override
   void initState() {
@@ -40,7 +40,7 @@ class _AddressSearchStepState extends ConsumerState<AddressSearchStep>
   }
 
   void _toPin() =>
-      ref.read(kYCNotifierProvider.notifier).goToStep(KYCStep.addressCollection);
+      ref.read(kYCNotifierProvider.notifier).goToStep(VerificationStep.addressCollection);
 
   @override
   Widget buildBody(BuildContext context) {
@@ -67,24 +67,24 @@ class _AddressSearchStepState extends ConsumerState<AddressSearchStep>
               _toPin();
             },
           ),
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
           CurrentLocationRow(
             hint: flow.fix?.label,
             locating: flow.locating,
             onTap: () => flow.applyCurrentFix(onDone: _toPin),
           ),
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
           Center(
             child: Semantics(
               button: true,
               child: InkWell(
                 onTap: _toPin,
-                borderRadius: BorderRadius.circular(MyazaRadius.xs),
+                borderRadius: BorderRadius.circular(UiRadius.xs),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      vertical: MyazaSpacing.sm, horizontal: MyazaSpacing.sm),
+                      vertical: UiSpacing.sm, horizontal: UiSpacing.sm),
                   child: Text(
-                    context.kycText('address.search.pinInstead'),
+                    context.verificationText('address.search.pinInstead'),
                     style: text.bodyMedium.copyWith(
                       color: colors.textSecondary,
                       decoration: TextDecoration.underline,

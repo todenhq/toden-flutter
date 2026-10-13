@@ -40,7 +40,7 @@ class KeyPersonRoleChips extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Role', style: text.label),
-        const SizedBox(height: MyazaSpacing.sm),
+        const SizedBox(height: UiSpacing.sm),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -85,7 +85,7 @@ class _Chip extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(MyazaRadius.full),
+        borderRadius: BorderRadius.circular(UiRadius.full),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           // 44pt tall including the padding, so a chip is a comfortable tap.
@@ -94,7 +94,7 @@ class _Chip extends StatelessWidget {
           decoration: BoxDecoration(
             color: active ? colors.primary : Colors.transparent,
             border: Border.all(color: active ? colors.primary : colors.border),
-            borderRadius: BorderRadius.circular(MyazaRadius.full),
+            borderRadius: BorderRadius.circular(UiRadius.full),
           ),
           child: Text(
             label,

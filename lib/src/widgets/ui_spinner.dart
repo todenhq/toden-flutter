@@ -53,7 +53,7 @@ Path spinnerPath([String data = kSpinnerPath]) {
   return path;
 }
 
-class MyazaSpinner extends StatefulWidget {
+class UiSpinner extends StatefulWidget {
   /// Defaults to the flow's primary colour.
   final Color? color;
 
@@ -64,13 +64,13 @@ class MyazaSpinner extends StatefulWidget {
   /// spinner is drawn at the icon's own stroke.
   final double? strokeWidth;
 
-  const MyazaSpinner({super.key, this.color, this.valueColor, this.strokeWidth});
+  const UiSpinner({super.key, this.color, this.valueColor, this.strokeWidth});
 
   @override
-  State<MyazaSpinner> createState() => _MyazaSpinnerState();
+  State<UiSpinner> createState() => _UiSpinnerState();
 }
 
-class _MyazaSpinnerState extends State<MyazaSpinner> with SingleTickerProviderStateMixin {
+class _UiSpinnerState extends State<UiSpinner> with SingleTickerProviderStateMixin {
   late final AnimationController _turn = AnimationController(vsync: this, duration: kSpinnerTurn)..repeat();
 
   @override

@@ -52,16 +52,16 @@ class _AddressMapStubState extends State<AddressMapStub> {
         painter: DashedRoundedBorder(color: colors.border, radius: 12),
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.all(MyazaSpacing.lg),
+            padding: const EdgeInsets.all(UiSpacing.lg),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                MyazaIcon(
-                  MyazaIcons.mapPinHouse,
+                UiIcon(
+                  UiIcons.mapPinHouse,
                   size: 32,
                   color: colors.textSecondary,
                 ),
-                const SizedBox(height: MyazaSpacing.sm),
+                const SizedBox(height: UiSpacing.sm),
                 Text(
                   'Applicants place their pin on a live map here. '
                   'The map loads only for real users.',

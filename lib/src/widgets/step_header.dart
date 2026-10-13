@@ -7,10 +7,10 @@ import 'icons/icons.dart';
 // ─── Step header ──────────────────────────────────────────────────────────────
 
 class StepHeader extends StatelessWidget {
-  /// Screen title rendered in Space Grotesk bold.
+  /// Screen title rendered in Bricolage Grotesque bold.
   final String title;
 
-  /// Optional subtitle rendered in Karla below the title.
+  /// Optional subtitle rendered in Bricolage Grotesque below the title.
   final String? description;
 
   /// Called when the back arrow is tapped.
@@ -48,7 +48,7 @@ class StepHeader extends StatelessWidget {
           children: [
             if (onBack != null) ...[
               _BackButton(onTap: onBack!, colors: colors),
-              const SizedBox(width: MyazaSpacing.sm),
+              const SizedBox(width: UiSpacing.sm),
             ],
             Expanded(
               child: Row(
@@ -58,8 +58,8 @@ class StepHeader extends StatelessWidget {
                     child: Text(title, style: text.heading2),
                   ),
                   if (country != null) ...[
-                    const SizedBox(width: MyazaSpacing.sm),
-                    MyazaCountryFlag(country: country, size: 20),
+                    const SizedBox(width: UiSpacing.sm),
+                    UiCountryFlag(country: country, size: 20),
                   ],
                 ],
               ),
@@ -70,11 +70,11 @@ class StepHeader extends StatelessWidget {
 
         // ── Description ────────────────────────────────────────────────────
         if (description != null && description!.isNotEmpty) ...[
-          const SizedBox(height: MyazaSpacing.xs),
+          const SizedBox(height: UiSpacing.xs),
           Padding(
             padding: EdgeInsets.only(
               left: onBack != null
-                  ? _BackButton.size + MyazaSpacing.sm
+                  ? _BackButton.size + UiSpacing.sm
                   : 0,
             ),
             child: Text(
@@ -98,7 +98,7 @@ class _BackButton extends StatelessWidget {
   static const double size = 40;
 
   final VoidCallback onTap;
-  final MyazaColorScheme colors;
+  final UiColorScheme colors;
 
   const _BackButton({required this.onTap, required this.colors});
 
@@ -111,9 +111,9 @@ class _BackButton extends StatelessWidget {
         width: size,
         height: size,
         child: Center(
-          child: MyazaIcon(
+          child: UiIcon(
             // The long-shaft Lucide arrow RN and the web draw.
-            MyazaIcons.moveLeft,
+            UiIcons.moveLeft,
             size: 22,
             color: colors.textDark.withValues(alpha: 0.8),
           ),

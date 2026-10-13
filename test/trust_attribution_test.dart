@@ -16,7 +16,7 @@ import 'package:myaza_kyc_sdk_flutter/src/widgets/powered_by_custom.dart';
 
 void main() {
   group('parsing', () {
-    test('missing, malformed or non-custom is Myaza', () {
+    test('missing, malformed or non-custom is Toden', () {
       for (final raw in [null, 'custom', 3, <String, dynamic>{}, {'mode': 'myaza'}, {'mode': 'other'}]) {
         expect(SdkTrustAttribution.fromJson(raw).isCustom, isFalse, reason: '$raw');
       }
@@ -41,7 +41,7 @@ void main() {
       expect(a.logo, isNull);
     });
 
-    test('rides the config branding, and an older server means Myaza', () {
+    test('rides the config branding, and an older server means Toden', () {
       final old = SdkConfigResponse.fromJson({
         'environment': 'SANDBOX',
         'idTypes': <dynamic>[],
@@ -73,15 +73,15 @@ void main() {
       expect(resolveTrustAttribution(noDark, dark: true).logo, 'https://x/light.png');
     });
 
-    test('Myaza, or nothing from the server, draws the lockup', () {
+    test('Toden, or nothing from the server, draws the lockup', () {
       expect(resolveTrustAttribution(null).custom, isFalse);
       expect(resolveTrustAttribution(const SdkTrustAttribution.myaza()).custom, isFalse);
     });
 
-    test('the consent notice names Myaza only when the logo is custom', () {
-      expect(needsMyazaDisclosure(null), isFalse);
-      expect(needsMyazaDisclosure(const SdkTrustAttribution.myaza()), isFalse);
-      expect(needsMyazaDisclosure(custom), isTrue);
+    test('the consent notice names Toden only when the logo is custom', () {
+      expect(needsProcessorDisclosure(null), isFalse);
+      expect(needsProcessorDisclosure(const SdkTrustAttribution.myaza()), isFalse);
+      expect(needsProcessorDisclosure(custom), isTrue);
     });
 
     test('the org is the attribution name, then the workflow name, then branding', () {
@@ -94,37 +94,40 @@ void main() {
       expect(myazaProviderName(const SdkTrustAttribution.myaza(), null, null), '');
     });
 
-    test('the lead-in names Myaza Trust for the org, or alone', () {
-      expect(consentMyazaLead(null), isNull);
-      expect(consentMyazaLead(const SdkTrustAttribution.myaza()), isNull);
-      expect(consentMyazaLead(custom), 'Verification is processed by Myaza Trust for Acme.');
+    test('the lead-in names Toden for the org, or alone', () {
+      expect(consentProcessorLead(null), isNull);
+      expect(consentProcessorLead(const SdkTrustAttribution.myaza()), isNull);
+      expect(consentProcessorLead(custom), 'Verification is processed by Toden for Acme.');
       expect(
-        consentMyazaLead(const SdkTrustAttribution.custom(logo: 'https://x/l.png')),
-        'Verification is processed by Myaza Trust.',
+        consentProcessorLead(const SdkTrustAttribution.custom(logo: 'https://x/l.png')),
+        'Verification is processed by Toden.',
       );
       expect(
-        consentMyazaLead(const SdkTrustAttribution.custom(),
+        consentProcessorLead(const SdkTrustAttribution.custom(),
             workflowCompanyName: 'Workflow Co'),
-        'Verification is processed by Myaza Trust for Workflow Co.',
+        'Verification is processed by Toden for Workflow Co.',
       );
     });
   });
 
   group('the footer', () {
     Widget host(Widget child) => MaterialApp(
-          theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+          theme: ThemeData(extensions: const [UiColorScheme.light]),
           home: Scaffold(body: child),
         );
 
-    testWidgets('Myaza mode: "Protected by" and the lockup', (tester) async {
+    // The default mark is the Toden logo, drawn from the package's own asset.
+    Finder todenLogo() => find.bySemanticsLabel('Toden');
+
+    testWidgets('default mode: "Protected by" and the Toden logo', (tester) async {
       await tester.pumpWidget(host(const PoweredBy()));
       expect(find.text('Protected by'), findsOneWidget);
       expect(find.text('Powered by'), findsNothing);
-      expect(find.text('TRUST'), findsOneWidget);
+      expect(todenLogo(), findsOneWidget);
       expect(find.byType(CustomTrustMark), findsNothing);
     });
 
-    testWidgets('custom mode: "Protected by" and the org logo, no Myaza mark', (tester) async {
+    testWidgets('custom mode: "Protected by" and the org logo, no Toden mark', (tester) async {
       await tester.pumpWidget(host(const PoweredBy(
         attribution: SdkTrustAttribution.custom(
           logo: 'https://x/light.png',
@@ -133,7 +136,7 @@ void main() {
         ),
       )));
       expect(find.text('Protected by'), findsOneWidget);
-      expect(find.text('TRUST'), findsNothing);
+      expect(todenLogo(), findsNothing);
       expect(find.text('Powered by'), findsNothing);
       final image = tester.widget<Image>(find.byType(Image));
       expect((image.image as NetworkImage).url, 'https://x/light.png');
@@ -153,7 +156,7 @@ void main() {
       expect((image.image as NetworkImage).url, 'https://x/dark.png');
     });
 
-    testWidgets('a logo that fails falls back to the org name, never to Myaza', (tester) async {
+    testWidgets('a logo that fails falls back to the org name, never to Toden', (tester) async {
       await tester.pumpWidget(host(const PoweredBy(
         attribution: SdkTrustAttribution.custom(
           logo: 'https://x/broken.png',
@@ -164,7 +167,7 @@ void main() {
       // failure this pins.
       await tester.pumpAndSettle();
       expect(find.text('Acme'), findsOneWidget);
-      expect(find.text('TRUST'), findsNothing);
+      expect(todenLogo(), findsNothing);
     });
 
     testWidgets('no logo: the org name', (tester) async {

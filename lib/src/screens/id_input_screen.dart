@@ -3,13 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/id_types.dart';
-import '../config/kyc_config.dart';
+import '../config/verification_config.dart';
 import '../config/theme.dart';
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 import '../providers/step_order.dart';
 import '../services/validators.dart';
-import '../widgets/myaza_button.dart';
-import '../widgets/myaza_input.dart';
+import '../widgets/ui_button.dart';
+import '../widgets/ui_input.dart';
 import '../i18n/text_scope.dart';
 
 // ─── ID input screen ──────────────────────────────────────────────────────────
@@ -40,7 +40,7 @@ class _IdInputScreenState extends ConsumerState<IdInputScreen> {
     super.dispose();
   }
 
-  MyazaKYCConfig get _config => ref.read(kycConfigProvider);
+  VerificationConfig get _config => ref.read(verificationConfigProvider);
   IdTypeConfig? get _idType => ref.read(kYCNotifierProvider).selectedIdType;
   String get _country =>
       effectiveCountry(_config, ref.read(kYCNotifierProvider));
@@ -106,8 +106,8 @@ class _IdInputScreenState extends ConsumerState<IdInputScreen> {
         // ── ID number field ────────────────────────────────────────────────────
         if (idTypeCfg != null)
           Text(idTypeCfg.inputLabel ?? idTypeCfg.label, style: text.label),
-        const SizedBox(height: MyazaSpacing.sm),
-        MyazaInput(
+        const SizedBox(height: UiSpacing.sm),
+        UiInput(
           hint: _hintFor(idTypeCfg),
           controller: _idCtrl,
           keyboardType: idTypeCfg != null
@@ -121,12 +121,12 @@ class _IdInputScreenState extends ConsumerState<IdInputScreen> {
           onChanged: _onIdChanged,
         ),
 
-        const SizedBox(height: MyazaSpacing.xl),
+        const SizedBox(height: UiSpacing.xl),
 
         ListenableBuilder(
           listenable: _idCtrl,
-          builder: (_, __) => MyazaButton(
-            label: context.kycText('common.continue'),
+          builder: (_, __) => UiButton(
+            label: context.verificationText('common.continue'),
             onPressed: _canSubmit ? _onContinue : null,
           ),
         ),

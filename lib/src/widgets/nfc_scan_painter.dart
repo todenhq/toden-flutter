@@ -33,7 +33,7 @@ double nfcWavePulse(double controllerValue, int delayMs) {
 }
 
 class NfcScanPainter extends CustomPainter {
-  final MyazaColorScheme colors;
+  final UiColorScheme colors;
   final Animation<double> pulse;
   final bool reduceMotion;
 

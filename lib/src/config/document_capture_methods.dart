@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart' show immutable;
 
-import 'kyc_config.dart';
+import 'verification_config.dart';
 
 // ─── How a document may be captured ───────────────────────────────────────────
 //
@@ -56,7 +56,7 @@ DocumentCaptureMethods documentCaptureMethods({
     );
 
 /// [documentCaptureMethods] over a mounted (workflow-merged) config.
-DocumentCaptureMethods documentCaptureMethodsFor(MyazaKYCConfig config) =>
+DocumentCaptureMethods documentCaptureMethodsFor(VerificationConfig config) =>
     documentCaptureMethods(
       allowDocumentScan: config.allowDocumentScan,
       allowDocumentUpload: config.allowDocumentUpload,

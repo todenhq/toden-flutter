@@ -4,7 +4,7 @@ import '../../config/address_collection.dart';
 import '../../config/address_field_modes.dart';
 import '../../config/theme.dart';
 import '../../services/api_service.dart';
-import '../../widgets/myaza_button.dart';
+import '../../widgets/ui_button.dart';
 import '../../widgets/themed_sheet.dart';
 import 'address_area_fields.dart';
 import 'address_detail_fields.dart';
@@ -36,7 +36,7 @@ Future<void> showAddressDetailsSheet(
   required AddressCollectionConfig? config,
   required ValueChanged<AddressDetailsPatch> onChanged,
 }) {
-  return showMyazaSheet<void>(
+  return showUiSheet<void>(
     context,
     isScrollControlled: true,
     builder: (_) => _AddressDetailsBody(
@@ -116,30 +116,30 @@ class _AddressDetailsBodyState extends State<_AddressDetailsBody> {
       child: Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(MyazaSpacing.md, 0, MyazaSpacing.md, MyazaSpacing.lg),
+          padding: const EdgeInsets.fromLTRB(UiSpacing.md, 0, UiSpacing.md, UiSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(context.kycText('address.details.title'), style: text.heading3),
+              Text(context.verificationText('address.details.title'), style: text.heading3),
               const SizedBox(height: 2),
               Text(
                 anyRequired
                     ? 'Correct anything the map got wrong. Fields marked * are required.'
-                    : context.kycText('address.details.hint'),
+                    : context.verificationText('address.details.hint'),
                 style: text.bodySmall.copyWith(color: colors.textSecondary),
               ),
-              const SizedBox(height: MyazaSpacing.md),
+              const SizedBox(height: UiSpacing.md),
               if (streetSection) const AddressSectionHeading('Street and building'),
               addressFieldPair(
                 _field('propertyNumber', label: 'Number', hint: 'e.g. 11', maxLength: 20, controller: _number, patch: (v) => AddressDetailsPatch(propertyNumber: v)),
                 _field('street', label: 'Street name', hint: 'e.g. Awolowo Road', maxLength: 120, controller: _street, patch: (v) => AddressDetailsPatch(street: v)),
               ),
-              if (_on('propertyNumber') || _on('street')) const SizedBox(height: MyazaSpacing.sm),
+              if (_on('propertyNumber') || _on('street')) const SizedBox(height: UiSpacing.sm),
               addressFieldPair(
                 _field('unit', label: 'Unit', hint: 'e.g. Flat 4', maxLength: 30, controller: _unit, patch: (v) => AddressDetailsPatch(unit: v)),
                 _field('propertyName', label: 'Building name', hint: 'e.g. Sunrise Villa', maxLength: 80, controller: _building, patch: (v) => AddressDetailsPatch(propertyName: v)),
               ),
-              if (_on('unit') || _on('propertyName')) const SizedBox(height: MyazaSpacing.sm),
+              if (_on('unit') || _on('propertyName')) const SizedBox(height: UiSpacing.sm),
               AddressEditField(
                 label: '${widget.isBusiness ? 'Directions to the entrance' : 'Directions to this address'}'
                     '${widget.directionsRequired ? '' : ' (optional)'}',
@@ -158,9 +158,9 @@ class _AddressDetailsBodyState extends State<_AddressDetailsBody> {
                 country: widget.country,
                 onChanged: widget.onChanged,
               ),
-              const SizedBox(height: MyazaSpacing.lg),
-              MyazaButton(
-                  label: context.kycText('common.done'),
+              const SizedBox(height: UiSpacing.lg),
+              UiButton(
+                  label: context.verificationText('common.done'),
                   onPressed: () => Navigator.of(context).pop()),
             ],
           ),

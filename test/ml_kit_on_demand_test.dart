@@ -115,7 +115,7 @@ void main() {
 
   group('where each gate bites is deliberate', () {
     test('the flow asks for both models the moment it opens', () {
-      final flow = read('lib/src/widgets/myaza_kyc_widget.dart');
+      final flow = read('lib/src/widgets/verification_widget.dart');
       expect(flow, contains('primeFaceModel();'));
       expect(flow, contains('primeTextModel();'));
     });

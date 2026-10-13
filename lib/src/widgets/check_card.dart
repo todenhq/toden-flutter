@@ -16,18 +16,18 @@ import 'icons/icons.dart';
 // options read as a dense list rather than the tappable cards every other
 // choice in the flow uses.
 
-class MyazaCheckCard extends StatelessWidget {
+class UiCheckCard extends StatelessWidget {
   final String label;
   final bool checked;
   final VoidCallback onTap;
 
   /// A glyph between the check and the label — the check stays.
-  final MyazaIconData? icon;
+  final UiIconData? icon;
 
   /// Greyed and inert — a choice that is locked, not one that is gone.
   final bool enabled;
 
-  const MyazaCheckCard({
+  const UiCheckCard({
     super.key,
     required this.label,
     required this.checked,
@@ -48,22 +48,22 @@ class MyazaCheckCard extends StatelessWidget {
         opacity: enabled ? 1 : 0.5,
         child: InkWell(
           onTap: enabled ? onTap : null,
-          borderRadius: BorderRadius.circular(MyazaRadius.sm),
+          borderRadius: BorderRadius.circular(UiRadius.sm),
           child: Container(
-            padding: const EdgeInsets.all(MyazaSpacing.md - 4),
+            padding: const EdgeInsets.all(UiSpacing.md - 4),
             decoration: BoxDecoration(
               color: checked ? colors.primary50 : null,
               border: Border.all(
                 color: checked ? colors.primary : colors.border,
               ),
-              borderRadius: BorderRadius.circular(MyazaRadius.sm),
+              borderRadius: BorderRadius.circular(UiRadius.sm),
             ),
             child: Row(
               children: [
-                MyazaCheckBox(checked: checked),
+                UiCheckBox(checked: checked),
                 const SizedBox(width: 10),
                 if (icon != null) ...[
-                  MyazaIcon(
+                  UiIcon(
                     icon,
                     size: 20,
                     color: checked ? colors.primary : colors.textSecondary,
@@ -81,9 +81,9 @@ class MyazaCheckCard extends StatelessWidget {
 }
 
 /// 20×20 square check — the web SDK's `h-5 w-5 rounded-md` checkbox.
-class MyazaCheckBox extends StatelessWidget {
+class UiCheckBox extends StatelessWidget {
   final bool checked;
-  const MyazaCheckBox({super.key, required this.checked});
+  const UiCheckBox({super.key, required this.checked});
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +98,7 @@ class MyazaCheckBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: checked
-          ? MyazaIcon(MyazaIcons.check, size: 14, color: colors.onPrimary)
+          ? UiIcon(UiIcons.check, size: 14, color: colors.onPrimary)
           : null,
     );
   }

@@ -1,4 +1,4 @@
-import '../providers/kyc_state.dart';
+import '../providers/verification_state.dart';
 import 'business.dart';
 import 'website.dart';
 
@@ -47,7 +47,7 @@ bool businessDetailsValid({
 
 /// The current business field values, in the canonical-key vocabulary the
 /// validity check and the register prefill both read.
-Map<String, String> businessFieldValues(KYCState s) => {
+Map<String, String> businessFieldValues(VerificationState s) => {
       'registrationNumber': s.registrationNumber ?? '',
       'registrationName': s.registrationName ?? '',
       'contactEmail': s.businessContactEmail ?? '',

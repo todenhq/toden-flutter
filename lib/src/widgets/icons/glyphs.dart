@@ -1,4 +1,4 @@
-import 'app_icon.dart' show MyazaIconData;
+import 'app_icon.dart' show UiIconData;
 
 /// Glyphs Hugeicons does not carry, drawn in the set's own stroke language.
 ///
@@ -25,7 +25,7 @@ const Map<String, String> _stroke = {
 /// The geometry is Lucide's, inset to sit on the same optical margins as its
 /// Hugeicons siblings (they start at ~3.5 rather than Lucide's 2), and the
 /// stroke attributes are copied from the set so weight and joins match exactly.
-const MyazaIconData kLongArrowLeft = [
+const UiIconData kLongArrowLeft = [
   ['path', {'key': '0', 'd': 'M20.5 12H3.5', ..._stroke}],
   ['path', {'key': '1', 'd': 'M8 7.5L3.5 12L8 16.5', ..._stroke}],
 ];

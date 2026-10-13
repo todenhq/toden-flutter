@@ -25,17 +25,17 @@ class KeyPeopleQuickAddChip extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(MyazaRadius.full),
+        borderRadius: BorderRadius.circular(UiRadius.full),
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
           decoration: BoxDecoration(
             border: Border.all(color: colors.border),
-            borderRadius: BorderRadius.circular(MyazaRadius.full),
+            borderRadius: BorderRadius.circular(UiRadius.full),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              MyazaIcon(entry.isCorporate ? MyazaIcons.building2 : MyazaIcons.user,
+              UiIcon(entry.isCorporate ? UiIcons.building2 : UiIcons.user,
                   size: 16, color: colors.textSecondary),
               const SizedBox(width: 8),
               ConstrainedBox(
@@ -57,7 +57,7 @@ class KeyPeopleQuickAddChip extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
-                child: MyazaIcon(MyazaIcons.plus, size: 12, color: colors.primary),
+                child: UiIcon(UiIcons.plus, size: 12, color: colors.primary),
               ),
             ],
           ),
@@ -83,18 +83,18 @@ class KeyPeopleAddTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(MyazaRadius.sm),
+        borderRadius: BorderRadius.circular(UiRadius.sm),
         child: CustomPaint(
           painter: DashedRoundedBorder(
             color: colors.border,
-            radius: MyazaRadius.sm,
+            radius: UiRadius.sm,
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 14),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                MyazaIcon(MyazaIcons.plus, size: 16, color: colors.primary),
+                UiIcon(UiIcons.plus, size: 16, color: colors.primary),
                 const SizedBox(width: 6),
                 Text(label,
                     style: text.bodyMedium.copyWith(

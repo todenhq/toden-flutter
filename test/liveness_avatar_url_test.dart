@@ -17,11 +17,11 @@ void main() {
   test('points at the served route, per gesture', () {
     expect(
       livenessAvatarUrl(LivenessChallenge.nod, live),
-      'https://trust.myaza.app/api/kyc/assets/liveness/nod-transparent.webp',
+      'https://trust.myaza.app/api/v1/assets/liveness/nod-transparent.webp',
     );
     expect(
       livenessAvatarUrl(LivenessChallenge.smile, live),
-      'https://trust.myaza.app/api/kyc/assets/liveness/smile-transparent.webp',
+      'https://trust.myaza.app/api/v1/assets/liveness/smile-transparent.webp',
     );
   });
 
@@ -33,7 +33,7 @@ void main() {
     expect(
       livenessAvatarUrl(LivenessChallenge.blink, 'pk_dev_abc',
           devUrl: 'http://192.168.1.5:3001'),
-      'http://192.168.1.5:3001/api/kyc/assets/liveness/blink-transparent.webp',
+      'http://192.168.1.5:3001/api/v1/assets/liveness/blink-transparent.webp',
     );
   });
 
@@ -44,7 +44,7 @@ void main() {
   test('precache covers all four, because the session picks at random', () {
     final urls = livenessAvatarUrls(live);
     expect(urls, hasLength(4));
-    expect(urls.every((u) => u.startsWith('https://trust.myaza.app/api/kyc/')), isTrue);
+    expect(urls.every((u) => u.startsWith('https://trust.myaza.app/api/v1/')), isTrue);
   });
 
   test('the passive hold has no animation to fetch', () {

@@ -1,3 +1,35 @@
+## 3.7.0
+
+The entry point is now `Verification`, the flow carries the Toden brand, and Bricolage Grotesque ships inside the package. The package name is unchanged.
+
+### New names
+
+- The entry points are `Verification.show()`, `VerificationWidget`, `VerificationConfig` and `VerificationAppearance`.
+- `KYC`-prefixed types are now `Verification`-prefixed: `VerificationError`, `VerificationSubmission`, `VerificationResult`, `VerificationStep`.
+- The presence classes are `AddressPresence`, `BackgroundPresence` and `PresenceService`.
+- The exported widgets and theme classes use a `Ui` prefix: `UiButton`, `UiInput`, `UiColors`, `UiSpacing`.
+
+Every earlier name still works as a deprecated alias, so existing code compiles unchanged.
+
+### Fonts
+
+- Text at 16px and up is set in Bricolage Grotesque. Smaller text and anything typed into a field stays Geist. Headings are unchanged. An organisation's own body font still replaces both.
+- Bricolage Grotesque is bundled. It was fetched from Google's font servers at first launch, which showed a fallback face first and left the flow in the system font with no connection.
+
+### Brand
+
+- The flow says Toden where it said Myaza: the footer logo, the consent notice (which now links to toden.co/legal) and the default wording.
+- New default colours: a neutral grey scale in place of the purple-tinted one. Colours set through `VerificationAppearance` or a workflow are unchanged.
+- The NFC step uses the phone-and-chip icon, matching the dashboard.
+
+### API address
+
+The SDK calls the verification API under `/api/v1` (for example `/api/v1/verify`). The earlier `/api/kyc` addresses keep working on the server, so older versions of the SDK are unaffected.
+
+### Fixes
+
+- The dark header uses the same surface colour as the cards. It was a pale purple band.
+
 ## 3.6.0
 
 A full-screen liveness camera, signing on screen, and no selfie review by default.

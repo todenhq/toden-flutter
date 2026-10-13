@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../config/theme.dart';
-import 'myaza_button.dart';
+import 'ui_button.dart';
 import 'icons/icons.dart';
 
 /// Friendly screen shown when the OS camera permission is denied/blocked.
@@ -38,8 +38,8 @@ class CameraPermissionView extends StatelessWidget {
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(
-          horizontal: MyazaSpacing.md,
-          vertical: MyazaSpacing.xl,
+          horizontal: UiSpacing.md,
+          vertical: UiSpacing.xl,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -50,36 +50,36 @@ class CameraPermissionView extends StatelessWidget {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: MyazaColors.error.withValues(alpha: 0.1),
+                  color: UiColors.error.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const MyazaIcon(
-                  MyazaIcons.cameraOff,
+                child: const UiIcon(
+                  UiIcons.cameraOff,
                   size: 38,
-                  color: MyazaColors.error,
+                  color: UiColors.error,
                 ),
               ),
             ),
-            const SizedBox(height: MyazaSpacing.lg),
+            const SizedBox(height: UiSpacing.lg),
             Text(
               'Camera access needed',
               style: text.heading2,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: MyazaSpacing.xs),
+            const SizedBox(height: UiSpacing.xs),
             Text(
               message,
               style: text.bodyMedium.copyWith(color: colors.textSecondary),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: MyazaSpacing.lg),
-            MyazaButton(label: 'Open Settings', onPressed: onOpenSettings),
+            const SizedBox(height: UiSpacing.lg),
+            UiButton(label: 'Open Settings', onPressed: onOpenSettings),
             if (onRetry != null) ...[
-              const SizedBox(height: MyazaSpacing.sm),
-              MyazaButton.outline(label: 'Try Again', onPressed: onRetry),
+              const SizedBox(height: UiSpacing.sm),
+              UiButton.outline(label: 'Try Again', onPressed: onRetry),
             ],
             if (secondaryAction != null) ...[
-              const SizedBox(height: MyazaSpacing.sm),
+              const SizedBox(height: UiSpacing.sm),
               secondaryAction!,
             ],
           ],

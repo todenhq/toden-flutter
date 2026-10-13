@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/business_application.dart';
 import '../config/key_people_section_defs.dart';
 import '../config/theme.dart';
-import '../providers/kyc_provider.dart';
-import '../widgets/myaza_button.dart';
+import '../providers/verification_provider.dart';
+import '../widgets/ui_button.dart';
 import 'key_people_add_edit.dart';
 import 'key_people_footer.dart';
 import 'key_people_sections_list.dart';
@@ -29,7 +29,7 @@ class BusinessKeyPeopleScreen extends ConsumerWidget {
     final text = context.myazaText;
     final colors = context.myazaColors;
     final rows = ref.watch(kYCNotifierProvider.select((s) => s.keyPeople));
-    final business = ref.watch(kycConfigProvider).business;
+    final business = ref.watch(verificationConfigProvider).business;
     final minEntries = keyPeopleMinEntries(business);
     // Roles whose email is mandatory (the ones actually sent a verification
     // link) — threaded into every validity read so the card, the sheet and
@@ -64,12 +64,12 @@ class BusinessKeyPeopleScreen extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // No lead paragraph: the step HEADER carries "List the company's
-        // directors and owners of 25% or more…" (myaza_kyc_widget.dart step
+        // directors and owners of 25% or more…" (verification_widget.dart step
         // meta, matching the web SDK's StepHeader).
         if (rows.isEmpty && minEntries == 0)
           KeyPeopleHint(
             child: Text(
-              context.kycText('keyPeople.hints.skippable'),
+              context.verificationText('keyPeople.hints.skippable'),
               style: text.bodyMedium.copyWith(color: colors.textSecondary),
             ),
           )
@@ -83,10 +83,10 @@ class BusinessKeyPeopleScreen extends ConsumerWidget {
             ),
           ),
         if (rows.isEmpty || (minEntries > 0 && validCount < minEntries))
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
 
         KeyPeopleSectionsList(
-          sections: keyPeopleSectionList(business, threshold, context.kycText),
+          sections: keyPeopleSectionList(business, threshold, context.verificationText),
           rows: rows,
           threshold: threshold,
           emailRequiredFor: emailRequiredFor,
@@ -105,19 +105,19 @@ class BusinessKeyPeopleScreen extends ConsumerWidget {
               ref.read(kYCNotifierProvider.notifier).setUboUnidentifiable(v),
         ),
         if (rows.length >= kMaxKeyPeopleRows) ...[
-          const SizedBox(height: MyazaSpacing.sm),
+          const SizedBox(height: UiSpacing.sm),
           Text(
             'You can list up to $kMaxKeyPeopleRows people here.',
             textAlign: TextAlign.center,
             style: text.bodyMedium.copyWith(color: colors.textMuted),
           ),
         ],
-        const SizedBox(height: MyazaSpacing.md),
+        const SizedBox(height: UiSpacing.md),
 
         KeyPeopleTotals(totalPct: totalPct),
-        const SizedBox(height: MyazaSpacing.md),
-        MyazaButton(
-          label: context.kycText('common.continue'),
+        const SizedBox(height: UiSpacing.md),
+        UiButton(
+          label: context.verificationText('common.continue'),
           onPressed: meetsMinimum && !hasInvalid && !overAllocated
               ? onContinue
               : null,

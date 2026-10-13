@@ -32,19 +32,19 @@ void main() {
   group('addressFlowSteps', () {
     test('is pin + review at minimum', () {
       expect(addressFlowSteps(_options()),
-          [KYCStep.addressCollection, KYCStep.addressReview]);
+          [VerificationStep.addressCollection, VerificationStep.addressReview]);
     });
 
     test('adds search when a backend is available', () {
       expect(addressFlowSteps(_options(searchAvailable: true)).first,
-          KYCStep.addressSearch);
+          VerificationStep.addressSearch);
     });
 
     test('adds the entrance step for a photo mode OR street view', () {
       expect(addressFlowSteps(_options(photoMode: 'optional')),
-          contains(KYCStep.addressEntrance));
+          contains(VerificationStep.addressEntrance));
       expect(addressFlowSteps(_options(streetViewOffered: true)),
-          contains(KYCStep.addressEntrance));
+          contains(VerificationStep.addressEntrance));
     });
 
     test('walks forward and back within the flow, null at the edges', () {
@@ -53,19 +53,19 @@ void main() {
         photoMode: 'optional',
         streetViewOffered: true,
       ));
-      expect(nextAddressStep(steps, KYCStep.addressSearch),
-          KYCStep.addressCollection);
-      expect(nextAddressStep(steps, KYCStep.addressReview), isNull);
-      expect(prevAddressStep(steps, KYCStep.addressCollection),
-          KYCStep.addressSearch);
-      expect(prevAddressStep(steps, KYCStep.addressSearch), isNull);
+      expect(nextAddressStep(steps, VerificationStep.addressSearch),
+          VerificationStep.addressCollection);
+      expect(nextAddressStep(steps, VerificationStep.addressReview), isNull);
+      expect(prevAddressStep(steps, VerificationStep.addressCollection),
+          VerificationStep.addressSearch);
+      expect(prevAddressStep(steps, VerificationStep.addressSearch), isNull);
     });
 
     test('the four steps carry the shared wire names', () {
-      expect(kStepWireNames[KYCStep.addressSearch], 'address-search');
-      expect(kStepWireNames[KYCStep.addressCollection], 'address-collection');
-      expect(kStepWireNames[KYCStep.addressEntrance], 'address-entrance');
-      expect(kStepWireNames[KYCStep.addressReview], 'address-review');
+      expect(kStepWireNames[VerificationStep.addressSearch], 'address-search');
+      expect(kStepWireNames[VerificationStep.addressCollection], 'address-collection');
+      expect(kStepWireNames[VerificationStep.addressEntrance], 'address-entrance');
+      expect(kStepWireNames[VerificationStep.addressReview], 'address-review');
     });
   });
 
@@ -179,7 +179,7 @@ void main() {
         hasGoogleKey: false, hasStreetViewFrame: false,
       );
       expect(stubbed.searchAvailable, isFalse);
-      expect(addressFlowSteps(stubbed), isNot(contains(KYCStep.addressSearch)));
+      expect(addressFlowSteps(stubbed), isNot(contains(VerificationStep.addressSearch)));
 
       final live = addressFlowOptions(
         serverSearch: true && !addressVendorsStubbed(environment: 'DEVELOPMENT'),
@@ -187,7 +187,7 @@ void main() {
         hasGoogleKey: false, hasStreetViewFrame: false,
       );
       expect(live.searchAvailable, isTrue);
-      expect(addressFlowSteps(live), contains(KYCStep.addressSearch));
+      expect(addressFlowSteps(live), contains(VerificationStep.addressSearch));
     });
   });
 

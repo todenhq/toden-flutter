@@ -63,7 +63,7 @@ class AddressPinSummary extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.backgroundSecondary,
         border: Border.all(color: colors.border),
-        borderRadius: BorderRadius.circular(MyazaRadius.md),
+        borderRadius: BorderRadius.circular(UiRadius.md),
       ),
       child: Row(
         children: [
@@ -108,36 +108,36 @@ class AddressPinSummary extends StatelessWidget {
                   );
                 }),
                 const SizedBox(height: 2),
-                Text(addressDetailSummary(a, context.kycText),
+                Text(addressDetailSummary(a, context.verificationText),
                     style:
                         text.bodySmall.copyWith(color: colors.textSecondary)),
               ],
             ),
           ),
-          const SizedBox(width: MyazaSpacing.sm),
+          const SizedBox(width: UiSpacing.sm),
           Material(
             color: Colors.transparent,
             // Web's `h-9 rounded-lg px-3 text-sm`: 36 high, an 8 radius,
             // 14px text, which RN draws as radius.xs + bodyMedium.
             child: InkWell(
               onTap: onEdit,
-              borderRadius: BorderRadius.circular(MyazaRadius.xs),
+              borderRadius: BorderRadius.circular(UiRadius.xs),
               child: Container(
                 height: 36,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
                   border: Border.all(color: colors.border),
-                  borderRadius: BorderRadius.circular(MyazaRadius.xs),
+                  borderRadius: BorderRadius.circular(UiRadius.xs),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    MyazaIcon(MyazaIcons.pencilLine,
+                    UiIcon(UiIcons.pencilLine,
                         size: 14,
                         color: onEdit == null ? colors.gray400 : colors.primary),
                     const SizedBox(width: 6),
                     Text(
-                      context.kycText('address.pin.editDetails'),
+                      context.verificationText('address.pin.editDetails'),
                       style: text.bodyMedium.copyWith(
                         fontWeight: FontWeight.w600,
                         color:

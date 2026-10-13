@@ -10,9 +10,9 @@
 // server never sends an idType for a business redo.
 
 import '../config/id_types.dart' show resolveIdTypeDefinition;
-import '../config/kyc_config.dart' show MyazaKYCConfig;
+import '../config/verification_config.dart' show VerificationConfig;
 import '../services/api_service.dart' show SdkConfigIdType;
-import 'kyc_state.dart' show KYCState;
+import 'verification_state.dart' show VerificationState;
 import 'step_order.dart' show buildStepOrder, effectiveCountry;
 import 'step_resubmit.dart' show keptIdType;
 
@@ -22,7 +22,7 @@ import 'step_resubmit.dart' show keptIdType;
 /// SAME key: a definition resolved before the server config arrived lacks the
 /// row's scan sides and chip flag, and the applicant never chose it, so nothing
 /// of theirs is overwritten.
-KYCState withKeptIdType(MyazaKYCConfig config, KYCState state) {
+VerificationState withKeptIdType(VerificationConfig config, VerificationState state) {
   if (config.subjectType == 'business') return state;
   final key = keptIdType(config.resubmit);
   if (key == null) return state;
@@ -49,7 +49,7 @@ KYCState withKeptIdType(MyazaKYCConfig config, KYCState state) {
 /// remove it: a consent-less redo that asked for the evidence opens on document
 /// capture, and a number-only kept ID has no such step. Nobody has moved yet, so
 /// the flow simply opens on the first step it actually has.
-KYCState seedKeptIdType(MyazaKYCConfig config, KYCState initial) {
+VerificationState seedKeptIdType(VerificationConfig config, VerificationState initial) {
   final seeded = withKeptIdType(config, initial);
   if (identical(seeded, initial)) return initial;
   final order = buildStepOrder(config, seeded);
@@ -59,7 +59,7 @@ KYCState seedKeptIdType(MyazaKYCConfig config, KYCState initial) {
 }
 
 /// The server row for the kept ID: this country's first, any country's next.
-SdkConfigIdType? _rowFor(KYCState state, String country, String key) {
+SdkConfigIdType? _rowFor(VerificationState state, String country, String key) {
   SdkConfigIdType? fallback;
   for (final row in state.serverConfig.idTypes) {
     if (row.idType != key) continue;

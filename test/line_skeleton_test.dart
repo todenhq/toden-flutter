@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myaza_kyc_sdk_flutter/src/widgets/line_skeleton.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/myaza_spinner.dart';
+import 'package:myaza_kyc_sdk_flutter/src/widgets/ui_spinner.dart';
 
 // ─── The pending line is a skeleton that speaks ─────────────────────────────
 //
 // The bar is geometry; the label is the message. The bar must stand at the
 // height of the text it replaces (or the card jumps when the words land), it
 // must never be a spinner, and the words must still reach a screen reader.
-// context.myazaColors falls back to the light scheme without a MyazaTheme.
+// context.myazaColors falls back to the light scheme without a UiTheme.
 
 const _style = TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
 
@@ -29,7 +29,7 @@ void main() {
     await tester.pump();
 
     expect(find.bySemanticsLabel('Finding the address…'), findsOneWidget);
-    expect(find.byType(MyazaSpinner), findsNothing);
+    expect(find.byType(UiSpinner), findsNothing);
   });
 
   testWidgets('stands exactly at the height of the line it replaces',

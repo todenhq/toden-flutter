@@ -4,10 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/country_id_types.dart';
 import '../config/id_types.dart';
 import '../config/theme.dart';
-import '../providers/kyc_provider.dart';
-import '../providers/kyc_state.dart';
+import '../providers/verification_provider.dart';
+import '../providers/verification_state.dart';
 import '../providers/step_order.dart';
-import '../widgets/myaza_pulse_loader.dart';
+import '../widgets/ui_pulse_loader.dart';
 import '../widgets/icons/icons.dart';
 
 // ─── ID type selection screen ─────────────────────────────────────────────────
@@ -17,7 +17,7 @@ class IdTypeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final config = ref.watch(kycConfigProvider);
+    final config = ref.watch(verificationConfigProvider);
     final state = ref.watch(kYCNotifierProvider);
     final notifier = ref.read(kYCNotifierProvider.notifier);
     final colors = context.myazaColors;
@@ -76,24 +76,24 @@ class IdTypeScreen extends ConsumerWidget {
 
     if (serverConfig.status == ServerConfigStatus.loading) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: MyazaSpacing.xl),
-        child: Center(child: MyazaPulseLoader()),
+        padding: EdgeInsets.symmetric(vertical: UiSpacing.xl),
+        child: Center(child: UiPulseLoader()),
       );
     }
 
     if (serverConfig.status == ServerConfigStatus.ready && visible.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.all(MyazaSpacing.md),
+        padding: const EdgeInsets.all(UiSpacing.md),
         child: Container(
-          padding: const EdgeInsets.all(MyazaSpacing.md),
+          padding: const EdgeInsets.all(UiSpacing.md),
           decoration: BoxDecoration(
             color: colors.errorBg,
-            borderRadius: BorderRadius.circular(MyazaRadius.md),
-            border: Border.all(color: MyazaColors.error.withValues(alpha: 0.3)),
+            borderRadius: BorderRadius.circular(UiRadius.md),
+            border: Border.all(color: UiColors.error.withValues(alpha: 0.3)),
           ),
           child: Text(
             'No ID types are enabled for your organization. Contact your administrator to request access.',
-            style: text.bodyMedium.copyWith(color: MyazaColors.error),
+            style: text.bodyMedium.copyWith(color: UiColors.error),
           ),
         ),
       );
@@ -106,7 +106,7 @@ class IdTypeScreen extends ConsumerWidget {
         ...visible.map((idTypeConfig) {
           final isSelected = state.selectedIdType?.key == idTypeConfig.key;
           return Padding(
-            padding: const EdgeInsets.only(bottom: MyazaSpacing.sm),
+            padding: const EdgeInsets.only(bottom: UiSpacing.sm),
             child: _IdTypeCard(
               config: idTypeConfig,
               isSelected: isSelected,
@@ -143,14 +143,14 @@ class _IdTypeCard extends StatelessWidget {
 
   // Same lucide icons as the web SDK's IdTypeStep (ID_TYPE_ICONS). Keyed by the
   // server ID key so Global-Document IDs get a sensible default icon.
-  static MyazaIconData _iconFor(String key) => switch (key) {
-        'bvn' || 'bvn-premium' => MyazaIcons.landmark, // Bank Verification
-        'tax-id' => MyazaIcons.receiptText, // Tax ID (NIN-keyed)
-        'nin' || 'vnin' => MyazaIcons.fingerprint,
-        'passport' => MyazaIcons.bookUser,
-        'drivers-license' => MyazaIcons.idCard,
-        'pvc' || 'voters' => MyazaIcons.contact, // Voter's Card
-        _ => MyazaIcons.idCard,
+  static UiIconData _iconFor(String key) => switch (key) {
+        'bvn' || 'bvn-premium' => UiIcons.landmark, // Bank Verification
+        'tax-id' => UiIcons.receiptText, // Tax ID (NIN-keyed)
+        'nin' || 'vnin' => UiIcons.fingerprint,
+        'passport' => UiIcons.bookUser,
+        'drivers-license' => UiIcons.idCard,
+        'pvc' || 'voters' => UiIcons.contact, // Voter's Card
+        _ => UiIcons.idCard,
       };
 
   @override
@@ -164,7 +164,7 @@ class _IdTypeCard extends StatelessWidget {
       duration: const Duration(milliseconds: 150),
       decoration: BoxDecoration(
         color: isSelected ? colors.primary50 : colors.background,
-        borderRadius: BorderRadius.circular(MyazaRadius.md),
+        borderRadius: BorderRadius.circular(UiRadius.md),
         border: Border.all(
           color: borderColor,
           width: isSelected ? 1.5 : 1.0,
@@ -181,13 +181,13 @@ class _IdTypeCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(MyazaRadius.md),
+          borderRadius: BorderRadius.circular(UiRadius.md),
           splashColor: colors.primary.withValues(alpha: 0.06),
           highlightColor: colors.primary.withValues(alpha: 0.04),
           child: Padding(
             padding: const EdgeInsets.symmetric(
-              horizontal: MyazaSpacing.md,
-              vertical: MyazaSpacing.md,
+              horizontal: UiSpacing.md,
+              vertical: UiSpacing.md,
             ),
             child: Row(
               children: [
@@ -197,15 +197,15 @@ class _IdTypeCard extends StatelessWidget {
                   height: 44,
                   decoration: BoxDecoration(
                     color: isSelected ? colors.primary100 : colors.primary50,
-                    borderRadius: BorderRadius.circular(MyazaRadius.sm),
+                    borderRadius: BorderRadius.circular(UiRadius.sm),
                   ),
-                  child: MyazaIcon(
+                  child: UiIcon(
                     _iconFor(config.key),
                     size: 22,
                     color: isSelected ? colors.primary : colors.textSecondary,
                   ),
                 ),
-                const SizedBox(width: MyazaSpacing.md),
+                const SizedBox(width: UiSpacing.md),
 
                 // ── Label ────────────────────────────────────────────────────
                 Expanded(
@@ -215,14 +215,14 @@ class _IdTypeCard extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(width: MyazaSpacing.md),
+                const SizedBox(width: UiSpacing.md),
 
                 // ── Forward chevron ──────────────────────────────────────────
                 // Tapping a row ADVANCES immediately (no Continue button), so
                 // the affordance is a "go to next step" chevron — not a radio,
                 // which would imply a select-then-confirm the flow doesn't have.
-                MyazaIcon(
-                  MyazaIcons.chevronRight,
+                UiIcon(
+                  UiIcons.chevronRight,
                   size: 20,
                   color: isSelected ? colors.primary : colors.gray400,
                 ),

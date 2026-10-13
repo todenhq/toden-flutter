@@ -1,12 +1,12 @@
-import '../config/kyc_config.dart';
+import '../config/verification_config.dart';
 import '../config/session_cancelled.dart';
 import 'api_service.dart';
 
-// ─── mapToKycError — raw API error → typed KYCError ────────────────────────────
+// ─── mapToVerificationError — raw API error → typed VerificationError ────────────────────────────
 //
 // Used at every call site that talks to the server (upload, verify) so the
 // `onError` callback always receives a documented, typed `code`. Mirrors the
-// web SDK's `mapToKycError` (lib/errors.ts) so the two platforms surface the
+// web SDK's `mapToVerificationError` (lib/errors.ts) so the two platforms surface the
 // same codes.
 
 /// Which operation failed — picks the fallback code for non-HTTP failures.
@@ -78,13 +78,13 @@ const Map<String, ({String code, String message})> _codedErrors = {
   ),
 };
 
-KYCError mapToKycError(Object error, {required ErrorContext context}) {
+VerificationError mapToVerificationError(Object error, {required ErrorContext context}) {
   final uploadCtx = context == ErrorContext.upload;
 
-  if (error is KYCApiException) {
+  if (error is VerificationApiException) {
     final coded = _codedErrors[error.error];
     if (coded != null) {
-      return KYCError(code: coded.code, message: coded.message);
+      return VerificationError(code: coded.code, message: coded.message);
     }
 
     switch (error.error) {
@@ -92,30 +92,30 @@ KYCError mapToKycError(Object error, {required ErrorContext context}) {
       // until somebody uncancels it, so it is never "try again": the server's
       // own words, under a code of its own (config/session_cancelled.dart).
       case kSessionCancelledCode:
-        return KYCError(
+        return VerificationError(
           code: kSessionCancelledCode,
           message: sessionCancelledText(error.message),
         );
       case 'insufficient_credits':
-        return KYCError(
+        return VerificationError(
           code: 'insufficient_credits',
           message:
               'Organization credits exhausted. Contact your administrator.',
           details: error.details,
         );
       case 'invalid_api_key':
-        return KYCError(
+        return VerificationError(
           code: 'invalid_api_key',
           message: error.message ?? 'Invalid or revoked API key.',
         );
       case 'id_type_not_allowed':
-        return const KYCError(
+        return const VerificationError(
           code: 'feature_disabled',
           message:
               "This ID type isn't enabled for your organization. Contact your administrator to request access.",
         );
       case 'feature_disabled':
-        return KYCError(
+        return VerificationError(
           code: 'feature_disabled',
           message: switch (error.details?['feature']) {
             'document_verification' =>
@@ -132,19 +132,19 @@ KYCError mapToKycError(Object error, {required ErrorContext context}) {
       // Failed" sends everyone — the applicant, and whoever they report it to —
       // looking at the network for something that never left the device.
       case 'invalid_state':
-        return KYCError(
+        return VerificationError(
           code: 'invalid_state',
           message: error.message ?? 'Something is missing. Please try again.',
         );
       case 'upload_failed':
-        return KYCError(
+        return VerificationError(
           code: 'upload_failed',
           message: error.message ?? 'A file failed to upload. Please try again.',
         );
       case 'timeout':
       case 'network_error':
       case 'connection_error':
-        return const KYCError(
+        return const VerificationError(
           code: 'network_error',
           message: 'Connection failed. Please try again.',
         );
@@ -156,7 +156,7 @@ KYCError mapToKycError(Object error, {required ErrorContext context}) {
     // (and whoever they report it to) looking through server logs for a request
     // that was never made.
     if (error.statusCode == 0) {
-      return KYCError(
+      return VerificationError(
         code: uploadCtx ? 'upload_failed' : 'network_error',
         message: error.message ?? "Couldn't reach the server. Check your connection and try again.",
       );
@@ -164,19 +164,19 @@ KYCError mapToKycError(Object error, {required ErrorContext context}) {
 
     // 5xx that survived retries — the request DID arrive.
     if (error.statusCode >= 500) {
-      return KYCError(
+      return VerificationError(
         code: uploadCtx ? 'upload_failed' : 'network_error',
         message: 'A server error occurred. Please try again in a moment.',
       );
     }
 
-    return KYCError(
+    return VerificationError(
       code: uploadCtx ? 'upload_failed' : 'unknown',
       message: error.message ?? 'Something went wrong. Please try again.',
     );
   }
 
-  return KYCError(
+  return VerificationError(
     code: uploadCtx ? 'upload_failed' : 'unknown',
     message: 'Something went wrong. Please try again.',
   );

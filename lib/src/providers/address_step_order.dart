@@ -1,7 +1,7 @@
 import '../config/address_collection.dart';
 import '../config/address_flow.dart';
-import '../config/kyc_config.dart';
-import 'kyc_state.dart';
+import '../config/verification_config.dart';
+import 'verification_state.dart';
 
 // ─── Resolving the address flow against this mount ───────────────────────────
 //
@@ -18,8 +18,8 @@ import 'kyc_state.dart';
 /// WebView on the app grant, which is what `hasStreetViewFrame` says: the
 /// server minted a maps frame URL for this mount.
 AddressFlowOptions addressFlowOptionsFor(
-  MyazaKYCConfig config,
-  KYCState state,
+  VerificationConfig config,
+  VerificationState state,
 ) =>
     addressFlowOptions(
       photo: addressPhotoMode(config.addressCollection),
@@ -37,14 +37,14 @@ AddressFlowOptions addressFlowOptionsFor(
 ///
 /// KYB collapses to the single premises step: its pin and directions ARE the
 /// capture there, and the business flow has its own section rhythm.
-List<KYCStep> addressStepsFor(MyazaKYCConfig config, KYCState state) {
+List<VerificationStep> addressStepsFor(VerificationConfig config, VerificationState state) {
   // The real step order gates the whole address block on `enabled`; this list
   // must agree, or a resume can be "clamped" onto a step the order does not
   // contain and both Continue and Back become no-ops (the stranded dead end
   // resumeAddressStep exists to prevent).
   if (config.addressCollection?.enabled != true) return const [];
   return config.subjectType == 'business'
-      ? const [KYCStep.addressCollection]
+      ? const [VerificationStep.addressCollection]
       : addressFlowSteps(addressFlowOptionsFor(config, state));
 }
 
@@ -68,7 +68,7 @@ List<KYCStep> addressStepsFor(MyazaKYCConfig config, KYCState state) {
 ///
 /// Returns null when the flow offers no address steps at all, leaving the
 /// caller to route the applicant out of the address flow entirely.
-KYCStep? resumeAddressStep(KYCStep saved, List<KYCStep> offered) {
+VerificationStep? resumeAddressStep(VerificationStep saved, List<VerificationStep> offered) {
   if (offered.contains(saved)) return saved;
   if (offered.isEmpty) return null;
   final savedRank = kAddressFlowOrder.indexOf(saved);
@@ -92,9 +92,9 @@ KYCStep? resumeAddressStep(KYCStep saved, List<KYCStep> offered) {
 /// otherwise title the primer with the step's own heading — so it is ONE
 /// function rather than two conditions that can drift apart.
 bool addressIntroGateShowing(
-  MyazaKYCConfig config,
-  KYCState state,
-  KYCStep step,
+  VerificationConfig config,
+  VerificationState state,
+  VerificationStep step,
 ) =>
     config.addressCollection?.presenceEnabled == true &&
     !state.addressIntroSeen &&

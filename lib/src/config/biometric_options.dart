@@ -1,5 +1,5 @@
 import 'biometric_copy.dart';
-import 'kyc_config.dart';
+import 'verification_config.dart';
 import 'scope.dart';
 
 // ─── The biometric scopes' flow options ─────────────────────────────────────
@@ -129,7 +129,7 @@ bool showsDoneButton({String? scope, BiometricFlowConfig? biometric}) =>
     biometricFlowOptions(scope: scope, biometric: biometric)?.doneButton ?? true;
 
 /// The same three questions asked of a whole config.
-extension BiometricFlowConfigX on MyazaKYCConfig {
+extension BiometricFlowConfigX on VerificationConfig {
   bool get showsSelfieReviewOption =>
       showsSelfieReview(scope: scope, biometric: biometric, review: selfieReview);
   bool get waitsForResultOption => waitsForResult(scope: scope, biometric: biometric);

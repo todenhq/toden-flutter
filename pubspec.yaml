@@ -1,10 +1,10 @@
 name: myaza_kyc_sdk_flutter
-description: Myaza KYC SDK — ID verification, liveness detection, and document OCR for Flutter
-version: 3.6.0
+description: Toden SDK for Flutter. ID verification, liveness detection, NFC chip reading and document capture.
+version: 3.7.0
 
-homepage: https://github.com/myazahq/kyc-sdk-flutter
-repository: https://github.com/myazahq/kyc-sdk-flutter
-issue_tracker: https://github.com/myazahq/kyc-sdk-flutter/issues
+homepage: https://github.com/todenhq/kyc-sdk-flutter
+repository: https://github.com/todenhq/kyc-sdk-flutter
+issue_tracker: https://github.com/todenhq/kyc-sdk-flutter/issues
 
 topics:
   - kyc
@@ -79,6 +79,34 @@ flutter:
     # API and precached at the liveness step (config/liveness_avatar_url.dart).
     # They were 5.7 MB in every integrator's app for a badge shown for seconds.
     - assets/brand/
+  # Geist, the body and interface typeface (config/body_font.dart). Bundled
+  # because google_fonts does not carry it. SIL Open Font Licence 1.1:
+  # assets/fonts/OFL-Geist.txt.
+  fonts:
+    - family: Geist
+      fonts:
+        - asset: assets/fonts/Geist_400Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Geist_500Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Geist_600SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Geist_700Bold.ttf
+          weight: 700
+    # Bricolage Grotesque, the heading typeface and the face for text at 16px
+    # and up. Bundled so it is there on the first frame with no network
+    # request; it was fetched from Google's font servers at first launch.
+    # SIL Open Font Licence 1.1: assets/fonts/OFL-BricolageGrotesque.txt.
+    - family: BricolageGrotesque
+      fonts:
+        - asset: assets/fonts/BricolageGrotesque_400Regular.ttf
+          weight: 400
+        - asset: assets/fonts/BricolageGrotesque_500Medium.ttf
+          weight: 500
+        - asset: assets/fonts/BricolageGrotesque_600SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/BricolageGrotesque_700Bold.ttf
+          weight: 700
   # Native on-device face detection ships in-package: iOS = Apple Vision (Swift),
   # Android = Google ML Kit via native Gradle. No cross-platform GoogleMLKit pod,
   # so the SDK still builds & runs on Apple-Silicon iOS simulators.

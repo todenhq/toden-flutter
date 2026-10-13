@@ -8,7 +8,7 @@ import 'dial_code_picker.dart' show showCountryPicker;
 
 // ─── Country field ────────────────────────────────────────────────────────────
 //
-// A country select field: a MyazaSelect-styled collapsed trigger (flag + name
+// A country select field: a UiSelect-styled collapsed trigger (flag + name
 // + chevron) that opens THE country sheet — the phone field's dial-code picker
 // minus the dial codes (keyboard-aware, autofocused search, results pinned
 // above the keys). Used wherever a country is picked from a flat list (the
@@ -52,7 +52,7 @@ class CountryField extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(MyazaRadius.sm),
+        borderRadius: BorderRadius.circular(UiRadius.sm),
         onTap: () async {
           final picked = await showCountryPicker(
             context,
@@ -65,19 +65,19 @@ class CountryField extends StatelessWidget {
         },
         child: Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: MyazaSpacing.md,
-            vertical: MyazaSpacing.md,
+            horizontal: UiSpacing.md,
+            vertical: UiSpacing.md,
           ),
           decoration: BoxDecoration(
             color: colors.background,
             border: Border.all(color: colors.border),
-            borderRadius: BorderRadius.circular(MyazaRadius.sm),
+            borderRadius: BorderRadius.circular(UiRadius.sm),
           ),
           child: Row(
             children: [
               if (hasValue) ...[
-                MyazaCountryFlag(country: country, size: 20),
-                const SizedBox(width: MyazaSpacing.sm),
+                UiCountryFlag(country: country, size: 20),
+                const SizedBox(width: UiSpacing.sm),
               ],
               Expanded(
                 child: Text(
@@ -88,8 +88,8 @@ class CountryField extends StatelessWidget {
                       : text.label.copyWith(color: colors.textMuted),
                 ),
               ),
-              const SizedBox(width: MyazaSpacing.sm),
-              MyazaIcon(MyazaIcons.chevronDown,
+              const SizedBox(width: UiSpacing.sm),
+              UiIcon(UiIcons.chevronDown,
                   size: 18, color: colors.textSecondary),
             ],
           ),

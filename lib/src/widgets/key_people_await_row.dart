@@ -60,16 +60,16 @@ String pillLabel(String status, bool isCorporate) => switch (status) {
       _ => isCorporate ? 'KYB PENDING' : 'KYC PENDING',
     };
 
-Color pillBg(String status, MyazaColorScheme colors) => switch (status) {
+Color pillBg(String status, UiColorScheme colors) => switch (status) {
       'verified' || 'submitted' => colors.successBg,
       'failed' => colors.errorBg,
       'not_needed' => colors.border,
       _ => colors.primary100,
     };
 
-Color pillFg(String status, MyazaColorScheme colors) => switch (status) {
-      'verified' || 'submitted' => MyazaColors.success,
-      'failed' => MyazaColors.error,
+Color pillFg(String status, UiColorScheme colors) => switch (status) {
+      'verified' || 'submitted' => UiColors.success,
+      'failed' => UiColors.error,
       'not_needed' => colors.textMuted,
       _ => colors.primary,
     };

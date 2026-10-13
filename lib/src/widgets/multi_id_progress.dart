@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/id_types.dart';
 import '../config/multi_id.dart';
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 import '../config/theme.dart';
 import 'icons/icons.dart';
 
@@ -42,14 +42,14 @@ class MultiIdProgress extends ConsumerWidget {
     return Semantics(
       label: 'ID ${(plan.index + 1).clamp(1, plan.count)} of ${plan.count}',
       child: Container(
-        margin: const EdgeInsets.only(bottom: MyazaSpacing.md),
+        margin: const EdgeInsets.only(bottom: UiSpacing.md),
         padding: const EdgeInsets.symmetric(
-          horizontal: MyazaSpacing.md,
-          vertical: MyazaSpacing.sm,
+          horizontal: UiSpacing.md,
+          vertical: UiSpacing.sm,
         ),
         decoration: BoxDecoration(
           color: colors.backgroundSecondary,
-          borderRadius: BorderRadius.circular(MyazaRadius.md),
+          borderRadius: BorderRadius.circular(UiRadius.md),
           border: Border.all(color: colors.border),
         ),
         child: Row(
@@ -59,7 +59,7 @@ class MultiIdProgress extends ConsumerWidget {
                 Container(
                   width: 16,
                   height: 1,
-                  margin: const EdgeInsets.symmetric(horizontal: MyazaSpacing.sm),
+                  margin: const EdgeInsets.symmetric(horizontal: UiSpacing.sm),
                   color: (i < slots.length || i == plan.index)
                       ? colors.primary.withValues(alpha: 0.5)
                       : colors.border,
@@ -70,13 +70,13 @@ class MultiIdProgress extends ConsumerWidget {
                 active: i == plan.index,
                 colors: colors,
               ),
-              const SizedBox(width: MyazaSpacing.sm),
+              const SizedBox(width: UiSpacing.sm),
               Flexible(
                 child: Text(
                   i < slots.length ? labelFor(slots[i].idType) : 'ID ${i + 1}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: MyazaTypography.bodySmall.copyWith(
+                  style: UiTypography.bodySmall.copyWith(
                     color: i == plan.index
                         ? colors.textDark
                         : colors.textMuted,
@@ -104,7 +104,7 @@ class _Chip extends StatelessWidget {
   final int index;
   final bool committed;
   final bool active;
-  final MyazaColorScheme colors;
+  final UiColorScheme colors;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -122,10 +122,10 @@ class _Chip extends StatelessWidget {
                 ),
         ),
         child: committed
-            ? MyazaIcon(MyazaIcons.check, size: 12, color: colors.onPrimary)
+            ? UiIcon(UiIcons.check, size: 12, color: colors.onPrimary)
             : Text(
                 '${index + 1}',
-                style: MyazaTypography.bodySmall.copyWith(
+                style: UiTypography.bodySmall.copyWith(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: active ? colors.primary : colors.textMuted,

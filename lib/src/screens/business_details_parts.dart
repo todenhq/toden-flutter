@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
-import '../widgets/myaza_input.dart';
+import '../widgets/ui_input.dart';
 import '../i18n/text_scope.dart';
 
 // ─── Business-details field parts ─────────────────────────────────────────────
@@ -31,7 +31,7 @@ class BusinessFieldLabel extends StatelessWidget {
       if (required)
         TextSpan(
           text: ' *',
-          style: text.label.copyWith(color: MyazaColors.error),
+          style: text.label.copyWith(color: UiColors.error),
         )
       else
         TextSpan(
@@ -63,14 +63,14 @@ class BusinessContactEmailField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        BusinessFieldLabel(label: context.kycText('business.contactEmail.label')),
+        BusinessFieldLabel(label: context.verificationText('business.contactEmail.label')),
         const SizedBox(height: 2),
         Text(
-          context.kycText('business.contactEmail.hint'),
+          context.verificationText('business.contactEmail.hint'),
           style: text.bodySmall.copyWith(color: colors.textSecondary),
         ),
-        const SizedBox(height: MyazaSpacing.xs),
-        MyazaInput(
+        const SizedBox(height: UiSpacing.xs),
+        UiInput(
           controller: controller,
           hint: 'admin@company.com',
           keyboardType: TextInputType.emailAddress,

@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/workflow_merge.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_provider.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_state.dart'
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_provider.dart';
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart'
     show ServerConfigStatus, ServerSdkConfig;
 import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
 
@@ -15,7 +15,7 @@ import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
 // are described in metadata.device.silentCapture. The flag rides the workflow
 // like every template key, with an absent key meaning on.
 
-class _Api extends KYCApiService {
+class _Api extends VerificationApiService {
   _Api() : super(baseUrl: 'http://stub', apiKey: 'pk_test_stub');
 
   final uploadTypes = <String>[];
@@ -52,14 +52,14 @@ final _jpeg = Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xD9]);
 (ProviderContainer, _Api) _container({bool silentCapture = true, String? scope}) {
   final api = _Api();
   final c = ProviderContainer(overrides: [
-    kycConfigProvider.overrideWithValue(MyazaKYCConfig(
+    verificationConfigProvider.overrideWithValue(VerificationConfig(
       apiKey: 'pk_test_stub',
       country: 'NG',
       scope: scope,
       silentCapture: silentCapture,
       userId: 'user_1',
     )),
-    kycApiServiceProvider.overrideWithValue(api),
+    verificationApiServiceProvider.overrideWithValue(api),
     preloadedServerConfigProvider.overrideWithValue(
       const ServerSdkConfig(status: ServerConfigStatus.ready),
     ),
@@ -130,7 +130,7 @@ void main() {
   });
 
   group('the workflow flag', () {
-    const base = MyazaKYCConfig(apiKey: 'pk_test_x');
+    const base = VerificationConfig(apiKey: 'pk_test_x');
 
     test('is on by default and off only when the flow says false', () {
       expect(base.silentCapture, isTrue);

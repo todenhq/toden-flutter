@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
-import '../widgets/myaza_button.dart';
+import '../widgets/ui_button.dart';
 import '../widgets/icons/icons.dart';
 import '../i18n/text_scope.dart';
 
@@ -42,16 +42,16 @@ class ContactVerifiedView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
-          padding: const EdgeInsets.all(MyazaSpacing.md),
+          padding: const EdgeInsets.all(UiSpacing.md),
           decoration: BoxDecoration(
             color: colors.primary50,
-            borderRadius: BorderRadius.circular(MyazaRadius.md),
+            borderRadius: BorderRadius.circular(UiRadius.md),
             border: Border.all(color: colors.primary.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
-              MyazaIcon(MyazaIcons.circleCheck, color: colors.primary),
-              const SizedBox(width: MyazaSpacing.md),
+              UiIcon(UiIcons.circleCheck, color: colors.primary),
+              const SizedBox(width: UiSpacing.md),
               Expanded(
                 child: Text(
                   label,
@@ -61,9 +61,9 @@ class ContactVerifiedView extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: MyazaSpacing.xl),
-        MyazaButton(
-            label: context.kycText('common.continue'), onPressed: onContinue),
+        const SizedBox(height: UiSpacing.xl),
+        UiButton(
+            label: context.verificationText('common.continue'), onPressed: onContinue),
       ],
     );
   }

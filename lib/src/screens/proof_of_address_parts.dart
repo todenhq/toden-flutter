@@ -4,7 +4,7 @@ import '../config/theme.dart';
 import '../config/upload_limits.dart';
 import '../widgets/country_flag.dart';
 import '../widgets/icons/icons.dart';
-import '../widgets/myaza_spinner.dart';
+import '../widgets/ui_spinner.dart';
 
 export 'proof_of_address_uploaded_row.dart';
 
@@ -52,17 +52,17 @@ class PoaDropzone extends StatelessWidget {
 
     return InkWell(
       onTap: uploading ? null : onTap,
-      borderRadius: BorderRadius.circular(MyazaRadius.md),
+      borderRadius: BorderRadius.circular(UiRadius.md),
       child: CustomPaint(
         painter: DashedRRectPainter(
           color: colors.border,
-          radius: MyazaRadius.md,
+          radius: UiRadius.md,
         ),
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(
-            vertical: MyazaSpacing.xl,
-            horizontal: MyazaSpacing.lg,
+            vertical: UiSpacing.xl,
+            horizontal: UiSpacing.lg,
           ),
           alignment: Alignment.center,
           child: Column(
@@ -72,20 +72,20 @@ class PoaDropzone extends StatelessWidget {
                 SizedBox(
                   width: 30,
                   height: 30,
-                  child: MyazaSpinner(
+                  child: UiSpinner(
                     strokeWidth: 2.5,
                     valueColor: AlwaysStoppedAnimation(colors.primary),
                   ),
                 )
               else
-                MyazaIcon(MyazaIcons.upload, size: 30, color: colors.textSecondary),
-              const SizedBox(height: MyazaSpacing.sm),
+                UiIcon(UiIcons.upload, size: 30, color: colors.textSecondary),
+              const SizedBox(height: UiSpacing.sm),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (country != null) ...[
-                    MyazaCountryFlag(country: country, size: 18),
-                    const SizedBox(width: MyazaSpacing.xs),
+                    UiCountryFlag(country: country, size: 18),
+                    const SizedBox(width: UiSpacing.xs),
                   ],
                   Flexible(
                     child: Text(

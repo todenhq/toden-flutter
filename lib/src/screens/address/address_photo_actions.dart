@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import '../../providers/kyc_provider.dart';
+import '../../providers/verification_provider.dart';
 import '../../services/api_service.dart';
 
 // ─── The entrance photo ──────────────────────────────────────────────────────
@@ -10,8 +10,8 @@ import '../../services/api_service.dart';
 
 mixin AddressPhotoActions on ChangeNotifier {
   // ── Provided by the controller ─────────────────────────────────────────────
-  KYCApiService get api;
-  KYCNotifier get notifier;
+  VerificationApiService get api;
+  VerificationNotifier get notifier;
   bool get alive;
   void setError(String? message);
 

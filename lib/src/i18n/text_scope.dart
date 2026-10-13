@@ -1,14 +1,14 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../config/kyc_config.dart';
-import '../providers/kyc_provider.dart';
+import '../config/verification_config.dart';
+import '../providers/verification_provider.dart';
 import 'translate.dart';
 
 /// The [TextFn] for a config: its custom copy in its language, else English,
 /// else this SDK's default. `{firstName}`, `{lastName}` and `{businessName}`
 /// are always filled from `userData`, so any text may use them.
-TextFn textFnFor(MyazaKYCConfig config) => createTextFn(
+TextFn textFnFor(VerificationConfig config) => createTextFn(
       config.texts,
       config.language,
       {
@@ -21,9 +21,9 @@ TextFn textFnFor(MyazaKYCConfig config) => createTextFn(
 /// The flow's [TextFn], derived from the mounted config. Declares its
 /// dependency so it is re-created inside each flow's scope, where the config
 /// is overridden, rather than read from the root (which has no config).
-final kycTextProvider = Provider<TextFn>(
-  (ref) => textFnFor(ref.watch(kycConfigProvider)),
-  dependencies: [kycConfigProvider],
+final verificationTextProvider = Provider<TextFn>(
+  (ref) => textFnFor(ref.watch(verificationConfigProvider)),
+  dependencies: [verificationConfigProvider],
 );
 
 /// The flow's scope as seen from [context], or null outside a flow. A route
@@ -42,14 +42,14 @@ Widget inFlowScope(ProviderContainer? scope, Widget child) => scope == null
     ? child
     : UncontrolledProviderScope(container: scope, child: child);
 
-extension KycTextContext on BuildContext {
+extension VerificationTextContext on BuildContext {
   /// The flow's [TextFn]. Outside a flow's ProviderScope (a widget pumped on
   /// its own) it answers with the defaults, the way the web SDK's `useText`
   /// does outside its provider, so a shared widget never needs one.
-  TextFn get kycText {
+  TextFn get verificationText {
     try {
       return textFnFor(ProviderScope.containerOf(this, listen: false)
-          .read(kycConfigProvider));
+          .read(verificationConfigProvider));
     } catch (_) {
       return defaultText;
     }

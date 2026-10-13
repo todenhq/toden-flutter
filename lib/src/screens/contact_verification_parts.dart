@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../config/contact_verification.dart';
 import '../config/theme.dart';
 import '../widgets/expiry_countdown.dart';
-import '../widgets/myaza_input.dart';
+import '../widgets/ui_input.dart';
 import '../widgets/otp_input.dart';
 import '../widgets/phone_number_input.dart';
 import 'contact_verification_channel.dart';
@@ -46,9 +46,9 @@ class ContactDestinationField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(context.kycText(isPhone ? 'contact.phone.label' : 'contact.email.label'),
+        Text(context.verificationText(isPhone ? 'contact.phone.label' : 'contact.email.label'),
             style: text.label),
-        const SizedBox(height: MyazaSpacing.xs),
+        const SizedBox(height: UiSpacing.xs),
         if (isPhone)
           PhoneNumberInput(
             defaultCountry: defaultCountry,
@@ -56,7 +56,7 @@ class ContactDestinationField extends StatelessWidget {
             onChanged: onPhoneChanged,
           )
         else
-          MyazaInput(
+          UiInput(
             controller: emailController,
             hint: 'you@example.com',
             keyboardType: TextInputType.emailAddress,
@@ -115,7 +115,7 @@ class ContactCodePanel extends StatelessWidget {
     final hint = text.bodySmall.copyWith(color: colors.textSecondary);
 
     // No "enter the code we sent to …" line here: the sheet header carries it
-    // (see myaza_kyc_widget), matching the web SDK. Two copies drifted apart.
+    // (see verification_widget), matching the web SDK. Two copies drifted apart.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -127,7 +127,7 @@ class ContactCodePanel extends StatelessWidget {
           onChanged: onChanged,
           onCompleted: onCompleted,
         ),
-        const SizedBox(height: MyazaSpacing.md),
+        const SizedBox(height: UiSpacing.md),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -139,7 +139,7 @@ class ContactCodePanel extends StatelessWidget {
             TextButton(
               onPressed: onResend == null ? null : () => onResend!(null),
               child: Text(
-                context.kycText('contact.code.resend'),
+                context.verificationText('contact.code.resend'),
                 style: hint.copyWith(
                   fontWeight: FontWeight.w600,
                   color:

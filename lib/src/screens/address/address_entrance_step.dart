@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/map_frame.dart' show streetViewFrameUrlOf;
 import '../../config/theme.dart';
-import '../../providers/kyc_provider.dart';
-import '../../providers/kyc_state.dart';
-import '../../widgets/myaza_button.dart';
+import '../../providers/verification_provider.dart';
+import '../../providers/verification_state.dart';
+import '../../widgets/ui_button.dart';
 import '../../widgets/sticky_actions.dart';
 import 'address_entrance_framing.dart';
 import 'address_flow_scaffold.dart';
@@ -38,7 +38,7 @@ class _AddressEntranceStepState extends ConsumerState<AddressEntranceStep>
   bool _skipped = false;
 
   @override
-  KYCStep get step => KYCStep.addressEntrance;
+  VerificationStep get step => VerificationStep.addressEntrance;
 
   String? get _svFrameUrl {
     final mapsFrameUrl = flow.state.serverConfig.mapsFrameUrl;
@@ -134,7 +134,7 @@ class _AddressEntranceStepState extends ConsumerState<AddressEntranceStep>
         children: [
           if (_skipped)
             Padding(
-              padding: const EdgeInsets.only(bottom: MyazaSpacing.sm),
+              padding: const EdgeInsets.only(bottom: UiSpacing.sm),
               child: Text(
                 'No problem. A quick photo of the entrance works just as well.',
                 style: text.bodySmall.copyWith(color: colors.textSecondary),
@@ -151,11 +151,11 @@ class _AddressEntranceStepState extends ConsumerState<AddressEntranceStep>
           buildError(context),
         ],
       ),
-      actions: MyazaButton(
+      actions: UiButton(
         // A photo is optional unless the workflow says otherwise, and the
         // button says which: pressing on without one is a choice the
         // applicant should be able to read, not guess at.
-        label: context.kycText(uploaded || required
+        label: context.verificationText(uploaded || required
             ? 'common.continue'
             : 'address.entrance.continueWithoutPhoto'),
         onPressed: canContinue ? flow.goNext : null,

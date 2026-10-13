@@ -11,7 +11,7 @@ import '../services/api_service.dart' show AddressParts;
 // label is never silently discarded. That is what [pickedAt] and [labelKept]
 // exist for, and why neither ever reaches the wire.
 //
-// Mirrors the web SDK's KYCState.address and the RN SDK's address state — keep
+// Mirrors the web SDK's VerificationState.address and the RN SDK's address state — keep
 // the three in lockstep.
 
 /// Where a label was PICKED for (a search selection's own coordinates).

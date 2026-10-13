@@ -1,37 +1,37 @@
 import 'package:flutter/material.dart';
 
 import '../config/appearance_scheme.dart';
-import '../config/kyc_config.dart';
+import '../config/verification_config.dart';
 import '../config/theme.dart';
 import '../config/workflow_merge.dart';
-import '../providers/kyc_state.dart';
+import '../providers/verification_state.dart';
 import '../services/api_service.dart';
 import '../utils/resolve_url.dart';
-import 'kyc_flow_scope.dart';
-import 'myaza_pulse_loader.dart';
+import 'verification_flow_scope.dart';
+import 'ui_pulse_loader.dart';
 
 // ─── Workflow gate ────────────────────────────────────────────────────────────
 //
 // Resolve-before-mount: when a config carries a `workflowId`, the SDK resolves
-// the published flow (GET /api/kyc/workflows/:id) BEFORE the flow mounts, merges
+// the published flow (GET /api/v1/workflows/:id) BEFORE the flow mounts, merges
 // it over the consumer's props (flow wins), and hands back an effective config
 // plus a preloaded server config (idTypes + branding) so /config is skipped.
-// This mirrors the web SDK's WorkflowGate and keeps `MyazaKYCConfig.country`
+// This mirrors the web SDK's WorkflowGate and keeps `VerificationConfig.country`
 // non-null by mount time (the flow supplies it when the consumer omits it).
 
 /// The merged effective config + the preloaded server config to inject.
 class WorkflowGateResult {
-  final MyazaKYCConfig config;
+  final VerificationConfig config;
   final ServerSdkConfig serverConfig;
 
   const WorkflowGateResult({required this.config, required this.serverConfig});
 }
 
-/// Resolves the workflow and returns the merged result. Throws [KYCError] on
+/// Resolves the workflow and returns the merged result. Throws [VerificationError] on
 /// failure (mapped so 401 → `invalid_api_key`, everything else →
 /// `invalid_workflow`). Core used by both entry points below.
-Future<WorkflowGateResult> resolveWorkflowResult(MyazaKYCConfig config) async {
-  final api = KYCApiService(
+Future<WorkflowGateResult> resolveWorkflowResult(VerificationConfig config) async {
+  final api = VerificationApiService(
     baseUrl: resolveBaseUrl(config.apiKey, devUrl: config.devUrl),
     apiKey: config.apiKey,
   );
@@ -61,14 +61,14 @@ Future<WorkflowGateResult> resolveWorkflowResult(MyazaKYCConfig config) async {
         playIntegrityCloudProjectNumber: res.playIntegrityCloudProjectNumber,
       ),
     );
-  } on KYCApiException catch (e) {
-    throw KYCError(
+  } on VerificationApiException catch (e) {
+    throw VerificationError(
       code: e.statusCode == 401 ? 'invalid_api_key' : 'invalid_workflow',
       message: e.message ??
           'This verification workflow could not be loaded. Please contact support.',
     );
   } catch (_) {
-    throw const KYCError(
+    throw const VerificationError(
       code: 'invalid_workflow',
       message: 'This verification workflow could not be loaded.',
     );
@@ -77,11 +77,11 @@ Future<WorkflowGateResult> resolveWorkflowResult(MyazaKYCConfig config) async {
 
 /// Shows a modal loading barrier while resolving, then returns the merged
 /// result — or null when resolution failed (the error is reported to [onError]
-/// and a blocking error dialog is shown). Used by `MyazaKYC.show`.
+/// and a blocking error dialog is shown). Used by `Verification.show`.
 Future<WorkflowGateResult?> resolveWorkflowBeforeMount(
   BuildContext context,
-  MyazaKYCConfig config,
-  void Function(KYCError)? onError,
+  VerificationConfig config,
+  void Function(VerificationError)? onError,
 ) async {
   final outcome = await showDialog<_GateOutcome>(
     context: context,
@@ -112,7 +112,7 @@ Future<WorkflowGateResult?> resolveWorkflowBeforeMount(
 /// opened. A mount that configures no appearance still gets the built-in theme,
 /// which is what it will open in anyway.
 class WorkflowResolveLoader extends StatelessWidget {
-  final MyazaKYCConfig config;
+  final VerificationConfig config;
 
   const WorkflowResolveLoader({super.key, required this.config});
 
@@ -123,14 +123,14 @@ class WorkflowResolveLoader extends StatelessWidget {
       initialThemeMode(config.appearance),
       platformBrightness: MediaQuery.platformBrightnessOf(context),
     );
-    // MyazaPulseLoader reads context.myazaColors, so it has to sit BELOW this
+    // UiPulseLoader reads context.myazaColors, so it has to sit BELOW this
     // Theme for the extension to reach it.
     return Theme(
       data: Theme.of(context).copyWith(extensions: [scheme]),
       child: const Center(
         child: Padding(
-          padding: EdgeInsets.all(MyazaSpacing.xl),
-          child: MyazaPulseLoader(),
+          padding: EdgeInsets.all(UiSpacing.xl),
+          child: UiPulseLoader(),
         ),
       ),
     );
@@ -141,12 +141,12 @@ class WorkflowResolveLoader extends StatelessWidget {
 
 class _GateOutcome {
   final WorkflowGateResult? result;
-  final KYCError? error;
+  final VerificationError? error;
   const _GateOutcome({this.result, this.error});
 }
 
 class _WorkflowResolveDialog extends StatefulWidget {
-  final MyazaKYCConfig config;
+  final VerificationConfig config;
   const _WorkflowResolveDialog({required this.config});
 
   @override
@@ -164,7 +164,7 @@ class _WorkflowResolveDialogState extends State<_WorkflowResolveDialog> {
     try {
       final result = await resolveWorkflowResult(widget.config);
       if (mounted) Navigator.of(context).pop(_GateOutcome(result: result));
-    } on KYCError catch (e) {
+    } on VerificationError catch (e) {
       if (mounted) Navigator.of(context).pop(_GateOutcome(error: e));
     }
   }
@@ -174,7 +174,7 @@ class _WorkflowResolveDialogState extends State<_WorkflowResolveDialog> {
 }
 
 class _WorkflowErrorDialog extends StatelessWidget {
-  final KYCError error;
+  final VerificationError error;
   const _WorkflowErrorDialog({required this.error});
 
   @override

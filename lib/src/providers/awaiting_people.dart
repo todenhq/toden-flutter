@@ -34,7 +34,7 @@ const Duration _pollInterval = Duration(seconds: 20);
 /// from an empty list, which would claim there is nobody to verify.
 class AwaitingPeopleController extends ChangeNotifier with WidgetsBindingObserver {
   AwaitingPeopleController({
-    required KYCApiService api,
+    required VerificationApiService api,
     required this.sessionId,
   }) : _api = api {
     if (sessionId == null) return;
@@ -43,7 +43,7 @@ class AwaitingPeopleController extends ChangeNotifier with WidgetsBindingObserve
     unawaited(_read());
   }
 
-  final KYCApiService _api;
+  final VerificationApiService _api;
   final String? sessionId;
 
   List<AwaitingPerson>? _people;

@@ -1,11 +1,11 @@
-import '../config/kyc_config.dart';
+import '../config/verification_config.dart';
 import 'background_presence.dart';
 import 'presence_reporter.dart';
 
 // ─── What the SDK does ON ITS OWN when a presence flow is submitted ─────────
 //
 // Until this existed, every observation depended on the host app calling
-// MyazaAddressPresence.report() or MyazaBackgroundPresence.enable() itself,
+// AddressPresence.report() or BackgroundPresence.enable() itself,
 // and companies that wired up the flow and not those calls got watches stuck
 // at 0 days / 0 nights until they lapsed (production, 2026-09-28).
 //
@@ -26,14 +26,14 @@ import 'presence_reporter.dart';
 // Mirrors the RN SDK's presence/auto-report.ts — keep the two in lockstep.
 
 /// Whether a submitted flow should make the SDK's own presence calls.
-bool shouldAutoReportPresence(MyazaKYCConfig config) {
+bool shouldAutoReportPresence(VerificationConfig config) {
   if (config.addressCollection?.presenceEnabled != true) return false;
   final userId = config.userId;
   return userId != null && userId.trim().isNotEmpty;
 }
 
 /// Background monitoring is on unless the workflow turns it off.
-bool wantsBackgroundPresence(MyazaKYCConfig config) =>
+bool wantsBackgroundPresence(VerificationConfig config) =>
     shouldAutoReportPresence(config) && config.addressCollection?.presenceBackground != false;
 
 typedef PresenceReportFn = Future<PresenceReportResult> Function({
@@ -55,9 +55,9 @@ class AutoReportOutcome {
 }
 
 Future<AutoReportOutcome?> autoReportPresence(
-  MyazaKYCConfig config, {
-  PresenceReportFn report = MyazaAddressPresence.report,
-  BackgroundEnableFn enableBackground = MyazaBackgroundPresence.enable,
+  VerificationConfig config, {
+  PresenceReportFn report = AddressPresence.report,
+  BackgroundEnableFn enableBackground = BackgroundPresence.enable,
 }) async {
   if (!shouldAutoReportPresence(config)) return null;
   final userId = config.userId!;

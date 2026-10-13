@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../config/business.dart';
 import '../config/registration_hint.dart';
 import '../config/theme.dart';
-import '../widgets/myaza_input.dart';
+import '../widgets/ui_input.dart';
 import 'business_company_info_fields.dart';
 import 'business_details_parts.dart';
 import '../i18n/text_scope.dart';
@@ -63,10 +63,10 @@ class BusinessDetailsFields extends StatelessWidget {
         // Live like the web SDK: a wrong CAC prefix is corrected on the spot,
         // not discovered on Continue. The registry tip fills the same slot
         // until there is an error to show.
-        MyazaInput(
+        UiInput(
           label: productDef.input == BusinessProductInput.tin
               ? productDef.inputLabel
-              : context.kycText('business.details.registrationNumberLabel'),
+              : context.verificationText('business.details.registrationNumberLabel'),
           controller: regCtrl,
           hint: regHint.placeholder,
           textCapitalization: TextCapitalization.characters,
@@ -79,14 +79,14 @@ class BusinessDetailsFields extends StatelessWidget {
           helperText: regHint.tip,
           onChanged: (v) => onChanged('registrationNumber', v),
         ),
-        const SizedBox(height: MyazaSpacing.md),
+        const SizedBox(height: UiSpacing.md),
 
         BusinessFieldLabel(
-          label: context.kycText('business.details.nameLabel'),
+          label: context.verificationText('business.details.nameLabel'),
           required: requireName,
         ),
-        const SizedBox(height: MyazaSpacing.xs),
-        MyazaInput(
+        const SizedBox(height: UiSpacing.xs),
+        UiInput(
           controller: nameCtrl,
           hint: 'Enter the registered business name',
           autocorrect: false,
@@ -94,7 +94,7 @@ class BusinessDetailsFields extends StatelessWidget {
         ),
 
         if (showCompanyInfo) ...[
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
           BusinessCompanyInfoFields(
             modes: modes,
             controllers: infoCtrls,
@@ -106,7 +106,7 @@ class BusinessDetailsFields extends StatelessWidget {
         ],
 
         if (showContactEmail) ...[
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
           BusinessContactEmailField(
             controller: contactEmailCtrl,
             valid: contactEmailValid,

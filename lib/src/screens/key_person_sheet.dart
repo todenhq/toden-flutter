@@ -4,7 +4,7 @@ import '../config/business.dart' show KeyPersonRole;
 import '../config/business_application.dart';
 import '../config/key_people_sections.dart';
 import '../config/theme.dart';
-import '../widgets/myaza_button.dart';
+import '../widgets/ui_button.dart';
 import '../widgets/themed_sheet.dart';
 import 'key_person_form.dart';
 
@@ -46,7 +46,7 @@ Future<KeyPersonSheetResult?> showKeyPersonSheet(
   required double otherPctTotal,
   Set<KeyPersonRole> emailRequiredFor = const {},
 }) {
-  return showMyazaSheet<KeyPersonSheetResult>(
+  return showUiSheet<KeyPersonSheetResult>(
     context,
     isScrollControlled: true,
     builder: (_) => _KeyPersonSheetBody(
@@ -147,15 +147,15 @@ class _KeyPersonSheetBodyState extends State<_KeyPersonSheetBody> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Handle and close come from showMyazaSheet now. What is left is
+            // Handle and close come from showUiSheet now. What is left is
             // this sheet's own heading, sitting tight under the handle the way
             // the system sheets set a title.
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                MyazaSpacing.md,
+                UiSpacing.md,
                 0,
-                MyazaSpacing.md,
-                MyazaSpacing.sm,
+                UiSpacing.md,
+                UiSpacing.sm,
               ),
               child: Text(
                 widget.editing ? 'Edit person' : 'Add a person',
@@ -167,7 +167,7 @@ class _KeyPersonSheetBodyState extends State<_KeyPersonSheetBody> {
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.symmetric(
-                    horizontal: MyazaSpacing.md),
+                    horizontal: UiSpacing.md),
                 child: KeyPersonForm(
                   entry: _draft,
                   section: widget.section,
@@ -186,15 +186,15 @@ class _KeyPersonSheetBodyState extends State<_KeyPersonSheetBody> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                MyazaSpacing.md,
-                MyazaSpacing.sm,
-                MyazaSpacing.md,
-                MyazaSpacing.lg,
+                UiSpacing.md,
+                UiSpacing.sm,
+                UiSpacing.md,
+                UiSpacing.lg,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  MyazaButton(
+                  UiButton(
                     label: widget.editing ? 'Save changes' : 'Add person',
                     onPressed: canSave
                         ? () => Navigator.of(context)
@@ -202,7 +202,7 @@ class _KeyPersonSheetBodyState extends State<_KeyPersonSheetBody> {
                         : null,
                   ),
                   if (widget.editing) ...[
-                    const SizedBox(height: MyazaSpacing.xs),
+                    const SizedBox(height: UiSpacing.xs),
                     SizedBox(
                       height: 44,
                       child: TextButton(
@@ -211,7 +211,7 @@ class _KeyPersonSheetBodyState extends State<_KeyPersonSheetBody> {
                         child: Text(
                           'Remove this person',
                           style: text.bodySmall.copyWith(
-                            color: MyazaColors.error,
+                            color: UiColors.error,
                             fontWeight: FontWeight.w600,
                           ),
                         ),

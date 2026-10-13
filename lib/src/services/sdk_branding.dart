@@ -2,7 +2,7 @@ import '../config/trust_attribution.dart';
 
 export '../config/trust_attribution.dart' show SdkTrustAttribution;
 
-/// Org branding returned by /api/kyc/config. Surfaced so the SDK can render the
+/// Org branding returned by /api/v1/config. Surfaced so the SDK can render the
 /// org's own logo when the consumer sets `appearance.logo = 'default'`. `logo`
 /// is an absolute, public URL (or null when the org has none configured).
 class SdkConfigBranding {

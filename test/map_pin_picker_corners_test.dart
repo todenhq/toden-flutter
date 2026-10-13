@@ -9,7 +9,7 @@ import 'package:myaza_kyc_sdk_flutter/src/widgets/map_pin_picker.dart';
 // met the address band (user report 2026-09-08). Mirrors RN's cornerRadius.
 void main() {
   Widget host(Widget child) => MaterialApp(
-        theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+        theme: ThemeData(extensions: const [UiColorScheme.light]),
         home: Scaffold(body: SizedBox(width: 320, child: child)),
       );
 
@@ -31,7 +31,7 @@ void main() {
     )));
     final d = decorationOf(tester);
     expect(d.border, isNotNull);
-    expect(d.borderRadius, BorderRadius.circular(MyazaRadius.md));
+    expect(d.borderRadius, BorderRadius.circular(UiRadius.md));
   });
 
   testWidgets('cornerRadius 0 drops the border and squares the corners', (tester) async {

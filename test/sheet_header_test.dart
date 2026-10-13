@@ -7,7 +7,7 @@ import 'icon_finder.dart';
 
 // The sheet's close button, which is the half of this that can fail invisibly.
 //
-// showMyazaSheet's own header comment warns that an SDK sheet is a SIBLING
+// showUiSheet's own header comment warns that an SDK sheet is a SIBLING
 // route, not a descendant — that is exactly the situation where
 // `Navigator.of(context).pop()` reaches for the wrong navigator. A close button
 // that renders perfectly and either does nothing or tears down the whole flow
@@ -15,12 +15,12 @@ import 'icon_finder.dart';
 
 Widget _host(GlobalKey<NavigatorState> nav) => MaterialApp(
       navigatorKey: nav,
-      theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+      theme: ThemeData(extensions: const [UiColorScheme.light]),
       home: Builder(
         builder: (context) => Scaffold(
           body: Center(
             child: ElevatedButton(
-              onPressed: () => showMyazaSheet<void>(
+              onPressed: () => showUiSheet<void>(
                 context,
                 builder: (_) => const SizedBox(height: 200, child: Text('sheet body')),
               ),
@@ -40,9 +40,9 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     expect(find.text('sheet body'), findsOneWidget);
-    expect(findMyazaIcon(MyazaIcons.x), findsOneWidget, reason: 'no way out');
+    expect(findUiIcon(UiIcons.x), findsOneWidget, reason: 'no way out');
 
-    await tester.tap(findMyazaIcon(MyazaIcons.x));
+    await tester.tap(findUiIcon(UiIcons.x));
     await tester.pumpAndSettle();
 
     expect(find.text('sheet body'), findsNothing);
@@ -57,12 +57,12 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         navigatorKey: nav,
-        theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+        theme: ThemeData(extensions: const [UiColorScheme.light]),
         home: Builder(
           builder: (context) => Scaffold(
             body: Center(
               child: ElevatedButton(
-                onPressed: () => showMyazaSheet<void>(
+                onPressed: () => showUiSheet<void>(
                   context,
                   showHeader: false,
                   builder: (_) => const SizedBox(height: 200, child: Text('own chrome')),
@@ -78,7 +78,7 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     expect(find.text('own chrome'), findsOneWidget);
-    expect(findMyazaIcon(MyazaIcons.x), findsNothing);
+    expect(findUiIcon(UiIcons.x), findsNothing);
   });
 
   testWidgets('the handle rides at the lip, not halfway down the panel',
@@ -91,7 +91,7 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    final handleTop = tester.getTopLeft(find.byKey(kMyazaSheetHandleKey)).dy;
+    final handleTop = tester.getTopLeft(find.byKey(kUiSheetHandleKey)).dy;
     final closeTop = tester.getTopLeft(find.byType(IconButton)).dy;
 
     // Both hang off the top of the header. Centring the handle against a 44pt
@@ -109,14 +109,14 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         navigatorKey: nav,
-        theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+        theme: ThemeData(extensions: const [UiColorScheme.light]),
         home: MediaQuery(
           data: const MediaQueryData(padding: EdgeInsets.only(top: topInset)),
           child: Builder(
             builder: (context) => Scaffold(
               body: Center(
                 child: ElevatedButton(
-                  onPressed: () => showMyazaSheet<void>(
+                  onPressed: () => showUiSheet<void>(
                     context,
                     isScrollControlled: true,
                     // Taller than the screen: it must be capped, not clipped
@@ -135,7 +135,7 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    final panel = tester.getRect(find.byKey(kMyazaSheetHandleKey));
+    final panel = tester.getRect(find.byKey(kUiSheetHandleKey));
     expect(panel.top, greaterThanOrEqualTo(topInset),
         reason: 'the sheet header is under the status bar');
   });

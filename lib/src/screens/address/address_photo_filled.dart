@@ -22,7 +22,7 @@ class AddressPhotoFilled extends StatelessWidget {
     final text = context.myazaText;
     final path = parent.previewPath;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(MyazaRadius.md),
+      borderRadius: BorderRadius.circular(UiRadius.md),
       child: Stack(
         children: [
           if (path != null && path.isNotEmpty)
@@ -39,9 +39,9 @@ class AddressPhotoFilled extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const MyazaIcon(MyazaIcons.circleCheck,
-                      size: 32, color: MyazaColors.success),
-                  const SizedBox(height: MyazaSpacing.sm),
+                  const UiIcon(UiIcons.circleCheck,
+                      size: 32, color: UiColors.success),
+                  const SizedBox(height: UiSpacing.sm),
                   Text('Entrance photo added',
                       style: text.label.copyWith(fontWeight: FontWeight.w600)),
                 ],
@@ -54,13 +54,13 @@ class AddressPhotoFilled extends StatelessWidget {
             child: Row(
               children: [
                 _ActionPill(
-                  icon: MyazaIcons.refreshCcw,
+                  icon: UiIcons.refreshCcw,
                   label: 'Replace',
                   onTap: parent.onPick,
                 ),
-                const SizedBox(width: MyazaSpacing.sm),
+                const SizedBox(width: UiSpacing.sm),
                 _ActionPill(
-                  icon: MyazaIcons.x,
+                  icon: UiIcons.x,
                   label: 'Remove',
                   semanticsLabel: 'Remove photo',
                   onTap: parent.onRemove,
@@ -74,9 +74,9 @@ class AddressPhotoFilled extends StatelessWidget {
   }
 }
 
-BoxDecoration _pillDecoration(MyazaColorScheme colors) => BoxDecoration(
+BoxDecoration _pillDecoration(UiColorScheme colors) => BoxDecoration(
       color: colors.background.withValues(alpha: 0.9),
-      borderRadius: BorderRadius.circular(MyazaRadius.full),
+      borderRadius: BorderRadius.circular(UiRadius.full),
       boxShadow: [
         BoxShadow(
           color: colors.textDark.withValues(alpha: 0.12),
@@ -100,7 +100,7 @@ class _TagPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          MyazaIcon(MyazaIcons.circleCheck, size: 12, color: colors.primary),
+          UiIcon(UiIcons.circleCheck, size: 12, color: colors.primary),
           const SizedBox(width: 6),
           Text(
             'ENTRANCE PHOTO',
@@ -118,7 +118,7 @@ class _TagPill extends StatelessWidget {
 }
 
 class _ActionPill extends StatelessWidget {
-  final MyazaIconData icon;
+  final UiIconData icon;
   final String label;
   final String? semanticsLabel;
   final VoidCallback onTap;
@@ -141,16 +141,16 @@ class _ActionPill extends StatelessWidget {
         decoration: _pillDecoration(colors),
         child: Material(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(MyazaRadius.full),
+          borderRadius: BorderRadius.circular(UiRadius.full),
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(MyazaRadius.full),
+            borderRadius: BorderRadius.circular(UiRadius.full),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  MyazaIcon(icon, size: 14, color: colors.textDark),
+                  UiIcon(icon, size: 14, color: colors.textDark),
                   const SizedBox(width: 6),
                   Text(label,
                       style: text.bodySmall.copyWith(

@@ -11,8 +11,8 @@ import 'package:myaza_kyc_sdk_flutter/src/providers/step_order.dart';
 WorkflowBusinessConfig businessFromJson(Map<String, dynamic> json) =>
     WorkflowBusinessConfig.fromJson({'country': 'NG', ...json});
 
-MyazaKYCConfig businessConfig(WorkflowBusinessConfig business) =>
-    MyazaKYCConfig(
+VerificationConfig businessConfig(WorkflowBusinessConfig business) =>
+    VerificationConfig(
       apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       country: business.country,
       workflowId: 'wf_test',
@@ -200,16 +200,16 @@ void main() {
   });
 
   group('step order', () {
-    List<KYCStep> orderFor(Map<String, dynamic> businessJson) {
+    List<VerificationStep> orderFor(Map<String, dynamic> businessJson) {
       final business = businessFromJson(businessJson);
-      return buildStepOrder(businessConfig(business), const KYCState());
+      return buildStepOrder(businessConfig(business), const VerificationState());
     }
 
     test('a bare registry lookup is 3 steps', () {
       expect(orderFor({}), [
-        KYCStep.consent,
-        KYCStep.businessDetails,
-        KYCStep.submitted,
+        VerificationStep.consent,
+        VerificationStep.businessDetails,
+        VerificationStep.submitted,
       ]);
     });
 
@@ -220,11 +220,11 @@ void main() {
           'keyPeople': {'enabled': true, 'collect': true},
         }),
         [
-          KYCStep.consent,
-          KYCStep.businessDetails,
-          KYCStep.businessDocuments,
-          KYCStep.businessKeyPeople,
-          KYCStep.submitted,
+          VerificationStep.consent,
+          VerificationStep.businessDetails,
+          VerificationStep.businessDocuments,
+          VerificationStep.businessKeyPeople,
+          VerificationStep.submitted,
         ],
       );
     });
@@ -232,14 +232,14 @@ void main() {
     test('applicant verification appends the individual capture leg', () {
       final order = orderFor({'applicant': {'verification': true}});
       expect(order, [
-        KYCStep.consent,
-        KYCStep.businessDetails,
-        KYCStep.applicantRole,
-        KYCStep.idType,
+        VerificationStep.consent,
+        VerificationStep.businessDetails,
+        VerificationStep.applicantRole,
+        VerificationStep.idType,
         // No ID picked yet, so the order assumes the document path.
-        KYCStep.documentCapture,
-        KYCStep.liveness,
-        KYCStep.submitted,
+        VerificationStep.documentCapture,
+        VerificationStep.liveness,
+        VerificationStep.submitted,
       ]);
     });
 
@@ -251,7 +251,7 @@ void main() {
       // leak cannot happen — this pins the shape so a refactor cannot
       // reintroduce it: questionnaire with the COMPANY section, capture leg
       // straight into submitted.
-      final config = MyazaKYCConfig(
+      final config = VerificationConfig(
         apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         country: 'NG',
         workflowId: 'wf_test',
@@ -269,16 +269,16 @@ void main() {
           ),
         ]),
       );
-      expect(buildStepOrder(config, const KYCState()), [
-        KYCStep.consent,
-        KYCStep.businessDetails,
-        KYCStep.questionnaire,
-        KYCStep.businessKeyPeople,
-        KYCStep.applicantRole,
-        KYCStep.idType,
-        KYCStep.documentCapture,
-        KYCStep.liveness,
-        KYCStep.submitted,
+      expect(buildStepOrder(config, const VerificationState()), [
+        VerificationStep.consent,
+        VerificationStep.businessDetails,
+        VerificationStep.questionnaire,
+        VerificationStep.businessKeyPeople,
+        VerificationStep.applicantRole,
+        VerificationStep.idType,
+        VerificationStep.documentCapture,
+        VerificationStep.liveness,
+        VerificationStep.submitted,
       ]);
     });
 
@@ -290,14 +290,14 @@ void main() {
         'keyPeople': {'enabled': true, 'collect': true},
         'applicant': {'verification': true},
       });
-      expect(order, isNot(contains(KYCStep.countrySelect)));
-      expect(order, isNot(contains(KYCStep.proofOfAddress)));
+      expect(order, isNot(contains(VerificationStep.countrySelect)));
+      expect(order, isNot(contains(VerificationStep.proofOfAddress)));
     });
   });
 
   group('a real published KYB workflow', () {
     // Verbatim `config.business` from the "KYB + AML screening" workflow, as
-    // returned by GET /api/kyc/workflows/:id. Guards the parse against the
+    // returned by GET /api/v1/workflows/:id. Guards the parse against the
     // shape the server actually sends — note `invite` carries a workflowId but
     // NO channel, and `applicant` is absent.
     final business = WorkflowBusinessConfig.fromJson({
@@ -324,7 +324,7 @@ void main() {
     });
 
     test('drives a 5-step flow with a questionnaire', () {
-      final config = MyazaKYCConfig(
+      final config = VerificationConfig(
         apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         country: 'CI',
         workflowId: 'wf_VKjJHaSlS1W0',
@@ -343,13 +343,13 @@ void main() {
       // The questionnaire sits BEFORE key people: its questions are about the
       // COMPANY, and naming the directors hands the application over to other
       // people. Mirrors the web and RN SDKs.
-      expect(buildStepOrder(config, const KYCState()), [
-        KYCStep.consent,
-        KYCStep.businessDetails,
-        KYCStep.businessDocuments,
-        KYCStep.questionnaire,
-        KYCStep.businessKeyPeople,
-        KYCStep.submitted,
+      expect(buildStepOrder(config, const VerificationState()), [
+        VerificationStep.consent,
+        VerificationStep.businessDetails,
+        VerificationStep.businessDocuments,
+        VerificationStep.questionnaire,
+        VerificationStep.businessKeyPeople,
+        VerificationStep.submitted,
       ]);
     });
 

@@ -22,6 +22,32 @@ class _FakeStore {
 }
 
 void main() {
+  group('selfieUploadExpected', () {
+    const idle = SelfieUploadSnapshot(selfieUpload: kIdleSelfieUpload);
+    test('a flow with no liveness step and nothing uploading has no selfie to wait for', () {
+      expect(selfieUploadExpected(idle, hasLivenessStep: false), isFalse);
+    });
+    test('a flow with a liveness step waits, even before the upload has started', () {
+      expect(selfieUploadExpected(idle, hasLivenessStep: true), isTrue);
+    });
+    test('an upload already started or failed counts whatever the step order says', () {
+      expect(
+        selfieUploadExpected(
+          const SelfieUploadSnapshot(selfieUpload: SelfieUploadState.uploading),
+          hasLivenessStep: false,
+        ),
+        isTrue,
+      );
+      expect(
+        selfieUploadExpected(
+          SelfieUploadSnapshot(selfieUpload: SelfieUploadState.failed('x')),
+          hasLivenessStep: false,
+        ),
+        isTrue,
+      );
+    });
+  });
+
   group('selfieUploadSettled', () {
     test('a finished upload, or a restored media id with nothing in flight, is settled', () {
       expect(selfieUploadSettled(const SelfieUploadSnapshot(selfieUpload: SelfieUploadState.done, selfieMediaId: 'm1')), isA<SelfieUploadOk>());

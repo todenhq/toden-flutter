@@ -29,8 +29,8 @@ double contrast(Color a, Color b) {
 
 void main() {
   const schemes = {
-    'light': MyazaColorScheme.light,
-    'dark': MyazaColorScheme.dark,
+    'light': UiColorScheme.light,
+    'dark': UiColorScheme.dark,
   };
 
   group('body text clears WCAG AA on its own background', () {
@@ -55,9 +55,9 @@ void main() {
     // Orgs set their own dark background, and a green one is dimmer than the
     // default #040218. The tier that failed did so worst exactly here.
     const branded = Color(0xFF0D2114);
-    expect(contrast(MyazaColorScheme.dark.textMuted, branded),
+    expect(contrast(UiColorScheme.dark.textMuted, branded),
         greaterThanOrEqualTo(4.5));
-    expect(contrast(MyazaColorScheme.dark.textSecondary, branded),
+    expect(contrast(UiColorScheme.dark.textSecondary, branded),
         greaterThanOrEqualTo(4.5));
   });
 }

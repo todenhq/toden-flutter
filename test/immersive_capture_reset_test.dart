@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_provider.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/kyc_flow_scope.dart';
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_provider.dart';
+import 'package:myaza_kyc_sdk_flutter/src/widgets/verification_flow_scope.dart';
 
 // ─── Leaving document capture hands the chrome back ──────────────────────────
 //
@@ -20,8 +20,8 @@ import 'package:myaza_kyc_sdk_flutter/src/widgets/kyc_flow_scope.dart';
 // Clearing it on every step transition means a return can never inherit it.
 
 ProviderContainer _container() => ProviderContainer(
-      overrides: kycFlowOverrides(
-        const MyazaKYCConfig(
+      overrides: verificationFlowOverrides(
+        const VerificationConfig(
           apiKey: 'pk_test_x',
           country: 'NG',
           idTypes: ['passport'],
@@ -37,11 +37,11 @@ void main() {
       addTearDown(c.dispose);
       final notifier = c.read(kYCNotifierProvider.notifier);
 
-      notifier.goToStep(KYCStep.documentCapture);
+      notifier.goToStep(VerificationStep.documentCapture);
       notifier.setImmersiveCapture(true);
       expect(c.read(kYCNotifierProvider).immersiveCapture, isTrue);
 
-      notifier.goToStep(KYCStep.idType);
+      notifier.goToStep(VerificationStep.idType);
       expect(
         c.read(kYCNotifierProvider).immersiveCapture,
         isFalse,
@@ -56,12 +56,12 @@ void main() {
 
       // Camera open, then back out to the ID picker without the screen's
       // post-frame write ever landing — exactly what unmounting does.
-      notifier.goToStep(KYCStep.documentCapture);
+      notifier.goToStep(VerificationStep.documentCapture);
       notifier.setImmersiveCapture(true);
-      notifier.goToStep(KYCStep.idType);
+      notifier.goToStep(VerificationStep.idType);
 
       // Pick the ID again.
-      notifier.goToStep(KYCStep.documentCapture);
+      notifier.goToStep(VerificationStep.documentCapture);
       expect(
         c.read(kYCNotifierProvider).immersiveCapture,
         isFalse,
@@ -74,10 +74,10 @@ void main() {
       addTearDown(c.dispose);
       final notifier = c.read(kYCNotifierProvider.notifier);
 
-      notifier.goToStep(KYCStep.documentCapture);
+      notifier.goToStep(VerificationStep.documentCapture);
       notifier.setImmersiveCapture(true);
       // A no-op transition must not drop the flag out from under a live camera.
-      notifier.goToStep(KYCStep.documentCapture);
+      notifier.goToStep(VerificationStep.documentCapture);
       expect(c.read(kYCNotifierProvider).immersiveCapture, isTrue);
     });
   });

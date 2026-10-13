@@ -50,15 +50,15 @@ class LivenessInstructionPill extends StatelessWidget {
         still ? Duration.zero : const Duration(milliseconds: 220);
 
     final Widget? mark = switch (tone) {
-      LivenessInstructionTone.warning => const MyazaIcon(
-          MyazaIcons.triangleAlert,
+      LivenessInstructionTone.warning => const UiIcon(
+          UiIcons.triangleAlert,
           size: 20,
-          color: MyazaColors.error,
+          color: UiColors.error,
         ),
-      LivenessInstructionTone.done => const MyazaIcon(
-          MyazaIcons.circleCheck,
+      LivenessInstructionTone.done => const UiIcon(
+          UiIcons.circleCheck,
           size: 20,
-          color: MyazaColors.success,
+          color: UiColors.success,
         ),
       LivenessInstructionTone.prompt => leading,
     };
@@ -66,7 +66,7 @@ class LivenessInstructionPill extends StatelessWidget {
     // The green of a finished step does not reach 4.5:1 on a light surface,
     // so the tick carries it and the words stay the text colour.
     final textColor = tone == LivenessInstructionTone.warning
-        ? MyazaColors.error
+        ? UiColors.error
         : colors.textDark;
 
     return Center(

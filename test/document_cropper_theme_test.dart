@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
 import 'package:myaza_kyc_sdk_flutter/src/widgets/document_cropper.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/myaza_button.dart';
+import 'package:myaza_kyc_sdk_flutter/src/widgets/ui_button.dart';
 
 // ─── The photo cropper takes the workflow's colours ──────────────────────────
 //
@@ -20,8 +20,8 @@ final _png = base64Decode(
 
 void main() {
   for (final (name, base, isDark) in [
-    ('light', MyazaColorScheme.light, false),
-    ('dark', MyazaColorScheme.dark, true),
+    ('light', UiColorScheme.light, false),
+    ('dark', UiColorScheme.dark, true),
   ]) {
     testWidgets('takes the workflow colours ($name)', (tester) async {
       final scheme = base.copyWith(primary: const Color(0xFFD9480F));
@@ -31,11 +31,11 @@ void main() {
       ));
 
       final appBar = tester.widget<AppBar>(find.byType(AppBar));
-      expect(appBar.backgroundColor, kycHeaderSurface(scheme, isDark: isDark));
+      expect(appBar.backgroundColor, verificationHeaderSurface(scheme, isDark: isDark));
       expect(appBar.foregroundColor, scheme.textDark);
 
       // The action bar is the flow's surface, and the button is the flow's own.
-      final button = find.widgetWithText(MyazaButton, 'Crop & Use');
+      final button = find.widgetWithText(UiButton, 'Crop & Use');
       expect(button, findsOneWidget);
       final bar = tester.widget<DecoratedBox>(
         find.ancestor(of: button, matching: find.byType(DecoratedBox)).first,

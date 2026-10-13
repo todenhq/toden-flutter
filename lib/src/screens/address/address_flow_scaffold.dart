@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/theme.dart';
-import '../../providers/kyc_provider.dart';
-import '../../providers/kyc_state.dart';
+import '../../providers/verification_provider.dart';
+import '../../providers/verification_state.dart';
 import 'address_flow_controller.dart';
 import 'address_intro_gate.dart';
 import '../../i18n/text_scope.dart';
 
 // ─── What every address step shares ──────────────────────────────────────────
 //
-// One controller per screen (the ADDRESS itself lives in KYCState, so only the
+// One controller per screen (the ADDRESS itself lives in VerificationState, so only the
 // transient flags are local), the presence primer on the flow's first step,
 // and the two affordances every step below the entrance carries: the error
 // line and "Skip for now".
@@ -23,7 +23,7 @@ mixin AddressFlowScaffold<T extends ConsumerStatefulWidget> on ConsumerState<T> 
   late final AddressFlowController flow = AddressFlowController(ref);
 
   /// The step this screen IS. Only the flow's first step shows the primer.
-  KYCStep get step;
+  VerificationStep get step;
 
   /// The screen below the primer.
   Widget buildBody(BuildContext context);
@@ -39,10 +39,10 @@ mixin AddressFlowScaffold<T extends ConsumerStatefulWidget> on ConsumerState<T> 
     final message = flow.error;
     if (message == null) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(top: MyazaSpacing.sm),
+      padding: const EdgeInsets.only(top: UiSpacing.sm),
       child: Text(message,
           style: context.myazaText.bodySmall
-              .copyWith(color: MyazaColors.error)),
+              .copyWith(color: UiColors.error)),
     );
   }
 
@@ -57,19 +57,19 @@ mixin AddressFlowScaffold<T extends ConsumerStatefulWidget> on ConsumerState<T> 
     // RN's geometry: `md` above, `sm` of tap padding either side of the line,
     // no Material button chrome around it.
     return Padding(
-      padding: const EdgeInsets.only(top: MyazaSpacing.md),
+      padding: const EdgeInsets.only(top: UiSpacing.md),
       child: Center(
         child: Semantics(
           button: true,
-          label: context.kycText('address.skip'),
+          label: context.verificationText('address.skip'),
           child: InkWell(
             onTap: flow.exitForward,
-            borderRadius: BorderRadius.circular(MyazaRadius.xs),
+            borderRadius: BorderRadius.circular(UiRadius.xs),
             child: Padding(
               padding: const EdgeInsets.symmetric(
-                  vertical: MyazaSpacing.sm, horizontal: MyazaSpacing.sm),
+                  vertical: UiSpacing.sm, horizontal: UiSpacing.sm),
               child: Text(
-                context.kycText('address.skip'),
+                context.verificationText('address.skip'),
                 style: context.myazaText.bodyMedium.copyWith(
                   color: colors.textSecondary,
                   decoration: TextDecoration.underline,

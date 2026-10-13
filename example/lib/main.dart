@@ -43,9 +43,9 @@ class HomeScreen extends StatelessWidget {
     // On-device liveness ships inside the SDK and is on by default — no setup
     // needed. The flow uploads media and submits, then returns immediately;
     // the verification result is delivered asynchronously via webhook.
-    MyazaKYC.show(
+    Verification.show(
       context: context,
-      config: MyazaKYCConfig(
+      config: VerificationConfig(
         // The environment is derived from the key prefix — a `pk_test_*` key
         // targets staging automatically (no `environment` parameter).
         apiKey: kApiKey,
@@ -62,19 +62,19 @@ class HomeScreen extends StatelessWidget {
         enableSelfie: true,
         enableDocumentCapture: true,
         enableLiveness: true,
-        appearance: const MyazaKYCAppearance(
+        appearance: const VerificationAppearance(
           companyName: 'Myaza',
-          theme: MyazaThemeMode.light,
+          theme: VerificationThemeMode.light,
         ),
         metadata: const {'userId': kUserId},
       ),
-      onSubmit: (KYCSubmission submission) {
+      onSubmit: (VerificationSubmission submission) {
         // Fires once the server accepts the submission. `status` is always
         // 'pending' here — the final outcome arrives later via webhook (or by
-        // polling GET /api/kyc/status/:verificationId).
+        // polling GET /api/v1/status/:verificationId).
         debugPrint('Submitted: ${submission.verificationId}');
       },
-      onError: (KYCError error) {
+      onError: (VerificationError error) {
         // Technical errors only (network / invalid key / insufficient credits /
         // upload). Verification *failures* never come through here.
         debugPrint('Error (${error.code}): ${error.message}');

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
-import '../widgets/myaza_alert.dart';
+import '../widgets/ui_alert.dart';
 
 // ─── What the register said, when it was NOT a plain yes ─────────────────────
 //
@@ -24,7 +24,7 @@ class BusinessCheckPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (status == 'not_found') {
-      return const MyazaAlert.warning(
+      return const UiAlert.warning(
         title: 'We could not find this business on the register',
         message: 'Check the registration number and try again.',
       );
@@ -66,11 +66,11 @@ class _NeutralPanel extends StatelessWidget {
     final colors = context.myazaColors;
     final text = context.myazaText;
     return Container(
-      padding: const EdgeInsets.all(MyazaSpacing.md),
+      padding: const EdgeInsets.all(UiSpacing.md),
       decoration: BoxDecoration(
         color: colors.backgroundSecondary,
         border: Border.all(color: colors.border),
-        borderRadius: BorderRadius.circular(MyazaRadius.sm),
+        borderRadius: BorderRadius.circular(UiRadius.sm),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -18,16 +18,14 @@ import 'powered_by_custom.dart';
 /// a regulator can hold us to. Attribution is more credible precisely because it
 /// claims nothing.
 ///
-/// The lockup mirrors the dashboard's canonical treatment: [Myaza wordmark],
-/// hairline rule, TRUST in tracked uppercase. The divider is a 1px CONTAINER,
-/// not a "|" character — a typed pipe sits on the text baseline at whatever
-/// weight the font gives it and reads as a separator between two names. The rule
-/// is what makes it one brand: Myaza Trust.
+/// The mark is the Toden logo as the console draws it: the split-shield T
+/// beside the "toden" lettering, one piece with nothing after it.
 ///
-/// The wordmark ships as a PNG rather than the brand SVG because Flutter cannot
+/// The logo ships as a PNG rather than the brand SVG because Flutter cannot
 /// parse SVG path data without `flutter_svg`, and a native plugin is a cost
-/// every integrator would carry forever for one footer mark. The icon keeps its
-/// brand colours in both themes; only the lettering flips, hence two assets.
+/// every integrator would carry forever for one footer mark. The ink flips with
+/// the surface and the shield's purple half steps lighter on dark, hence two
+/// assets.
 ///
 /// Tappable, like the web and React Native SDKs. It was not, while
 /// `url_launcher` was a dependency this SDK did not carry — that changed when
@@ -42,25 +40,24 @@ import 'powered_by_custom.dart';
 ///
 /// When the server says the workflow carries the org's own attribution
 /// ([attribution] custom), the footer reads "Protected by" and the org's logo
-/// instead, with no Myaza mark or link (see [CustomTrustMark]).
+/// instead, with no Toden mark or link (see [CustomTrustMark]).
 class PoweredBy extends StatelessWidget {
   const PoweredBy({super.key, this.attribution, this.dark = false});
 
-  /// `branding.trustAttribution`; null (an older server) means Myaza.
+  /// `branding.trustAttribution`; null (an older server) means the Toden logo.
   final SdkTrustAttribution? attribution;
 
   /// The flow is on its dark theme: the org's dark-theme logo is drawn then.
   final bool dark;
 
-  /// Rendered height of the wordmark. The asset is 648×200, so it is downscaled
+  /// Rendered height of the logo. The asset is 365×96, so it is downscaled
   /// with headroom on every density; `cacheHeight` bounds the decode.
-  static const double _markHeight = 24;
+  static const double _markHeight = 20;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
-    // ONE Myaza tone for the whole mark — label, wordmark, rule and TRUST —
-    // picked against the background it actually sits on rather than taken from
+    // ONE tone for the label and the logo's ink, picked against the background it actually sits on rather than taken from
     // the org's palette, so a customer's brand can never repaint our mark or
     // swallow it.
     final markColor = brandMarkColor(colors.background);
@@ -105,7 +102,7 @@ class PoweredBy extends StatelessWidget {
         // device with no browser has nothing useful to show instead.
         // The ROW is not the link — only the mark is. A Row expands to its
         // constraints, so wrapping it in the GestureDetector made the entire
-        // footer width open myaza.co. "Protected by" is a label, not a
+        // footer width open the product site. "Protected by" is a label, not a
         // destination.
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -121,11 +118,8 @@ class PoweredBy extends StatelessWidget {
                 color: markColor,
               ),
             ),
-            // Wider than the gaps INSIDE the lockup, so the mark reads as one
-            // unit rather than three evenly-spaced items.
             const SizedBox(width: 10),
-            // This is the link: wordmark, rule and TRUST are one brand, so the
-            // whole lockup is the target — but nothing beyond it is.
+            // The logo is the link, and nothing beyond it is.
             // A failed launch is swallowed: the provenance mark is the point,
             // and a device with no browser has nothing useful to show instead.
             GestureDetector(
@@ -137,41 +131,22 @@ class PoweredBy extends StatelessWidget {
                   // no-op
                 }
               },
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Image.asset(
-                    isDark ? kWordmarkAssetDark : kWordmarkAssetLight,
-                    package: kPackageName,
-                    height: _markHeight,
-                    // 3× the largest sensible render — keeps the decode small without
-                    // visible softening on a 3x screen.
-                    cacheHeight: (_markHeight * 3).round(),
-                    fit: BoxFit.contain,
-                    // A missing asset must never take the sheet down; the rest of the
-                    // lockup still reads as attribution on its own.
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                      width: 1,
-                      height: 20,
-                      color: markColor.withValues(alpha: 0.35)),
-                  const SizedBox(width: 8),
-                  Text(
-                    'TRUST',
-                    // ~half the wordmark's height — the ratio the dashboard's own
-                    // lockup uses. Level with the logo, TRUST competes with it.
-                    style: TextStyle(
-                      fontSize: 12,
-                      height: 1.2,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.68,
-                      color: markColor,
-                    ),
-                  ),
-                ],
+              child: Semantics(
+                link: true,
+                label: kProductName,
+                child: Image.asset(
+                  isDark ? kWordmarkAssetDark : kWordmarkAssetLight,
+                  package: kPackageName,
+                  height: _markHeight,
+                  // 3× the largest sensible render — keeps the decode small
+                  // without visible softening on a 3x screen.
+                  cacheHeight: (_markHeight * 3).round(),
+                  fit: BoxFit.contain,
+                  excludeFromSemantics: true,
+                  // A missing asset must never take the sheet down; the label
+                  // still reads as attribution on its own.
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
               ),
             ),
           ],

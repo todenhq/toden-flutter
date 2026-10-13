@@ -13,7 +13,7 @@ import 'package:myaza_kyc_sdk_flutter/src/screens/address/address_detail_fields.
 // is the widget half.
 
 Widget _host(Widget child) => MaterialApp(
-      theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+      theme: ThemeData(extensions: const [UiColorScheme.light]),
       home: Scaffold(body: SingleChildScrollView(child: child)),
     );
 
@@ -43,7 +43,7 @@ void main() {
       expect(span.text, 'City');
       final mark = span.children!.single as TextSpan;
       expect(mark.text, ' *');
-      expect(mark.style?.color, MyazaColors.error);
+      expect(mark.style?.color, UiColors.error);
     });
 
     testWidgets('an optional field carries no mark', (tester) async {

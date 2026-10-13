@@ -106,7 +106,7 @@ class _MapPinPickerState extends State<MapPinPicker> {
   @override
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
-    final radius = widget.cornerRadius ?? MyazaRadius.md;
+    final radius = widget.cornerRadius ?? UiRadius.md;
     return Semantics(
       label: widget.interactive
           ? 'Map. Drag to position the pin on your address.'
@@ -142,7 +142,7 @@ class _MapPinPickerState extends State<MapPinPicker> {
                     Positioned(
                       left: 0,
                       right: 0,
-                      bottom: MyazaSpacing.md,
+                      bottom: UiSpacing.md,
                       child: Center(child: widget.overlay!),
                     ),
                   const MapAttribution(),

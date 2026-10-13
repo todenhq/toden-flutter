@@ -44,7 +44,7 @@ void main() {
     });
 
     test('reads a config, defaulting both on', () {
-      const config = MyazaKYCConfig(apiKey: 'pk_test_x', country: 'NG');
+      const config = VerificationConfig(apiKey: 'pk_test_x', country: 'NG');
       expect(config.allowDocumentScan, isTrue);
       expect(documentCaptureMethodsFor(config),
           const DocumentCaptureMethods(scan: true, upload: true));
@@ -57,7 +57,7 @@ void main() {
   });
 
   group('workflow plumbing', () {
-    const base = MyazaKYCConfig(apiKey: 'pk_test_x', country: 'NG');
+    const base = VerificationConfig(apiKey: 'pk_test_x', country: 'NG');
 
     test('the flow payload parses the key, absent is null', () {
       expect(
@@ -110,7 +110,7 @@ void main() {
   group('DocumentUploadOnlyView', () {
     Future<void> pump(WidgetTester tester, Widget child) =>
         tester.pumpWidget(MaterialApp(
-          theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+          theme: ThemeData(extensions: const [UiColorScheme.light]),
           home: Scaffold(body: child),
         ));
 

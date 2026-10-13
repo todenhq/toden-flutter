@@ -1,5 +1,5 @@
 import '../config/address_collection.dart';
-import '../providers/kyc_state.dart';
+import '../providers/verification_state.dart';
 import '../config/business.dart';
 import '../utils/step_log.dart';
 
@@ -17,7 +17,7 @@ import '../utils/step_log.dart';
 /// pick left the snapshot unable to describe itself: this SDK keeps the ID type
 /// as a resolved definition, so a reader with no country could not rebuild it
 /// and resumed the applicant onto the ID screen with no ID type at all.
-Map<String, dynamic> progressFromState(KYCState s, {String? effectiveCountryValue}) {
+Map<String, dynamic> progressFromState(VerificationState s, {String? effectiveCountryValue}) {
   final mediaIds = <String, String>{
     if (s.mediaIds.documentFront != null) 'documentFront': s.mediaIds.documentFront!,
     if (s.mediaIds.documentBack != null) 'documentBack': s.mediaIds.documentBack!,

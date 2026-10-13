@@ -3,13 +3,13 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/biometric_copy.dart';
-import '../config/kyc_result.dart';
+import '../config/verification_result.dart';
 import '../config/result_copy.dart';
 import '../config/result_wait.dart';
 import '../config/scope.dart';
 import '../config/theme.dart';
-import '../providers/kyc_provider.dart';
-import '../widgets/myaza_button.dart';
+import '../providers/verification_provider.dart';
+import '../widgets/ui_button.dart';
 import 'submitted_waiting_view.dart';
 import '../widgets/icons/icons.dart';
 import '../i18n/text_scope.dart';
@@ -30,7 +30,7 @@ class SubmittedResultView extends ConsumerStatefulWidget {
   final String? verificationId;
   final ({int attempt, int total})? retryInfo;
   final bool showDone;
-  final void Function(KYCResult result)? onResult;
+  final void Function(VerificationResult result)? onResult;
   final VoidCallback onDone;
 
   const SubmittedResultView({
@@ -88,7 +88,7 @@ class _SubmittedResultViewState extends ConsumerState<SubmittedResultView> {
       }
       setState(() => _outcome = settled);
       if (settled is SettledOutcome) {
-        widget.onResult?.call(KYCResult(
+        widget.onResult?.call(VerificationResult(
           verificationId: id,
           status: settled.status,
           reason: settled.reason,
@@ -101,7 +101,7 @@ class _SubmittedResultViewState extends ConsumerState<SubmittedResultView> {
   @override
   Widget build(BuildContext context) {
     final outcome = _outcome;
-    final config = ref.watch(kycConfigProvider);
+    final config = ref.watch(verificationConfigProvider);
     // The org's own words for these screens, tokens filled (null = the defaults).
     final words = config.biometricCopy;
     if (outcome == null) {
@@ -124,14 +124,14 @@ class _SubmittedResultViewState extends ConsumerState<SubmittedResultView> {
     final colors = context.myazaColors;
     final text = context.myazaText;
     final (bg, fg, icon) = switch (copy.tone) {
-      ResultTone.success => (colors.successBg, MyazaColors.success, MyazaIcons.check),
-      ResultTone.error => (colors.errorBg, MyazaColors.error, MyazaIcons.circleAlert),
+      ResultTone.success => (colors.successBg, UiColors.success, UiIcons.check),
+      ResultTone.error => (colors.errorBg, UiColors.error, UiIcons.circleAlert),
       // The org's primary, as RN reads it: the brand constant ignored a
       // custom primaryColor on this one tone.
       ResultTone.info => (
           colors.primary.withValues(alpha: 0.08),
           colors.primary,
-          MyazaIcons.info,
+          UiIcons.info,
         ),
     };
 
@@ -142,7 +142,7 @@ class _SubmittedResultViewState extends ConsumerState<SubmittedResultView> {
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: MyazaSpacing.xl),
+            const SizedBox(height: UiSpacing.xl),
             Center(
               child: Container(
                 width: 88,
@@ -152,7 +152,7 @@ class _SubmittedResultViewState extends ConsumerState<SubmittedResultView> {
                   color: bg,
                   border: Border.all(color: fg.withValues(alpha: 0.3), width: 2),
                 ),
-                child: MyazaIcon(icon, size: 44, color: fg),
+                child: UiIcon(icon, size: 44, color: fg),
               )
                   .animate()
                   .scale(
@@ -163,23 +163,23 @@ class _SubmittedResultViewState extends ConsumerState<SubmittedResultView> {
                   )
                   .fadeIn(duration: 200.ms),
             ),
-            const SizedBox(height: MyazaSpacing.lg),
+            const SizedBox(height: UiSpacing.lg),
             Text(copy.title, style: text.heading1.copyWith(height: 1.2), textAlign: TextAlign.center)
                 .animate(delay: 200.ms)
                 .fadeIn(duration: 350.ms)
                 .moveY(begin: 8, end: 0, duration: 350.ms),
-            const SizedBox(height: MyazaSpacing.sm),
+            const SizedBox(height: UiSpacing.sm),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: MyazaSpacing.lg),
+              padding: const EdgeInsets.symmetric(horizontal: UiSpacing.lg),
               child: Text(copy.description, style: text.bodyMedium, textAlign: TextAlign.center)
                   .animate(delay: 320.ms)
                   .fadeIn(duration: 350.ms),
             ),
-            const SizedBox(height: MyazaSpacing.xl),
+            const SizedBox(height: UiSpacing.xl),
           ],
         ),
         if (widget.showDone)
-          MyazaButton(label: context.kycText('common.done'), onPressed: widget.onDone)
+          UiButton(label: context.verificationText('common.done'), onPressed: widget.onDone)
               .animate(delay: 600.ms)
               .fadeIn(duration: 300.ms)
               .moveY(begin: 8, end: 0, duration: 300.ms)

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../config/id_types.dart';
 import '../../config/theme.dart';
 import '../../widgets/country_flag.dart';
-import '../../widgets/myaza_input.dart';
+import '../../widgets/ui_input.dart';
 
 // ─── The edit-details form primitives ────────────────────────────────────────
 //
@@ -65,7 +65,7 @@ class AddressEditField extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => MyazaInput(
+  Widget build(BuildContext context) => UiInput(
         label: label,
         required: required,
         hint: hint,
@@ -87,7 +87,7 @@ class AddressSectionHeading extends StatelessWidget {
     final colors = context.myazaColors;
     final text = context.myazaText;
     return Padding(
-      padding: const EdgeInsets.only(bottom: MyazaSpacing.sm),
+      padding: const EdgeInsets.only(bottom: UiSpacing.sm),
       child: Text(
         title.toUpperCase(),
         style: text.bodySmall.copyWith(
@@ -117,21 +117,21 @@ class AddressCountryRow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // The SAME label treatment MyazaInput gives its own fields, so the
+        // The SAME label treatment UiInput gives its own fields, so the
         // tile's box lines up with the input beside it.
         Text('Country', style: text.label),
-        const SizedBox(height: MyazaSpacing.xs),
+        const SizedBox(height: UiSpacing.xs),
         Container(
           height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: MyazaSpacing.sm + 4),
+          padding: const EdgeInsets.symmetric(horizontal: UiSpacing.sm + 4),
           decoration: BoxDecoration(
             color: colors.backgroundSecondary,
             border: Border.all(color: colors.border),
-            borderRadius: BorderRadius.circular(MyazaRadius.md),
+            borderRadius: BorderRadius.circular(UiRadius.md),
           ),
           child: Row(
             children: [
-              MyazaCountryFlag(country: code, size: 20),
+              UiCountryFlag(country: code, size: 20),
               const SizedBox(width: 8),
               Flexible(
                 child: Text(

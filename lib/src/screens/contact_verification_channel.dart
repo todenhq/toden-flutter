@@ -30,7 +30,7 @@ const Map<String, String> _kChannelHints = {
 /// WhatsApp needs its own brand mark; SMS reads fine as a generic glyph.
 Widget _channelGlyph(String channel, Color color) => channel == 'whatsapp'
     ? WhatsAppIcon(color: color, size: 16)
-    : MyazaIcon(MyazaIcons.messageSquare, size: 16, color: color);
+    : UiIcon(UiIcons.messageSquare, size: 16, color: color);
 
 class ContactChannelChoice extends StatelessWidget {
   final List<String> offered;
@@ -53,13 +53,13 @@ class ContactChannelChoice extends StatelessWidget {
     final colors = context.myazaColors;
 
     return Padding(
-      padding: const EdgeInsets.only(top: MyazaSpacing.md),
+      padding: const EdgeInsets.only(top: UiSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(context.kycText('contact.channel.question'),
+          Text(context.verificationText('contact.channel.question'),
               style: text.bodySmall.copyWith(color: colors.textSecondary)),
-          const SizedBox(height: MyazaSpacing.sm),
+          const SizedBox(height: UiSpacing.sm),
           Row(
             children: [
               for (final channel in offered) ...[
@@ -73,7 +73,7 @@ class ContactChannelChoice extends StatelessWidget {
                   ),
                 ),
                 if (channel != offered.last)
-                  const SizedBox(width: MyazaSpacing.sm),
+                  const SizedBox(width: UiSpacing.sm),
               ],
             ],
           ),
@@ -102,7 +102,7 @@ class _ChannelTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
     final text = context.myazaText;
-    final radius = BorderRadius.circular(MyazaRadius.md);
+    final radius = BorderRadius.circular(UiRadius.md);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
@@ -121,8 +121,8 @@ class _ChannelTile extends StatelessWidget {
           borderRadius: radius,
           child: Padding(
             padding: const EdgeInsets.symmetric(
-              vertical: MyazaSpacing.sm + 2,
-              horizontal: MyazaSpacing.sm,
+              vertical: UiSpacing.sm + 2,
+              horizontal: UiSpacing.sm,
             ),
             child: Row(
               children: [
@@ -133,7 +133,7 @@ class _ChannelTile extends StatelessWidget {
                     color: isSelected
                         ? colors.primary.withValues(alpha: 0.1)
                         : colors.backgroundSecondary,
-                    borderRadius: BorderRadius.circular(MyazaRadius.sm),
+                    borderRadius: BorderRadius.circular(UiRadius.sm),
                   ),
                   child: Center(
                     child: _channelGlyph(
@@ -142,7 +142,7 @@ class _ChannelTile extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: MyazaSpacing.sm),
+                const SizedBox(width: UiSpacing.sm),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

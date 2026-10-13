@@ -38,10 +38,10 @@ Future<void> showNfcReadSheet(
       final safeBottom = MediaQuery.paddingOf(sheetContext).bottom;
       return Padding(
         padding: EdgeInsets.fromLTRB(
-          kMyazaSheetInset,
+          kUiSheetInset,
           0,
-          kMyazaSheetInset,
-          safeBottom > kMyazaSheetInset ? safeBottom : kMyazaSheetInset,
+          kUiSheetInset,
+          safeBottom > kUiSheetInset ? safeBottom : kUiSheetInset,
         ),
         child: _NfcReadSheet(stage: stage),
       );
@@ -70,8 +70,8 @@ class _NfcReadSheet extends StatelessWidget {
             // display — never the brand-scaled tokens (themed_sheet.dart).
             borderRadius: BorderRadius.circular(myazaSheetRadius(context)),
           ),
-          padding: const EdgeInsets.fromLTRB(MyazaSpacing.lg, MyazaSpacing.sm,
-              MyazaSpacing.lg, MyazaSpacing.lg),
+          padding: const EdgeInsets.fromLTRB(UiSpacing.lg, UiSpacing.sm,
+              UiSpacing.lg, UiSpacing.lg),
           // No SafeArea: the float itself already clears the home indicator
           // (the outer Padding takes max(safeBottom, inset)), so an inner
           // inset would pad for it a second time inside the card.
@@ -85,13 +85,13 @@ class _NfcReadSheet extends StatelessWidget {
                   height: 4,
                   decoration: BoxDecoration(
                     color: colors.gray300,
-                    borderRadius: BorderRadius.circular(MyazaRadius.full),
+                    borderRadius: BorderRadius.circular(UiRadius.full),
                   ),
                 ),
               ),
-              const SizedBox(height: MyazaSpacing.lg),
+              const SizedBox(height: UiSpacing.lg),
               _PulsingChipIcon(waiting: waiting),
-              const SizedBox(height: MyazaSpacing.md),
+              const SizedBox(height: UiSpacing.md),
               Text(
                 // Waiting is an instruction; everything after it is a report.
                 waiting
@@ -100,15 +100,15 @@ class _NfcReadSheet extends StatelessWidget {
                 style: text.heading3,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: MyazaSpacing.xs),
+              const SizedBox(height: UiSpacing.xs),
               Text(
                 current.detail,
                 style: text.bodySmall.copyWith(color: colors.textSecondary),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: MyazaSpacing.lg),
+              const SizedBox(height: UiSpacing.lg),
               ClipRRect(
-                borderRadius: BorderRadius.circular(MyazaRadius.full),
+                borderRadius: BorderRadius.circular(UiRadius.full),
                 child: LinearProgressIndicator(
                   value: waiting ? null : current.progress,
                   minHeight: 6,
@@ -116,9 +116,9 @@ class _NfcReadSheet extends StatelessWidget {
                   valueColor: AlwaysStoppedAnimation(colors.primary),
                 ),
               ),
-              const SizedBox(height: MyazaSpacing.lg),
+              const SizedBox(height: UiSpacing.lg),
               NfcReadProgress(stage: current),
-              const SizedBox(height: MyazaSpacing.md),
+              const SizedBox(height: UiSpacing.md),
               Text(
                 'Keep the document still until every step is ticked.',
                 style: text.bodySmall.copyWith(color: colors.gray400),
@@ -150,7 +150,7 @@ class _PulsingChipIcon extends StatelessWidget {
         shape: BoxShape.circle,
         color: colors.primary50,
       ),
-      child: MyazaIcon(MyazaIcons.nfc, size: 30, color: colors.primary),
+      child: UiIcon(UiIcons.nfc, size: 30, color: colors.primary),
     );
 
     if (!waiting) return Center(child: icon);

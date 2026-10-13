@@ -17,7 +17,7 @@ import '../liveness/capture_ring.dart';
 import '../liveness/liveness_layout.dart';
 import '../config/biometric_options.dart';
 import '../config/capture_config.dart';
-import '../config/kyc_config.dart';
+import '../config/verification_config.dart';
 import '../config/liveness_avatar_url.dart';
 import '../services/model_readiness.dart';
 import '../config/selfie_upload_wait.dart';
@@ -42,12 +42,12 @@ import '../liveness/sharpest_still.dart';
 import '../utils/selfie_sharpness.dart';
 import '../liveness/native_liveness_recorder.dart';
 import '../providers/camera_provider.dart';
-import '../providers/kyc_provider.dart';
-import '../providers/kyc_state.dart';
+import '../providers/verification_provider.dart';
+import '../providers/verification_state.dart';
 import '../providers/liveness_provider.dart';
 import '../services/api_service.dart';
 import '../services/image_service.dart';
-import '../services/kyc_error_mapper.dart';
+import '../services/verification_error_mapper.dart';
 import '../services/media_compress_service.dart';
 import '../services/retry.dart';
 import '../utils/permissions.dart';
@@ -56,19 +56,19 @@ import '../widgets/camera_permission_priming_view.dart';
 import '../widgets/ready_primer.dart';
 import '../widgets/ready_primer_content.dart';
 import '../widgets/liveness_avatar.dart';
-import '../widgets/myaza_alert.dart';
+import '../widgets/ui_alert.dart';
 import '../widgets/native_camera_preview.dart';
-import '../widgets/myaza_button.dart';
+import '../widgets/ui_button.dart';
 import '../widgets/icons/icons.dart';
 import '../i18n/text_scope.dart';
-import '../widgets/myaza_spinner.dart';
+import '../widgets/ui_spinner.dart';
 
 // ─── Liveness screen ──────────────────────────────────────────────────────────
 
 class LivenessScreen extends ConsumerStatefulWidget {
   /// Fires for technical errors raised on this screen (camera permission
   /// denied, selfie upload failed after retries).
-  final void Function(KYCError error)? onError;
+  final void Function(VerificationError error)? onError;
 
   const LivenessScreen({super.key, this.onError});
 
@@ -83,12 +83,12 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
   // notifiers and repaints itself; nothing here rebuilds the screen per frame.
   late final Ticker _ringTicker;
   final _ringShown = ValueNotifier<double>(0);
-  final _ringColor = ValueNotifier<Color>(MyazaColors.primary);
+  final _ringColor = ValueNotifier<Color>(UiColors.primary);
   // The THEMED primary, the workflow's brand: the ring used to build in the
   // static Myaza purple whatever the flow's appearance said (user report
   // 2026-09-08). Read where the theme arrives (didChangeDependencies); the
   // ticker paints outside the tree and cannot read the context itself.
-  Color _ringPrimary = MyazaColors.primary;
+  Color _ringPrimary = UiColors.primary;
   double _ringTarget = 0;
   Duration _ringLast = Duration.zero;
   final _phaseClock = Stopwatch();
@@ -133,7 +133,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
       _phaseClock.start();
     }
     final timeout =
-        (ref.read(kycConfigProvider).livenessConfig?.timeoutPerChallenge ?? 8)
+        (ref.read(verificationConfigProvider).livenessConfig?.timeoutPerChallenge ?? 8)
             .toDouble();
     _ringTarget = advanceTarget(
       _ringTarget,
@@ -151,7 +151,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     if (l.phase == LivenessPhase.complete) {
       _greenSinceMs ??= elapsed.inMilliseconds;
       final t = ((elapsed.inMilliseconds - _greenSinceMs!) / 300).clamp(0.0, 1.0);
-      _ringColor.value = Color.lerp(_ringPrimary, MyazaColors.success, t)!;
+      _ringColor.value = Color.lerp(_ringPrimary, UiColors.success, t)!;
       // The one rebuild this ticker ever asks for: hand over to the review once
       // the close has been SEEN (ring settled, green landed, shutter faded).
       if (t >= 1 &&
@@ -185,7 +185,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
 
     if (!_avatarsPrecached) {
       _avatarsPrecached = true;
-      final config = ref.read(kycConfigProvider);
+      final config = ref.read(verificationConfigProvider);
       for (final url in livenessAvatarUrls(config.apiKey, devUrl: config.devUrl)) {
         precacheImage(NetworkImage(url), context, onError: (_, __) {});
       }
@@ -330,7 +330,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     _ringTicker = createTicker(_ringTick)..start();
     WidgetsBinding.instance.addObserver(this);
     _cameraOnCtrl = ref.read(livenessCameraOnProvider.notifier);
-    final voice = ref.read(kycConfigProvider).voiceGuidance;
+    final voice = ref.read(verificationConfigProvider).voiceGuidance;
     _tts.initialize(enabled: voice.enabled, language: voice.resolvedLanguage);
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybePrime());
     // A stored selfie with no uploaded mediaId is an interrupted upload
@@ -801,7 +801,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
   /// step should do next (flash_outcome.dart). Null when no flash runs: the mode
   /// has none, or a flash-only check already fell back to gestures.
   Future<FlashOutcome?> _runFlashChallenge() async {
-    final config = ref.read(kycConfigProvider);
+    final config = ref.read(verificationConfigProvider);
     if (!config.livenessMode.runsFlash) return null;
     if (ref.read(livenessNotifierProvider.notifier).fellBackToGestures) {
       return null;
@@ -1085,7 +1085,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
       // Flash inside the recording window so the clip carries the sequence the
       // server verifies. When flash isn't configured this is the original
       // fixed-length clip.
-      final flashes = ref.read(kycConfigProvider).livenessMode.runsFlash &&
+      final flashes = ref.read(verificationConfigProvider).livenessMode.runsFlash &&
           !ref.read(livenessNotifierProvider.notifier).fellBackToGestures;
       if (flashes) {
         final outcome = await _runFlashChallenge();
@@ -1174,11 +1174,11 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
             // A flash-only check that fell back to gestures ran both.
             mode: ref.read(livenessNotifierProvider.notifier).fellBackToGestures
                 ? 'both'
-                : ref.read(kycConfigProvider).livenessMode,
+                : ref.read(verificationConfigProvider).livenessMode,
             // Which prompts ran, so the server knows whether a turn was asked
             // for (its shape-from-movement verdict depends on it).
             challenges: livenessClaimChallenges(
-              mode: ref.read(kycConfigProvider).livenessMode,
+              mode: ref.read(verificationConfigProvider).livenessMode,
               gestures:
                   ref.read(livenessNotifierProvider.notifier).challengesRun,
               fellBackToGestures: ref
@@ -1200,7 +1200,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     _uploadSelfieAndVideo();
   }
 
-  /// Compress + upload the captured selfie to /api/kyc/upload (plus the
+  /// Compress + upload the captured selfie to /api/v1/upload (plus the
   /// best-effort liveness video) and store the returned mediaIds in state.
   /// Runs eagerly when the selfie is first shown ([_handleComplete]); does NOT
   /// advance the flow — [_onSelfieAccepted] does that once the user confirms.
@@ -1304,16 +1304,16 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
       report(() => notifier.setSelfieUpload(SelfieUploadState.done));
     } catch (e) {
       // Retries exhausted — show the inline error AND report a typed error.
-      final kycError = mapToKycError(e, context: ErrorContext.upload);
+      final verificationError = mapToVerificationError(e, context: ErrorContext.upload);
       if (mounted) {
         setState(() {
           _isUploadingSelfie = false;
           _selfieRetryInfo = null;
-          _selfieUploadError = kycError.message;
+          _selfieUploadError = verificationError.message;
         });
       }
-      report(() => notifier.setSelfieUpload(SelfieUploadState.failed(kycError.message)));
-      widget.onError?.call(kycError);
+      report(() => notifier.setSelfieUpload(SelfieUploadState.failed(verificationError.message)));
+      widget.onError?.call(verificationError);
     }
   }
 
@@ -1330,7 +1330,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
   /// selfie stayed soft through every automatic retake: its notice and its
   /// Retake are then the way out (liveness/sharpest_still.dart).
   bool get _selfieReviewShown =>
-      ref.read(kycConfigProvider).showsSelfieReviewOption || _softSelfie;
+      ref.read(verificationConfigProvider).showsSelfieReviewOption || _softSelfie;
 
   /// The selfie kept is still soft after the automatic retakes.
   bool _softSelfie = false;
@@ -1391,7 +1391,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
   /// The step as it reads once its selfie is taken and the person returns:
   /// the photo, a line saying it is done, and Continue. No retake, so the
   /// check runs once per session.
-  Widget _alreadyTaken(KYCState kyc) {
+  Widget _alreadyTaken(VerificationState kyc) {
     final done = _SelfieReviewView(
       immersive: kyc.selfieImage != null,
       done: true,
@@ -1473,7 +1473,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
   void _reportCameraPermissionDenied(String? message) {
     if (_cameraPermissionReported) return;
     _cameraPermissionReported = true;
-    final error = KYCError(
+    final error = VerificationError(
       code: 'camera_permission_denied',
       message: message ??
           'Camera access is required for the liveness check. Please allow camera access and try again.',
@@ -1606,7 +1606,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     final cameraState = ref.watch(cameraNotifierProvider);
     final controller =
         ref.read(cameraNotifierProvider.notifier).controller;
-    final kycSelfie = ref.watch(kYCNotifierProvider);
+    final verificationSelfie = ref.watch(kYCNotifierProvider);
     _lit = livenessStepLit(
       alreadyLit: _lit,
       cameraRunning: livenessCameraRunning(
@@ -1615,8 +1615,8 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
         faceModelReady: _faceModel.state.value == ModelReadyState.ready,
         permissionDenied: _permissionDenied || cameraState.isPermissionDenied,
         selfieTaken: livenessState.phase == LivenessPhase.complete ||
-            kycSelfie.selfieImage != null ||
-            kycSelfie.mediaIds.selfie != null,
+            verificationSelfie.selfieImage != null ||
+            verificationSelfie.mediaIds.selfie != null,
       ),
     );
     _publishCameraOn(_lit);
@@ -1635,7 +1635,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
         // Speak lighting guidance when it first appears.
         _tts.speak(_lightingText(next.lightingGuidance!));
       } else if (phaseChanged && next.instruction.isNotEmpty && !next.multipleFaces) {
-        _tts.speak(presenceInstruction(next.instruction, context.kycText));
+        _tts.speak(presenceInstruction(next.instruction, context.verificationText));
       }
 
       // Speak position guidance when it first appears (or changes).
@@ -1666,18 +1666,18 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     // on review (no primers, no camera), exactly as the document steps reopen
     // on theirs. The ACTIVE flow's own review (phase == complete) renders via
     // _ActiveView below with its live upload wiring.
-    final kycForReview = ref.watch(kYCNotifierProvider);
-    if ((kycForReview.selfieImage != null || kycForReview.mediaIds.selfie != null) &&
+    final verificationForReview = ref.watch(kYCNotifierProvider);
+    if ((verificationForReview.selfieImage != null || verificationForReview.mediaIds.selfie != null) &&
         livenessState.phase != LivenessPhase.complete) {
       // Review off: the person came back to a finished step (or resumed a
       // session past it). It says so; it does not run again.
       if (!_selfieReviewShown && _selfieUploadError == null) {
-        return _alreadyTaken(kycForReview);
+        return _alreadyTaken(verificationForReview);
       }
       // With a photo to show, the review keeps the whole screen.
       final review = _SelfieReviewView(
-        immersive: kycForReview.selfieImage != null,
-        selfieBase64: kycForReview.selfieImage,
+        immersive: verificationForReview.selfieImage != null,
+        selfieBase64: verificationForReview.selfieImage,
         onRetake: () {
           ref.read(kYCNotifierProvider.notifier).clearSelfie();
           // Fall back into the normal start chain (ready primer onwards).
@@ -1689,7 +1689,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
         retryInfo: _selfieRetryInfo,
         onDismissError: () => setState(() => _selfieUploadError = null),
       );
-      return kycForReview.selfieImage != null ? _fullScreen(review) : review;
+      return verificationForReview.selfieImage != null ? _fullScreen(review) : review;
     }
 
     // "Here's what happens next" — shown before the permission primer, so the
@@ -1697,7 +1697,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     if (!_ready) {
       return ReadyPrimer(
         // Passive Liveness asks for a hold, not prompts, and says so.
-        content: readyLivenessFor(ref.read(kycConfigProvider).livenessMode),
+        content: readyLivenessFor(ref.read(verificationConfigProvider).livenessMode),
         onReady: () {
           setState(() => _ready = true);
           _maybePrime(); // now decide: OS prompt, or straight to the camera
@@ -1722,7 +1722,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     // Camera-access primer — shown before the OS prompt (camera not yet started).
     if (_showPrimer) {
       return CameraPermissionPrimingView(
-        message: context.kycText('primer.camera.body'),
+        message: context.verificationText('primer.camera.body'),
         onGrant: () {
           setState(() => _showPrimer = false);
           _init();
@@ -1767,8 +1767,8 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
         _reviewReady &&
         !_selfieReviewShown &&
         _selfieUploadError == null) {
-      if (_leftStep && kycForReview.currentStep == KYCStep.liveness) {
-        return _alreadyTaken(kycForReview);
+      if (_leftStep && verificationForReview.currentStep == VerificationStep.liveness) {
+        return _alreadyTaken(verificationForReview);
       }
       return _handOver();
     }
@@ -1781,8 +1781,8 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
           ? null
           : livenessAvatarUrl(
               livenessState.activeChallenge!,
-              ref.read(kycConfigProvider).apiKey,
-              devUrl: ref.read(kycConfigProvider).devUrl,
+              ref.read(verificationConfigProvider).apiKey,
+              devUrl: ref.read(verificationConfigProvider).devUrl,
             ),
       ring: _ringShown,
       ringColor: _ringColor,
@@ -1871,12 +1871,12 @@ class _LoadingView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const MyazaIcon(MyazaIcons.videoOff,
-                size: 48, color: MyazaColors.error),
-            const SizedBox(height: MyazaSpacing.md),
+            const UiIcon(UiIcons.videoOff,
+                size: 48, color: UiColors.error),
+            const SizedBox(height: UiSpacing.md),
             Text(title,
                 style: text.heading3, textAlign: TextAlign.center),
-            const SizedBox(height: MyazaSpacing.sm),
+            const SizedBox(height: UiSpacing.sm),
             Text(error!, style: text.bodyMedium, textAlign: TextAlign.center),
           ],
         ),
@@ -1891,7 +1891,7 @@ class _LoadingView extends StatelessWidget {
           style: text.heading3.copyWith(color: colors.textSecondary),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: MyazaSpacing.lg),
+        const SizedBox(height: UiSpacing.lg),
 
         Center(
           child: Container(
@@ -1961,7 +1961,7 @@ class _PulseLoader extends StatelessWidget {
             ),
             child: Padding(
               padding: const EdgeInsets.all(15),
-              child: MyazaSpinner(
+              child: UiSpinner(
                 color: color,
                 strokeWidth: 3,
               ),
@@ -2081,7 +2081,7 @@ class _ActiveView extends StatelessWidget {
       leading: leading,
       phase: phase,
       instruction:
-          presenceInstruction(livenessState.instruction, context.kycText),
+          presenceInstruction(livenessState.instruction, context.verificationText),
       faceDetected: livenessState.faceDetected,
       positionGuidance: livenessState.positionGuidance,
       wrongGesture: livenessState.wrongGesture,
@@ -2117,19 +2117,19 @@ class _ActiveView extends StatelessWidget {
           phase: phase,
         ),
       if (isFailed) ...[
-        SizedBox(height: immersive ? 0 : MyazaSpacing.md),
+        SizedBox(height: immersive ? 0 : UiSpacing.md),
         Text(
           "Time's up. Let's try again.",
           style: context.myazaText.bodyMedium.copyWith(
-            color: MyazaColors.error,
+            color: UiColors.error,
             fontWeight: FontWeight.w500,
           ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: MyazaSpacing.lg),
-        MyazaButton(label: 'Try Again', onPressed: onRetry),
+        const SizedBox(height: UiSpacing.lg),
+        UiButton(label: 'Try Again', onPressed: onRetry),
       ] else if (!immersive) ...[
-        const SizedBox(height: MyazaSpacing.xl),
+        const SizedBox(height: UiSpacing.xl),
         Center(
           child: LivenessAvatar(
             activeChallenge: livenessState.activeChallenge,
@@ -2214,11 +2214,11 @@ class _ActiveView extends StatelessWidget {
               children: [
                 if (showsLighting) ...[
                   _LightingWarningBanner(isDim: isDim, isBright: isBright),
-                  if (lighting) const SizedBox(height: MyazaSpacing.sm),
+                  if (lighting) const SizedBox(height: UiSpacing.sm),
                 ],
                 if (showsGesture) ...[
                   Center(child: gesture(size: size)),
-                  const SizedBox(height: MyazaSpacing.sm),
+                  const SizedBox(height: UiSpacing.sm),
                 ],
                 instructionWith(),
               ],
@@ -2247,16 +2247,16 @@ class _ActiveView extends StatelessWidget {
         // ── Instruction (hidden when failed — error text replaces it) ─────────
         if (!isFailed) ...[
           instruction,
-          const SizedBox(height: MyazaSpacing.sm),
+          const SizedBox(height: UiSpacing.sm),
           // ── Lighting warning (too dark / too bright; non-blocking amber) ────
           _LightingWarningBanner(isDim: isDim, isBright: isBright),
           SizedBox(
-            height: (isDim || isBright) ? MyazaSpacing.sm : MyazaSpacing.md,
+            height: (isDim || isBright) ? UiSpacing.sm : UiSpacing.md,
           ),
         ] else
-          const SizedBox(height: MyazaSpacing.sm),
+          const SizedBox(height: UiSpacing.sm),
         Center(child: circle()),
-        const SizedBox(height: MyazaSpacing.lg),
+        const SizedBox(height: UiSpacing.lg),
         ...below,
       ],
     );
@@ -2353,8 +2353,8 @@ class _SelfieReviewView extends StatelessWidget {
         : null;
 
     final failed = uploadError != null
-        ? MyazaAlert(
-            variant: MyazaAlertVariant.error,
+        ? UiAlert(
+            variant: UiAlertVariant.error,
             title: 'Upload failed',
             message: uploadError!,
             onDismiss: onDismissError,
@@ -2368,22 +2368,22 @@ class _SelfieReviewView extends StatelessWidget {
       children: [
         if (!done) ...[
           Expanded(
-            child: MyazaButton.outline(
-              label: context.kycText('common.retake'),
+            child: UiButton.outline(
+              label: context.verificationText('common.retake'),
               onPressed: isUploading ? null : onRetake,
-              leadingIcon: const MyazaIcon(MyazaIcons.rotateCcw),
+              leadingIcon: const UiIcon(UiIcons.rotateCcw),
             ),
           ),
-          const SizedBox(width: MyazaSpacing.md),
+          const SizedBox(width: UiSpacing.md),
         ],
         Expanded(
-          child: MyazaButton(
+          child: UiButton(
             label: uploadError != null
                 ? 'Try Again'
-                : context.kycText('common.continue'),
+                : context.verificationText('common.continue'),
             onPressed: isUploading ? null : onContinue,
-            leadingIcon: MyazaIcon(
-              uploadError != null ? MyazaIcons.rotateCcw : MyazaIcons.check,
+            leadingIcon: UiIcon(
+              uploadError != null ? UiIcons.rotateCcw : UiIcons.check,
             ),
           ),
         ),
@@ -2406,8 +2406,8 @@ class _SelfieReviewView extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const MyazaIcon(MyazaIcons.circleCheck,
-                    size: 18, color: MyazaColors.success),
+                const UiIcon(UiIcons.circleCheck,
+                    size: 18, color: UiColors.success),
                 const SizedBox(width: 8),
                 Text(
                   isUploading
@@ -2436,10 +2436,10 @@ class _SelfieReviewView extends StatelessWidget {
             children: [
               if (failed != null) ...[
                 failed,
-                const SizedBox(height: MyazaSpacing.sm),
+                const SizedBox(height: UiSpacing.sm),
               ] else if (retrying != null) ...[
                 retrying,
-                const SizedBox(height: MyazaSpacing.sm),
+                const SizedBox(height: UiSpacing.sm),
               ] else if (done) ...[
                 Text(
                   kSelfieDoneBody,
@@ -2447,7 +2447,7 @@ class _SelfieReviewView extends StatelessWidget {
                   style: context.myazaText.bodySmall
                       .copyWith(color: colors.textDark),
                 ),
-                const SizedBox(height: MyazaSpacing.sm),
+                const SizedBox(height: UiSpacing.sm),
               ] else
                 SelfieSoftNotice(selfieBase64: selfieBase64),
               actions,
@@ -2487,7 +2487,7 @@ class _SelfieReviewView extends StatelessWidget {
                     // mediaId travels) — a completed state, not a broken image.
                     Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(MyazaSpacing.lg),
+                        padding: const EdgeInsets.all(UiSpacing.lg),
                         child: Text(
                           kSelfieDoneTitle,
                           textAlign: TextAlign.center,
@@ -2528,14 +2528,14 @@ class _SelfieReviewView extends StatelessWidget {
             .fadeIn(duration: 300.ms),
 
         if (retrying != null) ...[
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
           retrying,
         ],
 
         // Out of focus? Said here, where a retake costs two seconds. A notice,
         // never a gate: Continue is unaffected (utils/selfie_sharpness.dart).
         if (done) ...[
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
           Text(
             imageBytes != null ? '$kSelfieDoneTitle. $kSelfieDoneBody' : kSelfieDoneBody,
             textAlign: TextAlign.center,
@@ -2547,11 +2547,11 @@ class _SelfieReviewView extends StatelessWidget {
           SelfieSoftNotice(selfieBase64: selfieBase64),
 
         if (failed != null) ...[
-          const SizedBox(height: MyazaSpacing.lg),
+          const SizedBox(height: UiSpacing.lg),
           failed,
         ],
 
-        const SizedBox(height: MyazaSpacing.xl),
+        const SizedBox(height: UiSpacing.xl),
 
         // ── Retake / Continue ─────────────────────────────────────────────────
         actions,
@@ -2618,13 +2618,13 @@ class _ReviewWindow extends StatelessWidget {
         children: [
           const IgnorePointer(
             child: CustomPaint(
-              painter: LivenessWindowGlow(color: MyazaColors.success),
+              painter: LivenessWindowGlow(color: UiColors.success),
             ),
           ),
           DecoratedBox(
             decoration: BoxDecoration(
               borderRadius: ends,
-              border: Border.all(color: MyazaColors.success, width: 3),
+              border: Border.all(color: UiColors.success, width: 3),
             ),
             child: Padding(
               padding: const EdgeInsets.all(3),
@@ -2721,33 +2721,33 @@ class _InstructionBanner extends StatelessWidget {
 
     if (showNoFace) {
       displayText = 'No face detected';
-      textColor   = MyazaColors.error;
+      textColor   = UiColors.error;
     } else if (multipleFaces) {
       displayText = LivenessNotifier.multipleFacesGuidance;
-      textColor   = MyazaColors.error;
+      textColor   = UiColors.error;
     } else if (lightingGuidance != null) {
       displayText = lightingGuidance == 'dark'
           ? 'Move to a brighter area'
           : 'Too bright. Reduce glare';
-      textColor = MyazaColors.error;
+      textColor = UiColors.error;
     } else if (hasPositionWarning) {
       displayText = switch (positionGuidance) {
         'too_far' => 'Kindly move closer',
         'off_centre' => 'Centre your face in the frame',
         _ => 'Kindly move further away',
       };
-      textColor = MyazaColors.error;
+      textColor = UiColors.error;
     } else if (hasWrongGesture) {
       displayText = 'Wrong gesture';
-      textColor   = MyazaColors.error;
+      textColor   = UiColors.error;
     } else if (isChallengePassed || isComplete) {
       // Green on completion too: the ring, the border and the shutter all land
       // there, and the text must not stay a colour that says "still going".
       displayText = instruction;
-      textColor   = MyazaColors.success;
+      textColor   = UiColors.success;
     } else if (isChallenge) {
       displayText = instruction;
-      textColor   = overCamera ? colors.textDark : MyazaColors.secondary;
+      textColor   = overCamera ? colors.textDark : UiColors.secondary;
     } else {
       displayText = instruction;
       textColor   = colors.textDark;
@@ -2759,7 +2759,7 @@ class _InstructionBanner extends StatelessWidget {
       if (displayText.trim().isEmpty) return const SizedBox.shrink();
       return LivenessInstructionPill(
         text: displayText,
-        tone: textColor == MyazaColors.error
+        tone: textColor == UiColors.error
             ? LivenessInstructionTone.warning
             : (isChallengePassed || isComplete)
                 ? LivenessInstructionTone.done
@@ -2854,18 +2854,18 @@ class _CameraCircle extends StatelessWidget {
       phase == LivenessPhase.challenge ||
       phase == LivenessPhase.challengePassed;
 
-  Color _borderColor(MyazaColorScheme colors) {
+  Color _borderColor(UiColorScheme colors) {
     if (!faceDetected &&
         phase != LivenessPhase.loading &&
         phase != LivenessPhase.complete &&
         phase != LivenessPhase.failed) {
-      return MyazaColors.error;
+      return UiColors.error;
     }
     // Red ring for a wrong gesture / wrong distance during an active challenge.
     if (hasWarning &&
         (phase == LivenessPhase.challenge ||
             phase == LivenessPhase.positioning)) {
-      return MyazaColors.error;
+      return UiColors.error;
     }
     // The ring is on the frame from positioning to the shutter, so for that
     // whole stretch the border is its TRACK. Phase colour stays on the
@@ -2873,7 +2873,7 @@ class _CameraCircle extends StatelessWidget {
     // red under the arc (above).
     return switch (phase) {
       LivenessPhase.loading => colors.gray300,
-      LivenessPhase.failed  => MyazaColors.error,
+      LivenessPhase.failed  => UiColors.error,
       _                     => colors.primary200,
     };
   }
@@ -2979,7 +2979,7 @@ class _CameraCircle extends StatelessWidget {
                       CustomPaint(
                         painter: _DashedOvalPainter(
                           color: faceDetected
-                              ? MyazaColors.success
+                              ? UiColors.success
                               : colors.gray300,
                         ),
                       ),
@@ -2990,7 +2990,7 @@ class _CameraCircle extends StatelessWidget {
                     // checkmark badge below.
                     if (phase == LivenessPhase.challengePassed)
                       ColoredBox(
-                        color: MyazaColors.success.withValues(alpha: 0.20),
+                        color: UiColors.success.withValues(alpha: 0.20),
                       )
                           .animate()
                           .fadeIn(duration: 200.ms, curve: Curves.easeOut),
@@ -3019,10 +3019,10 @@ class _CameraCircle extends StatelessWidget {
                           height: 72,
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
-                            color: MyazaColors.success,
+                            color: UiColors.success,
                           ),
-                          child: const MyazaIcon(
-                            MyazaIcons.check,
+                          child: const UiIcon(
+                            UiIcons.check,
                             color: Colors.white,
                             size: 42,
                           ),
@@ -3049,7 +3049,7 @@ class _CameraCircle extends StatelessWidget {
                 ringColor,
                 // Full screen, the line is green from its first pixel, and
                 // the painter draws its own track under it.
-                fixed: cutout ? MyazaColors.success : null,
+                fixed: cutout ? UiColors.success : null,
                 track: cutout ? borderColor : null,
                 segments: cutout ? segments : 1,
               ),
@@ -3104,8 +3104,8 @@ class _CameraPlaceholder extends StatelessWidget {
       color: colors.primary50,
       child: Center(
         child: phase == LivenessPhase.complete
-            ? const MyazaIcon(MyazaIcons.circleCheck,
-                    size: 56, color: MyazaColors.success)
+            ? const UiIcon(UiIcons.circleCheck,
+                    size: 56, color: UiColors.success)
                 .animate()
                 .scale(
                   begin: const Offset(0.3, 0.3),
@@ -3116,11 +3116,11 @@ class _CameraPlaceholder extends StatelessWidget {
             : Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  MyazaSpinner(
+                  UiSpinner(
                     color: colors.primary,
                     strokeWidth: 2.5,
                   ),
-                  const SizedBox(height: MyazaSpacing.sm),
+                  const SizedBox(height: UiSpacing.sm),
                   Text(
                     'Loading…',
                     style: text.bodySmall.copyWith(
@@ -3395,7 +3395,7 @@ class _StepConnector extends StatelessWidget {
                   child: Container(
                     width: 32,
                     height: 2,
-                    color: MyazaColors.success,
+                    color: UiColors.success,
                   ),
                 ),
               ),
@@ -3427,16 +3427,16 @@ class _StepDot extends StatelessWidget {
     Widget child;
 
     if (isCompleted) {
-      bg = MyazaColors.success;
-      border = MyazaColors.success;
-      child = const MyazaIcon(MyazaIcons.check, size: 14, color: Colors.white);
+      bg = UiColors.success;
+      border = UiColors.success;
+      child = const UiIcon(UiIcons.check, size: 14, color: Colors.white);
     } else if (isActive) {
       bg = Colors.transparent;
-      border = MyazaColors.success;
+      border = UiColors.success;
       child = Text(
         '$number',
         style: text.bodySmall.copyWith(
-          color: MyazaColors.success,
+          color: UiColors.success,
           fontWeight: FontWeight.w700,
         ),
       );
@@ -3509,23 +3509,23 @@ class _LightingWarningBanner extends StatelessWidget {
           ? Container(
               key: ValueKey(isBright ? 'bright' : 'dim'),
               padding: const EdgeInsets.symmetric(
-                horizontal: MyazaSpacing.md,
+                horizontal: UiSpacing.md,
                 vertical: 10,
               ),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFFBEB),   // amber-50
-                borderRadius: BorderRadius.circular(MyazaRadius.sm),
+                borderRadius: BorderRadius.circular(UiRadius.sm),
                 border: Border.all(color: const Color(0xFFFDE68A)), // amber-200
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const MyazaIcon(
-                    MyazaIcons.lightbulb,
+                  const UiIcon(
+                    UiIcons.lightbulb,
                     size: 16,
                     color: Color(0xFF92400E), // amber-800
                   ),
-                  const SizedBox(width: MyazaSpacing.sm),
+                  const SizedBox(width: UiSpacing.sm),
                   Expanded(
                     child: Text(
                       message,

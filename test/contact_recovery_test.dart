@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/contact_recovery.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_state.dart';
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
 import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
 
 void main() {
   group('expiredContactChannels', () {
     test('reads the missing channels off a contact_verification_required 422', () {
-      const err = KYCApiException(
+      const err = VerificationApiException(
         statusCode: 422,
         error: 'contact_verification_required',
         details: {
@@ -17,7 +17,7 @@ void main() {
     });
 
     test('keeps both channels and drops anything unrecognised', () {
-      const err = KYCApiException(
+      const err = VerificationApiException(
         statusCode: 422,
         error: 'contact_verification_required',
         details: {
@@ -30,14 +30,14 @@ void main() {
     test('returns nothing for other errors or malformed bodies', () {
       expect(
         expiredContactChannels(
-          const KYCApiException(statusCode: 422, error: 'questionnaire_invalid'),
+          const VerificationApiException(statusCode: 422, error: 'questionnaire_invalid'),
         ),
         isEmpty,
       );
       expect(expiredContactChannels(Exception('network')), isEmpty);
       expect(
         expiredContactChannels(
-          const KYCApiException(
+          const VerificationApiException(
             statusCode: 422,
             error: 'contact_verification_required',
           ),
@@ -46,7 +46,7 @@ void main() {
       );
       expect(
         expiredContactChannels(
-          const KYCApiException(
+          const VerificationApiException(
             statusCode: 422,
             error: 'contact_verification_required',
             details: {'missing': 'email'},
@@ -69,7 +69,7 @@ void main() {
       expect(
         stepAfterContactVerified(
             recovery: true, expired: const ['email'], channel: 'email'),
-        KYCStep.submitted,
+        VerificationStep.submitted,
       );
     });
 
@@ -77,7 +77,7 @@ void main() {
       expect(
         stepAfterContactVerified(
             recovery: true, expired: const ['email', 'phone'], channel: 'email'),
-        KYCStep.contactPhone,
+        VerificationStep.contactPhone,
       );
     });
 
@@ -85,14 +85,14 @@ void main() {
       expect(
         stepAfterContactVerified(
             recovery: true, expired: const ['phone'], channel: 'phone'),
-        KYCStep.submitted,
+        VerificationStep.submitted,
       );
     });
   });
 
-  group('KYCState contact recovery plumbing', () {
+  group('VerificationState contact recovery plumbing', () {
     test('clear flags null the tokens and copyWith carries the expired list', () {
-      const state = KYCState(emailToken: 'tok_a', phoneToken: 'tok_b');
+      const state = VerificationState(emailToken: 'tok_a', phoneToken: 'tok_b');
       final cleared = state.copyWith(
         clearEmailToken: true,
         expiredContact: ['email'],

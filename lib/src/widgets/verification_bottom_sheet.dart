@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
 
+import '../config/body_font.dart';
 import '../config/theme.dart';
 import 'sandbox_banner.dart';
 import 'step_window.dart';
-import 'kyc_progress_bar.dart';
-import '../config/kyc_config.dart';
+import 'verification_progress_bar.dart';
+import '../config/verification_config.dart';
 import '../config/trust_attribution.dart';
 import 'powered_by.dart';
 import 'step_header.dart';
@@ -18,7 +18,7 @@ import 'icons/icons.dart';
 // Android full-screen page (true). The parent owns routing and passes title,
 // progress and navigation callbacks down.
 
-class KycBottomSheet extends StatelessWidget {
+class VerificationBottomSheet extends StatelessWidget {
   /// Server-reported environment, for the sandbox strip. Null hides it.
   final String? environment;
   final String title;
@@ -83,12 +83,12 @@ class KycBottomSheet extends StatelessWidget {
   final bool fillsViewport;
 
   /// Steps (default) or a bar on the header's bottom edge.
-  final MyazaProgressStyle progressStyle;
+  final VerificationProgressStyle progressStyle;
 
   bool get _hasProgress => progress != null && stepCount != null;
-  bool get _showBar => _hasProgress && progressStyle == MyazaProgressStyle.bar;
+  bool get _showBar => _hasProgress && progressStyle == VerificationProgressStyle.bar;
   bool get _showSteps =>
-      _hasProgress && progressStyle == MyazaProgressStyle.steps;
+      _hasProgress && progressStyle == VerificationProgressStyle.steps;
 
   /// Whether the title block under the brand row draws anything. Steps that own
   /// their own title pass an empty one (consent, submitted) — rendering the
@@ -100,7 +100,7 @@ class KycBottomSheet extends StatelessWidget {
 
   /// Vertical space the drag handle occupies above the brand row: its own `sm`
   /// top padding plus the 4px bar. Bottom sheets draw it, full screen does not.
-  static const double _dragHandleExtent = MyazaSpacing.sm + 4;
+  static const double _dragHandleExtent = UiSpacing.sm + 4;
 
   /// Bottom padding for the brand row.
   ///
@@ -112,10 +112,10 @@ class KycBottomSheet extends StatelessWidget {
   /// looked misaligned against.
   double get _brandRowPaddingBottom {
     if (_hasTitleBlock) return 0;
-    return MyazaSpacing.sm + (isFullScreen ? 0 : _dragHandleExtent);
+    return UiSpacing.sm + (isFullScreen ? 0 : _dragHandleExtent);
   }
 
-  const KycBottomSheet({
+  const VerificationBottomSheet({
     this.environment,
     super.key,
     required this.title,
@@ -126,7 +126,7 @@ class KycBottomSheet extends StatelessWidget {
     this.onClose,
     this.canDismiss = true,
     this.isFullScreen = false,
-    this.progressStyle = MyazaProgressStyle.bar,
+    this.progressStyle = VerificationProgressStyle.bar,
     this.isDark = false,
     this.headerSurface,
     this.onToggleTheme,
@@ -146,7 +146,7 @@ class KycBottomSheet extends StatelessWidget {
     final borderRadius = isFullScreen
         ? BorderRadius.zero
         : BorderRadius.vertical(
-            top: Radius.circular(MyazaRadius.xl),
+            top: Radius.circular(UiRadius.xl),
           );
 
     // Back navigation (Android hardware back + iOS predictive/gesture back) must
@@ -198,7 +198,7 @@ class KycBottomSheet extends StatelessWidget {
               Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: headerSurface ?? kycHeaderSurface(colors, isDark: isDark),
+                  color: headerSurface ?? verificationHeaderSurface(colors, isDark: isDark),
                   border: Border(
                     // The bar sits ON this edge and paints its own track, so
                     // the border would double it.
@@ -219,9 +219,9 @@ class KycBottomSheet extends StatelessWidget {
                     // See _brandRowPaddingBottom for why this is not simply 0.
                     Padding(
                       padding: EdgeInsets.fromLTRB(
-                        MyazaSpacing.md,
-                        MyazaSpacing.sm,
-                        MyazaSpacing.md,
+                        UiSpacing.md,
+                        UiSpacing.sm,
+                        UiSpacing.md,
                         _brandRowPaddingBottom,
                       ),
                       child: Row(
@@ -241,7 +241,7 @@ class KycBottomSheet extends StatelessWidget {
                               onToggle: onToggleTheme!,
                             ),
                             if (canDismiss)
-                              const SizedBox(width: MyazaSpacing.xs),
+                              const SizedBox(width: UiSpacing.xs),
                           ],
                           // Hide the close button entirely when the sheet can't be
                           // dismissed (terminal step or disableClose) — rather than
@@ -266,10 +266,10 @@ class KycBottomSheet extends StatelessWidget {
                     if (_hasTitleBlock)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(
-                          MyazaSpacing.md,
-                          MyazaSpacing.sm,
-                          MyazaSpacing.md,
-                          MyazaSpacing.sm,
+                          UiSpacing.md,
+                          UiSpacing.sm,
+                          UiSpacing.md,
+                          UiSpacing.sm,
                         ),
                         child: StepHeader(
                           title: title,
@@ -285,11 +285,11 @@ class KycBottomSheet extends StatelessWidget {
                         progress: progress!,
                         stepCount: stepCount!,
                       ),
-                    if (_showSteps) const SizedBox(height: MyazaSpacing.md),
+                    if (_showSteps) const SizedBox(height: UiSpacing.md),
                     // Sits on the header's bottom edge in place of its border,
                     // so choosing it costs the header no height.
                     if (_showBar)
-                      KycProgressBar(
+                      VerificationProgressBar(
                         progress: progress!,
                         stepCount: stepCount!,
                       ),
@@ -316,19 +316,19 @@ class KycBottomSheet extends StatelessWidget {
                   ),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      const topPad = MyazaSpacing.md;
+                      const topPad = UiSpacing.md;
                       // viewInsets is handled above.
                       // The bottom safe-area inset is NOT added here: PoweredBy
                       // sits below this viewport and owns the home-indicator
                       // clearance for the whole sheet. Adding it here too would
                       // double the gap.
-                      const bottomPad = MyazaSpacing.xl;
+                      const bottomPad = UiSpacing.xl;
                       final contentMinHeight =
                           (constraints.maxHeight - topPad - bottomPad)
                               .clamp(0.0, double.infinity);
                       const padding = EdgeInsets.only(
-                        left: MyazaSpacing.md,
-                        right: MyazaSpacing.md,
+                        left: UiSpacing.md,
+                        right: UiSpacing.md,
                         top: topPad,
                         bottom: bottomPad,
                       );
@@ -347,8 +347,8 @@ class KycBottomSheet extends StatelessWidget {
                       if (fillsViewport) {
                         return Padding(
                           padding: const EdgeInsets.only(
-                            left: MyazaSpacing.md,
-                            right: MyazaSpacing.md,
+                            left: UiSpacing.md,
+                            right: UiSpacing.md,
                             top: topPad,
                           ),
                           child: child,
@@ -428,7 +428,7 @@ class _StepIndicator extends StatelessWidget {
       value: '$step of $stepCount',
       child: ExcludeSemantics(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: MyazaSpacing.md),
+          padding: const EdgeInsets.symmetric(horizontal: UiSpacing.md),
           // Measured rather than assumed, so a flow collapses on a narrow phone
           // and stays whole on a wide one instead of both obeying one cap.
           child: LayoutBuilder(
@@ -455,11 +455,11 @@ class _StepIndicator extends StatelessWidget {
                             child: Text(
                               '···',
                               textScaler: TextScaler.noScaling,
-                              style: GoogleFonts.karla(
+                              style: bodyFont(TextStyle(
                                 fontSize: 13,
                                 letterSpacing: 1,
                                 color: colors.textMuted,
-                              ),
+                              )),
                             ),
                           ),
                         ),
@@ -498,7 +498,7 @@ class _StepIndicator extends StatelessWidget {
 class _StepDot extends StatelessWidget {
   final int index;
   final _StepDotState dotState;
-  final MyazaColorScheme colors;
+  final UiColorScheme colors;
   final double size;
   final double badgeSize;
 
@@ -543,11 +543,11 @@ class _StepDot extends StatelessWidget {
               child: Text(
                 '${index + 1}',
                 textScaler: TextScaler.noScaling,
-                style: GoogleFonts.karla(
+                style: bodyFont(TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: filled ? Colors.white : colors.textMuted,
-                ),
+                )),
               ),
             ),
           ),
@@ -563,14 +563,14 @@ class _StepDot extends StatelessWidget {
                 height: badgeSize,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  // Static, not a scheme field: MyazaColorScheme carries
-                  // successBg but the solid success colour lives on MyazaColors
+                  // Static, not a scheme field: UiColorScheme carries
+                  // successBg but the solid success colour lives on UiColors
                   // and is the same in both themes.
-                  color: MyazaColors.success,
+                  color: UiColors.success,
                   border: Border.all(color: Colors.white, width: 1),
                 ),
-                child: MyazaIcon(
-                  MyazaIcons.check,
+                child: UiIcon(
+                  UiIcons.check,
                   size: (badgeSize * 0.6).roundToDouble(),
                   color: Colors.white,
                 ),
@@ -584,7 +584,7 @@ class _StepDot extends StatelessWidget {
 
 class _StepConnector extends StatelessWidget {
   final bool completed;
-  final MyazaColorScheme colors;
+  final UiColorScheme colors;
 
   const _StepConnector({required this.completed, required this.colors});
 
@@ -653,16 +653,18 @@ class _BrandBar extends StatelessWidget {
           ),
         ),
         if (companyName != null && companyName!.isNotEmpty) ...[
-          const SizedBox(width: MyazaSpacing.sm),
+          const SizedBox(width: UiSpacing.sm),
           Flexible(
             child: Text(
               companyName!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.spaceGrotesk(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: colors.textDark,
+              style: headingFont(
+                TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: colors.textDark,
+                ),
               ),
             ),
           ),
@@ -716,14 +718,14 @@ class _DragHandle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: MyazaSpacing.sm),
+      padding: const EdgeInsets.only(top: UiSpacing.sm),
       child: Center(
         child: Container(
           width: 36,
           height: 4,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(MyazaRadius.full),
+            borderRadius: BorderRadius.circular(UiRadius.full),
           ),
         ),
       ),
@@ -749,8 +751,8 @@ class _CloseButton extends StatelessWidget {
         width: 40,
         height: 40,
         child: Center(
-          child: MyazaIcon(
-            MyazaIcons.x,
+          child: UiIcon(
+            UiIcons.x,
             size: 20,
             color: enabled
                 ? colors.textDark.withValues(alpha: 0.8)
@@ -782,8 +784,8 @@ class _ThemeToggleButton extends StatelessWidget {
         width: 40,
         height: 40,
         child: Center(
-          child: MyazaIcon(
-            isDark ? MyazaIcons.sun : MyazaIcons.moon,
+          child: UiIcon(
+            isDark ? UiIcons.sun : UiIcons.moon,
             size: 20,
             color: colors.textDark.withValues(alpha: 0.8),
           ),

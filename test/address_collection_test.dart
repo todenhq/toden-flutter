@@ -3,7 +3,7 @@ import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/address_collection.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/address_flow.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/workflow_merge.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_state.dart'
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart'
     show ServerConfigStatus, ServerSdkConfig;
 import 'package:myaza_kyc_sdk_flutter/src/providers/step_order.dart';
 import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart'
@@ -17,12 +17,12 @@ import 'package:myaza_kyc_sdk_flutter/src/utils/step_log.dart';
 // collects; nothing here blocks beyond what the config explicitly requires.
 // Mirrors the web and RN SDKs' addressCollection tests.
 
-MyazaKYCConfig _config({
+VerificationConfig _config({
   AddressCollectionConfig? addressCollection,
   ProofOfAddressConfig? proofOfAddress,
   QuestionnaireConfig? questionnaire,
 }) =>
-    MyazaKYCConfig(
+    VerificationConfig(
       apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       country: 'NG',
       addressCollection: addressCollection,
@@ -55,25 +55,25 @@ void main() {
             ],
           }),
         ),
-        const KYCState(),
+        const VerificationState(),
       );
-      final poa = order.indexOf(KYCStep.proofOfAddress);
-      final questionnaire = order.indexOf(KYCStep.questionnaire);
+      final poa = order.indexOf(VerificationStep.proofOfAddress);
+      final questionnaire = order.indexOf(VerificationStep.questionnaire);
       expect(poa, greaterThan(-1));
       // No search step: the platform has not advertised a search backend.
       expect(order.sublist(poa + 1, questionnaire), [
-        KYCStep.addressCollection,
-        KYCStep.addressEntrance,
-        KYCStep.addressReview,
+        VerificationStep.addressCollection,
+        VerificationStep.addressEntrance,
+        VerificationStep.addressReview,
       ]);
     });
 
     test('offers the search step only when the platform serves one', () {
-      List<KYCStep> orderWith({required bool search}) => buildStepOrder(
+      List<VerificationStep> orderWith({required bool search}) => buildStepOrder(
             _config(
                 addressCollection:
                     const AddressCollectionConfig(enabled: true)),
-            KYCState(
+            VerificationState(
               serverConfig: ServerSdkConfig(
                 status: ServerConfigStatus.ready,
                 addressSearch: search,
@@ -81,10 +81,10 @@ void main() {
               ),
             ),
           );
-      expect(orderWith(search: true).contains(KYCStep.addressSearch), isTrue);
+      expect(orderWith(search: true).contains(VerificationStep.addressSearch), isTrue);
       // Without a backend the applicant still places the pin by hand, which is
       // what every failure path degrades to anyway.
-      expect(orderWith(search: false).contains(KYCStep.addressSearch), isFalse);
+      expect(orderWith(search: false).contains(VerificationStep.addressSearch), isFalse);
     });
 
     test('drops the entrance step when the photo slot is off', () {
@@ -92,43 +92,43 @@ void main() {
         _config(
             addressCollection:
                 const AddressCollectionConfig(enabled: true, photo: 'off')),
-        const KYCState(),
+        const VerificationState(),
       );
-      expect(order.contains(KYCStep.addressEntrance), isFalse);
-      expect(order.contains(KYCStep.addressReview), isTrue);
+      expect(order.contains(VerificationStep.addressEntrance), isFalse);
+      expect(order.contains(VerificationStep.addressReview), isTrue);
     });
 
     test('KYB collapses to the single premises step', () {
-      final config = MyazaKYCConfig(
+      final config = VerificationConfig(
         apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         subjectType: 'business',
         business: WorkflowBusinessConfig.fromJson(const {'country': 'NG'}),
         addressCollection: const AddressCollectionConfig(enabled: true),
       );
-      final order = buildStepOrder(config, const KYCState());
+      final order = buildStepOrder(config, const VerificationState());
       // The premises pin and its directions ARE the capture on KYB, and the
       // business flow has its own section rhythm.
       expect(
         order.where(kAddressFlowOrder.contains).toList(),
-        [KYCStep.addressCollection],
+        [VerificationStep.addressCollection],
       );
     });
 
     test('joins the KYB flow as the premises step, after business details',
         () {
-      final config = MyazaKYCConfig(
+      final config = VerificationConfig(
         apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         subjectType: 'business',
         business: WorkflowBusinessConfig.fromJson(const {'country': 'NG'}),
         addressCollection: const AddressCollectionConfig(enabled: true),
       );
-      final order = buildStepOrder(config, const KYCState());
-      final details = order.indexOf(KYCStep.businessDetails);
-      expect(order.indexOf(KYCStep.addressCollection), details + 1);
+      final order = buildStepOrder(config, const VerificationState());
+      final details = order.indexOf(VerificationStep.businessDetails);
+      expect(order.indexOf(VerificationStep.addressCollection), details + 1);
     });
 
     test('carries the shared wire name', () {
-      expect(kStepWireNames[KYCStep.addressCollection], 'address-collection');
+      expect(kStepWireNames[VerificationStep.addressCollection], 'address-collection');
     });
   });
 

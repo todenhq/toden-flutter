@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 
 // ─── Contact verification — header sync ───────────────────────────────────────
 //

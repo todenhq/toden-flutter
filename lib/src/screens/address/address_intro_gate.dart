@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../config/theme.dart';
-import '../../widgets/myaza_button.dart';
+import '../../widgets/ui_button.dart';
 import '../../widgets/presence_milestone_track.dart';
 import '../../widgets/presence_milestones.dart';
 import 'address_intro_disclosures.dart';
@@ -40,14 +40,14 @@ class AddressIntroGate extends StatelessWidget {
 
   List<PresenceMilestone> _milestones(TextFn t) => [
         PresenceMilestone(
-          icon: MyazaIcons.mapPinHouse,
+          icon: UiIcons.mapPinHouse,
           stage: t('address.intro.step1.stage'),
           title: t('address.intro.step1.title'),
           caption: t('address.intro.step1.caption'),
           active: true,
         ),
         PresenceMilestone(
-          icon: MyazaIcons.radar,
+          icon: UiIcons.radar,
           stage: t('address.intro.step2.stage'),
           title: t('address.intro.step2.title'),
           caption: t(background
@@ -55,7 +55,7 @@ class AddressIntroGate extends StatelessWidget {
               : 'address.intro.step2.caption'),
         ),
         PresenceMilestone(
-          icon: MyazaIcons.bellRing,
+          icon: UiIcons.bellRing,
           stage: t('address.intro.step3.stage'),
           title: t('address.intro.step3.title'),
           caption: t('address.intro.step3.caption'),
@@ -65,16 +65,16 @@ class AddressIntroGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
-    final t = context.kycText;
+    final t = context.verificationText;
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(vertical: MyazaSpacing.sm),
+      padding: const EdgeInsets.symmetric(vertical: UiSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           PresenceCard(
             header: PresenceHeaderBand(
               badge: PresenceBadge(
-                leading: MyazaIcon(MyazaIcons.mapPinCheck,
+                leading: UiIcon(UiIcons.mapPinCheck,
                     size: 12, color: colors.primary),
                 label: t('address.intro.badge'),
               ),
@@ -86,10 +86,10 @@ class AddressIntroGate extends StatelessWidget {
               numbered: true,
             ),
           ),
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
           AddressIntroDisclosures(background: background),
-          const SizedBox(height: MyazaSpacing.md),
-          MyazaButton(
+          const SizedBox(height: UiSpacing.md),
+          UiButton(
             label: t('address.intro.start'),
             onPressed: onAcknowledge,
           ),

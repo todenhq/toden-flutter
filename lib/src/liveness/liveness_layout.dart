@@ -5,7 +5,7 @@ import '../config/theme.dart';
 
 // ─── How big the selfie circle and the gesture avatar may be ────────────────
 //
-// The circle was a fixed [MyazaSizing.cameraCircleSize], which is right on a
+// The circle was a fixed [UiSizing.cameraCircleSize], which is right on a
 // tall phone. On a Samsung S24 (360×780 dp, 176 dp shorter than an iPhone 16
 // Pro Max) it owned most of the sheet and the avatar demonstrating the gesture
 // sat below the fold — the one thing the step exists to show. So the HEIGHT
@@ -18,7 +18,7 @@ import '../config/theme.dart';
 // change both.
 
 /// The cap is the size this SDK has always drawn; the tall phones keep it.
-const double kLivenessCircleMax = MyazaSizing.cameraCircleSize;
+const double kLivenessCircleMax = UiSizing.cameraCircleSize;
 
 /// A face is still usable at 200; below that the ring and the oval guide start
 /// to crowd it, so a very short screen scrolls a little instead.
@@ -31,7 +31,7 @@ const double kLivenessCircleMin = 200;
 const double kLivenessCircleHeightBudget = 540;
 
 /// The circle keeps the step's own side padding on both sides.
-const double kLivenessCircleSideGutter = MyazaSpacing.md * 4;
+const double kLivenessCircleSideGutter = UiSpacing.md * 4;
 
 class LivenessLayout {
   /// Diameter of the camera circle, dp.

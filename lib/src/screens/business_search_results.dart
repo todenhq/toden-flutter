@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../services/api_service.dart';
 import '../widgets/country_flag.dart';
-import '../widgets/myaza_input.dart';
+import '../widgets/ui_input.dart';
 import '../widgets/icons/icons.dart';
 
 // ─── The search result list ───────────────────────────────────────────────────
@@ -56,14 +56,14 @@ class BusinessSearchResults extends StatelessWidget {
                 Text('Filter',
                     style:
                         text.bodyMedium.copyWith(color: colors.textSecondary)),
-                const SizedBox(width: MyazaSpacing.sm),
+                const SizedBox(width: UiSpacing.sm),
                 SizedBox(
                   width: 176,
-                  child: MyazaInput(
+                  child: UiInput(
                     hint: 'Name or number',
                     height: 40,
                     fontSize: 14,
-                    prefix: MyazaIcon(MyazaIcons.filter,
+                    prefix: UiIcon(UiIcons.filter,
                         size: 14, color: colors.textMuted),
                     onChanged: onFilter,
                   ),
@@ -84,16 +84,16 @@ class BusinessSearchResults extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 6),
                 child: InkWell(
                   onTap: () => onPicked(hit),
-                  borderRadius: BorderRadius.circular(MyazaRadius.sm),
+                  borderRadius: BorderRadius.circular(UiRadius.sm),
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       border: Border.all(color: colors.border),
-                      borderRadius: BorderRadius.circular(MyazaRadius.sm),
+                      borderRadius: BorderRadius.circular(UiRadius.sm),
                     ),
                     child: Row(
                       children: [
-                        MyazaIcon(MyazaIcons.building2,
+                        UiIcon(UiIcons.building2,
                             size: 16, color: colors.textSecondary),
                         const SizedBox(width: 12),
                         Expanded(
@@ -109,7 +109,7 @@ class BusinessSearchResults extends StatelessWidget {
                               const SizedBox(height: 2),
                               Row(
                                 children: [
-                                  MyazaCountryFlag(country: country, size: 14),
+                                  UiCountryFlag(country: country, size: 14),
                                   const SizedBox(width: 6),
                                   Text(
                                     hit.registrationNumber,

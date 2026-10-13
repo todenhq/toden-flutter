@@ -13,7 +13,7 @@ import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
 // at full; a flash sequence's neutral frames are black whatever the theme. The
 // same rules as the web and React Native SDKs.
 
-const _base = MyazaKYCConfig(apiKey: 'pk_test_x', country: 'NG');
+const _base = VerificationConfig(apiKey: 'pk_test_x', country: 'NG');
 
 WorkflowFlowConfig _flow(Map<String, dynamic> config) => WorkflowResolution.fromJson({
       'flow': {'id': 'wf_x', 'name': 'Face', 'version': 1},
@@ -171,24 +171,24 @@ void main() {
   });
 
   group('the lit palette', () {
-    const appearance = MyazaKYCAppearance(
+    const appearance = VerificationAppearance(
       backgroundColor: Color(0xFFFAFAF7),
-      dark: MyazaKYCAppearance(backgroundColor: Color(0xFF101010)),
+      dark: VerificationAppearance(backgroundColor: Color(0xFF101010)),
     );
 
     test("is the organisation's base palette, never its dark overrides", () {
       final lit = brightScreenScheme(appearance);
       expect(lit.background, const Color(0xFFFAFAF7));
-      expect(brightScreenScheme(null).background, MyazaColorScheme.light.background);
+      expect(brightScreenScheme(null).background, UiColorScheme.light.background);
     });
 
     test('blends from the person\'s theme and flips to light at the midpoint', () {
-      const dark = MyazaColorScheme.dark;
+      const dark = UiColorScheme.dark;
       final lit = brightScreenScheme(appearance);
       final start = blendBrightScreen(userScheme: dark, userIsDark: true, litScheme: lit, t: 0);
       expect(start.scheme.background, dark.background);
       expect(start.isDark, isTrue);
-      expect(start.headerSurface, kycHeaderSurface(dark, isDark: true));
+      expect(start.headerSurface, verificationHeaderSurface(dark, isDark: true));
 
       final early = blendBrightScreen(userScheme: dark, userIsDark: true, litScheme: lit, t: 0.4);
       expect(early.isDark, isTrue);
@@ -196,7 +196,7 @@ void main() {
       final end = blendBrightScreen(userScheme: dark, userIsDark: true, litScheme: lit, t: 1);
       expect(end.scheme.background, lit.background);
       expect(end.isDark, isFalse);
-      expect(end.headerSurface, kycHeaderSurface(lit, isDark: false));
+      expect(end.headerSurface, verificationHeaderSurface(lit, isDark: false));
     });
   });
 

@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:myaza_kyc_sdk_flutter/src/liveness/flash_detector.dart';
 import 'package:myaza_kyc_sdk_flutter/src/liveness/flash_outcome.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/liveness_resume.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_state.dart';
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
 
 FlashResult _result({
   required bool passed,
@@ -73,12 +73,12 @@ void main() {
 
   group('resumeStepWithoutSelfie', () {
     test('sends a step past liveness back to it', () {
-      expect(resumeStepWithoutSelfie(KYCStep.questionnaire), KYCStep.liveness);
-      expect(resumeStepWithoutSelfie(KYCStep.submitted), KYCStep.liveness);
+      expect(resumeStepWithoutSelfie(VerificationStep.questionnaire), VerificationStep.liveness);
+      expect(resumeStepWithoutSelfie(VerificationStep.submitted), VerificationStep.liveness);
     });
 
     test('leaves an earlier step alone', () {
-      expect(resumeStepWithoutSelfie(KYCStep.idType), KYCStep.idType);
+      expect(resumeStepWithoutSelfie(VerificationStep.idType), VerificationStep.idType);
     });
   });
 }

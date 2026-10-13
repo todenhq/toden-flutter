@@ -5,7 +5,7 @@ import '../../widgets/dashed_border.dart';
 import 'address_photo_filled.dart';
 import '../../widgets/icons/icons.dart';
 import '../../i18n/text_scope.dart';
-import '../../widgets/myaza_spinner.dart';
+import '../../widgets/ui_spinner.dart';
 
 // ─── The entrance photo, as the hero of its screen ───────────────────────────
 //
@@ -59,16 +59,16 @@ class _Empty extends StatelessWidget {
       button: true,
       child: InkWell(
         onTap: uploading ? null : parent.onPick,
-        borderRadius: BorderRadius.circular(MyazaRadius.md),
+        borderRadius: BorderRadius.circular(UiRadius.md),
         child: CustomPaint(
           // Web's rounded-2xl (16) is `md` here; the RN zone wears the same.
           painter: DashedRoundedBorder(
-              color: colors.border, radius: MyazaRadius.md, strokeWidth: 2),
+              color: colors.border, radius: UiRadius.md, strokeWidth: 2),
           child: Container(
             height: kAddressPhotoZoneHeight,
             alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(
-                horizontal: MyazaSpacing.lg, vertical: MyazaSpacing.lg),
+                horizontal: UiSpacing.lg, vertical: UiSpacing.lg),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -78,7 +78,7 @@ class _Empty extends StatelessWidget {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: colors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(MyazaRadius.md),
+                    borderRadius: BorderRadius.circular(UiRadius.md),
                     border: Border.all(
                         color: colors.primary.withValues(alpha: 0.2)),
                   ),
@@ -86,35 +86,35 @@ class _Empty extends StatelessWidget {
                       ? SizedBox(
                           width: 22,
                           height: 22,
-                          child: MyazaSpinner(
+                          child: UiSpinner(
                               strokeWidth: 2, color: colors.primary),
                         )
-                      : MyazaIcon(MyazaIcons.camera,
+                      : UiIcon(UiIcons.camera,
                           size: 24, color: colors.primary),
                 ),
-                const SizedBox(height: MyazaSpacing.md),
+                const SizedBox(height: UiSpacing.md),
                 Text(
-                  uploading ? 'Uploading photo…' : context.kycText('address.photo.cta'),
+                  uploading ? 'Uploading photo…' : context.verificationText('address.photo.cta'),
                   style: text.body.copyWith(fontWeight: FontWeight.w600),
                   textAlign: TextAlign.center,
                 ),
                 if (!uploading) ...[
-                  const SizedBox(height: MyazaSpacing.xs),
+                  const SizedBox(height: UiSpacing.xs),
                   Text(
                     parent.required
-                        ? context.kycText('address.photo.hint')
+                        ? context.verificationText('address.photo.hint')
                         : 'The gate, front door or the building itself. Optional.',
                     style: text.bodyMedium
                         .copyWith(color: colors.textSecondary),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: MyazaSpacing.md),
+                  const SizedBox(height: UiSpacing.md),
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: colors.backgroundSecondary,
-                      borderRadius: BorderRadius.circular(MyazaRadius.full),
+                      borderRadius: BorderRadius.circular(UiRadius.full),
                     ),
                     child: Text('JPEG · PNG · WebP',
                         style: text.bodySmall.copyWith(

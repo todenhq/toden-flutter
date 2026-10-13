@@ -30,7 +30,7 @@ class BusinessDateField extends StatelessWidget {
       onTap: () async {
         final now = DateTime.now();
         final initial = DateTime.tryParse(value ?? '') ?? now;
-        final picked = await showMyazaDatePicker(
+        final picked = await showUiDatePicker(
           context,
           initialDate: initial,
           firstDate: DateTime(1800),
@@ -40,19 +40,19 @@ class BusinessDateField extends StatelessWidget {
           onChanged(picked.toIso8601String().split('T').first);
         }
       },
-      borderRadius: BorderRadius.circular(MyazaRadius.sm),
+      borderRadius: BorderRadius.circular(UiRadius.sm),
       child: Container(
-        height: MyazaSizing.inputHeight,
-        padding: const EdgeInsets.symmetric(horizontal: MyazaSpacing.md),
+        height: UiSizing.inputHeight,
+        padding: const EdgeInsets.symmetric(horizontal: UiSpacing.md),
         decoration: BoxDecoration(
           color: colors.backgroundSecondary,
           border: Border.all(color: colors.border),
-          borderRadius: BorderRadius.circular(MyazaRadius.sm),
+          borderRadius: BorderRadius.circular(UiRadius.sm),
         ),
         child: Row(
           children: [
-            MyazaIcon(MyazaIcons.calendar, size: 18, color: colors.textSecondary),
-            const SizedBox(width: MyazaSpacing.sm),
+            UiIcon(UiIcons.calendar, size: 18, color: colors.textSecondary),
+            const SizedBox(width: UiSpacing.sm),
             Text(
               value ?? placeholder,
               style: text.body.copyWith(

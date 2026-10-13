@@ -6,7 +6,7 @@ part of 'api_service.dart';
 // one config fact it needs. A `part` so it reaches the library-private Dio
 // client, like the address calls.
 
-/// Header every `/api/kyc/upload` carries: the same per-install id the
+/// Header every `/api/v1/upload` carries: the same per-install id the
 /// submission's `fingerprint.deviceId` carries, so the server can tell whether
 /// one session's captures came from more than one device.
 const String kDeviceIdHeader = 'X-Myaza-Device-Id';
@@ -56,8 +56,8 @@ String? playIntegrityProjectOf(Map<String, dynamic> json) {
   return value is String && value.trim().isNotEmpty ? value.trim() : null;
 }
 
-extension KYCApiDevice on KYCApiService {
-  /// `POST /api/kyc/device/challenge`. Any error (404 when the platform has
+extension VerificationApiDevice on VerificationApiService {
+  /// `POST /api/v1/device/challenge`. Any error (404 when the platform has
   /// attestation off, 503, network) is null: "skip attestation this time".
   Future<DeviceChallenge?> deviceChallenge({
     required String platform,
@@ -65,7 +65,7 @@ extension KYCApiDevice on KYCApiService {
   }) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
-        '/api/kyc/device/challenge',
+        '/api/v1/device/challenge',
         data: {
           'platform': platform,
           if (keyId != null && keyId.isNotEmpty) 'keyId': keyId,

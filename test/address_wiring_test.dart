@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/address_flow.dart';
 import 'package:myaza_kyc_sdk_flutter/src/providers/address_step_order.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_state.dart';
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
 import 'package:myaza_kyc_sdk_flutter/src/providers/step_order.dart';
 import 'package:myaza_kyc_sdk_flutter/src/utils/step_log.dart';
 
@@ -13,12 +13,12 @@ import 'package:myaza_kyc_sdk_flutter/src/utils/step_log.dart';
 // the order contains, what the progress bar counts, and where a resumed
 // session is allowed to land.
 
-MyazaKYCConfig _individual({
+VerificationConfig _individual({
   String? photo,
   bool proofOfAddress = false,
   bool questionnaire = false,
 }) =>
-    MyazaKYCConfig(
+    VerificationConfig(
       apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       country: 'NG',
       addressCollection:
@@ -34,14 +34,14 @@ MyazaKYCConfig _individual({
           : null,
     );
 
-MyazaKYCConfig _business() => MyazaKYCConfig(
+VerificationConfig _business() => VerificationConfig(
       apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       subjectType: 'business',
       business: WorkflowBusinessConfig.fromJson(const {'country': 'NG'}),
       addressCollection: const AddressCollectionConfig(enabled: true),
     );
 
-KYCState _withSearch() => const KYCState(
+VerificationState _withSearch() => const VerificationState(
       serverConfig: ServerSdkConfig(
         status: ServerConfigStatus.ready,
         addressSearch: true,
@@ -65,7 +65,7 @@ void main() {
     test('the pin step keeps the ORIGINAL name though it moved second', () {
       // Session progress saved by a build that had one address screen restores
       // onto this one. Renaming it would strand every one of those snapshots.
-      expect(kStepWireNames[KYCStep.addressCollection], 'address-collection');
+      expect(kStepWireNames[VerificationStep.addressCollection], 'address-collection');
     });
   });
 
@@ -78,8 +78,8 @@ void main() {
         _individual(proofOfAddress: true),
         _withSearch(),
       );
-      final poa = order.indexOf(KYCStep.proofOfAddress);
-      expect(order[poa + 1], KYCStep.addressSearch);
+      final poa = order.indexOf(VerificationStep.proofOfAddress);
+      expect(order[poa + 1], VerificationStep.addressSearch);
     });
 
     test('backing in from the questionnaire lands on the review', () {
@@ -89,8 +89,8 @@ void main() {
         _individual(questionnaire: true),
         _withSearch(),
       );
-      final questionnaire = order.indexOf(KYCStep.questionnaire);
-      expect(order[questionnaire - 1], KYCStep.addressReview);
+      final questionnaire = order.indexOf(VerificationStep.questionnaire);
+      expect(order[questionnaire - 1], VerificationStep.addressReview);
     });
 
     test('the whole flow sits contiguously in the order', () {
@@ -98,8 +98,8 @@ void main() {
         _individual(proofOfAddress: true, questionnaire: true),
         _withSearch(),
       );
-      final poa = order.indexOf(KYCStep.proofOfAddress);
-      final questionnaire = order.indexOf(KYCStep.questionnaire);
+      final poa = order.indexOf(VerificationStep.proofOfAddress);
+      final questionnaire = order.indexOf(VerificationStep.questionnaire);
       expect(order.sublist(poa + 1, questionnaire), kAddressFlowOrder);
     });
   });
@@ -108,14 +108,14 @@ void main() {
     test('counts every address step', () {
       // The bar reads the same `buildStepOrder` navigation does, minus the
       // terminal step. Four screens the applicant walks are four it must count.
-      int countable(MyazaKYCConfig config, KYCState state) =>
+      int countable(VerificationConfig config, VerificationState state) =>
           buildStepOrder(config, state)
-              .where((s) => s != KYCStep.submitted)
+              .where((s) => s != VerificationStep.submitted)
               .length;
 
       final withFlow = countable(_individual(), _withSearch());
       final withoutFlow = countable(
-        const MyazaKYCConfig(
+        const VerificationConfig(
           apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
           country: 'NG',
         ),
@@ -137,14 +137,14 @@ void main() {
 
   group('KYB collapses to the premises step', () {
     test('offers the pin and nothing else', () {
-      expect(addressStepsFor(_business(), const KYCState()),
-          [KYCStep.addressCollection]);
+      expect(addressStepsFor(_business(), const VerificationState()),
+          [VerificationStep.addressCollection]);
     });
 
     test('the collapse survives a search backend and a photo slot', () {
       // Both would add a step to an individual flow. A KYB premises capture is
       // the pin and its directions, whatever else is switched on.
-      final config = MyazaKYCConfig(
+      final config = VerificationConfig(
         apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         subjectType: 'business',
         business: WorkflowBusinessConfig.fromJson(const {'country': 'NG'}),
@@ -154,21 +154,21 @@ void main() {
       expect(buildStepOrder(config, _withSearch())
           .where(kAddressFlowOrder.contains)
           .toList(),
-          [KYCStep.addressCollection]);
+          [VerificationStep.addressCollection]);
     });
 
     test('the pin step is therefore the one that COMMITS', () {
       // The screen asks the flow, not the subject type: nothing follows the
       // pin here, so its Continue takes the attest fix and stores the presence
       // pin rather than advancing.
-      final offered = addressStepsFor(_business(), const KYCState());
-      expect(nextAddressStep(offered, KYCStep.addressCollection), isNull);
+      final offered = addressStepsFor(_business(), const VerificationState());
+      expect(nextAddressStep(offered, VerificationStep.addressCollection), isNull);
     });
 
     test('on an individual flow the review commits instead', () {
       final offered = addressStepsFor(_individual(), _withSearch());
-      expect(nextAddressStep(offered, KYCStep.addressCollection), isNotNull);
-      expect(nextAddressStep(offered, KYCStep.addressReview), isNull);
+      expect(nextAddressStep(offered, VerificationStep.addressCollection), isNotNull);
+      expect(nextAddressStep(offered, VerificationStep.addressReview), isNull);
     });
   });
 

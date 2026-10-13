@@ -9,17 +9,17 @@ import '../config/theme.dart';
 /// Unlike the step circles it does not say WHICH step you are on or how many
 /// there are, which is the trade: it is unaffected by step count, so a 14-step
 /// KYB flow draws exactly like a 4-step one. Hosts who would rather the chrome
-/// said less get it by default; `MyazaProgressStyle.steps` asks for the circles.
+/// said less get it by default; `VerificationProgressStyle.steps` asks for the circles.
 ///
 /// Mirrors the React Native SDK's ProgressBar.
-class KycProgressBar extends StatelessWidget {
+class VerificationProgressBar extends StatelessWidget {
   /// 0.0–1.0 progress fraction.
   final double progress;
 
   /// Steps in the flow — announced, not drawn.
   final int stepCount;
 
-  const KycProgressBar({
+  const VerificationProgressBar({
     super.key,
     required this.progress,
     required this.stepCount,

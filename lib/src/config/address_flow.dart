@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import '../providers/kyc_state.dart' show KYCStep;
+import '../providers/verification_state.dart' show VerificationStep;
 import '../utils/map_tiles.dart' show MapLatLng;
 import 'address_state.dart';
 
@@ -11,7 +11,7 @@ import 'address_state.dart';
 // commit it (review). The progress bar advances through them and back/forward
 // is ordinary step navigation.
 //
-// [KYCStep.addressCollection] is the PIN step and keeps its original wire name
+// [VerificationStep.addressCollection] is the PIN step and keeps its original wire name
 // even though it is now the second screen, so session progress saved by older
 // builds restores cleanly and the server's step-log titles stay meaningful.
 //
@@ -86,28 +86,28 @@ AddressFlowOptions addressFlowOptions({
 /// A list rather than a set because the resume clamp needs to know which
 /// offered step sits nearest a saved one. Two literals that had to agree on
 /// that order would be one more pair to keep in lockstep.
-const List<KYCStep> kAddressFlowOrder = [
-  KYCStep.addressSearch,
-  KYCStep.addressCollection,
-  KYCStep.addressEntrance,
-  KYCStep.addressReview,
+const List<VerificationStep> kAddressFlowOrder = [
+  VerificationStep.addressSearch,
+  VerificationStep.addressCollection,
+  VerificationStep.addressEntrance,
+  VerificationStep.addressReview,
 ];
 
 /// The individual flow's address steps, in order. The minimum is the pin and
 /// the review: somewhere to place it, and somewhere to commit it.
-List<KYCStep> addressFlowSteps(AddressFlowOptions o) => [
-      if (o.searchAvailable) KYCStep.addressSearch,
-      KYCStep.addressCollection,
-      if (o.photoMode != 'off' || o.streetViewOffered) KYCStep.addressEntrance,
-      KYCStep.addressReview,
+List<VerificationStep> addressFlowSteps(AddressFlowOptions o) => [
+      if (o.searchAvailable) VerificationStep.addressSearch,
+      VerificationStep.addressCollection,
+      if (o.photoMode != 'off' || o.streetViewOffered) VerificationStep.addressEntrance,
+      VerificationStep.addressReview,
     ];
 
-KYCStep? nextAddressStep(List<KYCStep> steps, KYCStep current) {
+VerificationStep? nextAddressStep(List<VerificationStep> steps, VerificationStep current) {
   final i = steps.indexOf(current);
   return i >= 0 && i + 1 < steps.length ? steps[i + 1] : null;
 }
 
-KYCStep? prevAddressStep(List<KYCStep> steps, KYCStep current) {
+VerificationStep? prevAddressStep(List<VerificationStep> steps, VerificationStep current) {
   final i = steps.indexOf(current);
   return i > 0 ? steps[i - 1] : null;
 }

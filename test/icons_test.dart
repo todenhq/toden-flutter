@@ -32,7 +32,7 @@ void main() {
         .toList();
     expect(offenders, isEmpty,
         reason:
-            'import ../widgets/icons/icons.dart and use MyazaIcons instead');
+            'import ../widgets/icons/icons.dart and use UiIcons instead');
   });
 
   test('nothing imports the retired icon package', () {

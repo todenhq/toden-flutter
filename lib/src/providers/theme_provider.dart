@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 // independently of the host app.
 // Default: ThemeMode.system (follows device setting).
 
-final kycThemeModeProvider = StateProvider<ThemeMode>(
+final verificationThemeModeProvider = StateProvider<ThemeMode>(
   (ref) => ThemeMode.system,
 );
 
@@ -17,6 +17,6 @@ final kycThemeModeProvider = StateProvider<ThemeMode>(
 // step is left (the selfie review after it included; the ready and permission
 // primers before it excluded). The flow reads it to render in the light theme
 // and hold the screen bright; see config/bright_screen.dart. Scoped per flow
-// by kycFlowOverrides.
+// by verificationFlowOverrides.
 
 final livenessCameraOnProvider = StateProvider<bool>((ref) => false);

@@ -118,11 +118,11 @@ class SignedSignatureRow extends StatelessWidget {
     final text = context.myazaText;
     final drawing = this.drawing;
     return Container(
-      padding: const EdgeInsets.only(left: MyazaSpacing.md, top: 4, bottom: 4),
+      padding: const EdgeInsets.only(left: UiSpacing.md, top: 4, bottom: 4),
       decoration: BoxDecoration(
         color: colors.backgroundSecondary,
         border: Border.all(color: colors.border),
-        borderRadius: BorderRadius.circular(MyazaRadius.sm),
+        borderRadius: BorderRadius.circular(UiRadius.sm),
       ),
       child: Row(
         children: [
@@ -137,13 +137,13 @@ class SignedSignatureRow extends StatelessWidget {
                 color: colors.primary50,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: MyazaIcon(
-                MyazaIcons.penLine,
+              child: UiIcon(
+                UiIcons.penLine,
                 size: 16,
                 color: colors.primary,
               ),
             ),
-          const SizedBox(width: MyazaSpacing.sm + 4),
+          const SizedBox(width: UiSpacing.sm + 4),
           Expanded(
             child: Text(
               'Signed on screen',
@@ -158,7 +158,7 @@ class SignedSignatureRow extends StatelessWidget {
             button: true,
             child: SignatureTextAction(
               label: 'Edit',
-              icon: MyazaIcons.penLine,
+              icon: UiIcons.penLine,
               onPressed: onEdit,
             ),
           ),
@@ -166,7 +166,7 @@ class SignedSignatureRow extends StatelessWidget {
             onPressed: onRemove,
             tooltip: 'Remove $label',
             constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-            icon: MyazaIcon(MyazaIcons.x, size: 16, color: colors.textMuted),
+            icon: UiIcon(UiIcons.x, size: 16, color: colors.textMuted),
           ),
         ],
       ),

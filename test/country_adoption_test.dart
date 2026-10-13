@@ -85,7 +85,7 @@ void main() {
     });
 
     test('the store flags a guessed country and a pick clears it', () {
-      final provider = read('providers/kyc_provider.dart');
+      final provider = read('providers/verification_provider.dart');
       expect(provider, contains('void setCountryAuto(String country)'));
       expect(provider, contains('countryAutoPicked: false,'));
     });

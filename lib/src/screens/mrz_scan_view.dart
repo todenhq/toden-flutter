@@ -11,7 +11,7 @@ import '../services/mrz_extract.dart';
 import '../services/mrz_parser.dart';
 import '../services/text_recognition.dart';
 import 'mrz_scan_overlay.dart';
-import '../widgets/myaza_spinner.dart';
+import '../widgets/ui_spinner.dart';
 
 // ─── MRZ scan view ────────────────────────────────────────────────────────────
 //
@@ -160,10 +160,10 @@ class _MrzScanViewState extends ConsumerState<MrzScanView> {
     if (camera.status == CameraStatus.error ||
         camera.status == CameraStatus.permissionDenied) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: MyazaSpacing.xl),
+        padding: const EdgeInsets.symmetric(vertical: UiSpacing.xl),
         child: Text(
           camera.error ?? 'Camera unavailable.',
-          style: text.bodyMedium.copyWith(color: MyazaColors.error),
+          style: text.bodyMedium.copyWith(color: UiColors.error),
           textAlign: TextAlign.center,
         ),
       );
@@ -171,23 +171,23 @@ class _MrzScanViewState extends ConsumerState<MrzScanView> {
 
     if (!camera.isReady || controller == null) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: MyazaSpacing.xl),
-        child: Center(child: MyazaSpinner()),
+        padding: EdgeInsets.symmetric(vertical: UiSpacing.xl),
+        child: Center(child: UiSpinner()),
       );
     }
 
     return MrzScanOverlay(controller: controller);
   }
 
-  Widget _message(MyazaThemeText text, String message, {bool busy = false}) {
+  Widget _message(UiThemeText text, String message, {bool busy = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: MyazaSpacing.xl),
+      padding: const EdgeInsets.symmetric(vertical: UiSpacing.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (busy) ...[
-            const Center(child: MyazaSpinner()),
-            const SizedBox(height: MyazaSpacing.md),
+            const Center(child: UiSpinner()),
+            const SizedBox(height: UiSpacing.md),
           ],
           Text(message, style: text.bodyMedium, textAlign: TextAlign.center),
         ],

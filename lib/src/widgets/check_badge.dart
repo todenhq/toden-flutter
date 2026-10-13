@@ -38,15 +38,15 @@ class CheckBadge extends StatelessWidget {
         shape: BoxShape.circle,
         color: colors.successBg,
         border: Border.all(
-          color: MyazaColors.success.withValues(alpha: 0.3),
+          color: UiColors.success.withValues(alpha: 0.3),
           width: 2,
         ),
       ),
-      child: MyazaIcon(
-        MyazaIcons.check,
+      child: UiIcon(
+        UiIcons.check,
         // Keeps the glyph's proportion to the circle at any size.
         size: size * 0.5,
-        color: MyazaColors.success,
+        color: UiColors.success,
       ),
     );
 

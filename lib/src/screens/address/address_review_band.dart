@@ -56,13 +56,13 @@ class AddressReviewBand extends StatelessWidget {
         text.body.copyWith(fontWeight: FontWeight.w600, height: 1.3);
     final editLink = Semantics(
       button: true,
-      label: context.kycText('address.review.edit'),
+      label: context.verificationText('address.review.edit'),
       child: InkWell(
         onTap: onEdit,
-        borderRadius: BorderRadius.circular(MyazaRadius.xs),
+        borderRadius: BorderRadius.circular(UiRadius.xs),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 2),
-          child: Text(context.kycText('address.review.edit'),
+          child: Text(context.verificationText('address.review.edit'),
               style: text.bodyMedium.copyWith(color: colors.primary)),
         ),
       ),
@@ -72,14 +72,14 @@ class AddressReviewBand extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.primary.withValues(alpha: 0.06),
         borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(MyazaRadius.md - 1),
+          bottom: Radius.circular(UiRadius.md - 1),
         ),
       ),
       padding: EdgeInsets.fromLTRB(
-        MyazaSpacing.md,
-        MyazaSpacing.md,
-        hangs ? _kBandClearance : MyazaSpacing.md,
-        MyazaSpacing.md,
+        UiSpacing.md,
+        UiSpacing.md,
+        hangs ? _kBandClearance : UiSpacing.md,
+        UiSpacing.md,
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(minHeight: hangs ? _kBandMinHeight : 0),
@@ -91,13 +91,13 @@ class AddressReviewBand extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   PresenceBadge(
-                    leading: MyazaIcon(MyazaIcons.mapPin,
+                    leading: UiIcon(UiIcons.mapPin,
                         size: 12, color: colors.primary),
-                    label: context.kycText(isBusiness
+                    label: context.verificationText(isBusiness
                         ? 'address.review.badge.business'
                         : 'address.review.badge'),
                   ),
-                  const SizedBox(height: MyazaSpacing.xs),
+                  const SizedBox(height: UiSpacing.xs),
                   // Never coordinates: an unread pin shows a skeleton
                   // line while its address is still coming.
                   if (hasAddress && line.isEmpty && labelling)
@@ -121,7 +121,7 @@ class AddressReviewBand extends StatelessWidget {
                             color: colors.textSecondary, height: 1.4)),
                   ],
                   if (hangs) ...[
-                    const SizedBox(height: MyazaSpacing.sm),
+                    const SizedBox(height: UiSpacing.sm),
                     editLink,
                   ],
                 ],
@@ -133,7 +133,7 @@ class AddressReviewBand extends StatelessWidget {
             // it starves the pill on a 360dp phone; so Edit moves
             // under the address instead (the column above).
             if (!hangs) ...[
-              const SizedBox(width: MyazaSpacing.sm),
+              const SizedBox(width: UiSpacing.sm),
               editLink,
             ],
           ],

@@ -14,7 +14,7 @@ import 'icon_finder.dart';
 // unusable) on a phone — the hint spent a build sitting behind the shutter.
 // These render it for real and assert the things that actually broke.
 
-// context.myazaColors falls back to the light scheme without a MyazaTheme
+// context.myazaColors falls back to the light scheme without a UiTheme
 // ancestor, so a plain MaterialApp is enough here.
 Widget _host(Widget child) => MaterialApp(home: Scaffold(body: child));
 
@@ -96,7 +96,7 @@ void main() {
 
     expect(find.byType(DocumentInfoPill), findsOneWidget);
     // The flag stands in for the country; the name would be the same fact twice.
-    expect(find.byType(MyazaCountryFlag), findsOneWidget);
+    expect(find.byType(UiCountryFlag), findsOneWidget);
     expect(find.text('Nigeria'), findsNothing);
     // Shown short: the catalogue label ("International Passport") is written
     // for a picker, not for a pill beside a flag.
@@ -168,7 +168,7 @@ void main() {
     ));
     await tester.pump();
 
-    final back = tester.getRect(findMyazaIcon(MyazaIcons.arrowLeft));
+    final back = tester.getRect(findUiIcon(UiIcons.arrowLeft));
     expect(back.top, greaterThanOrEqualTo(statusBar),
         reason: 'back button overlaps the status bar');
   });

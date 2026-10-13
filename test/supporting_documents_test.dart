@@ -30,7 +30,7 @@ SupportingDocumentsConfig _ninSlipOnly() => SupportingDocumentsConfig.fromJson({
       ],
     })!;
 
-MyazaKYCConfig _config({SupportingDocumentsConfig? docs}) => MyazaKYCConfig(
+VerificationConfig _config({SupportingDocumentsConfig? docs}) => VerificationConfig(
       apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       country: 'NG',
       supportingDocuments: docs,
@@ -139,18 +139,18 @@ void main() {
   });
 
   group('the step in the order', () {
-    KYCState picked(String idType) =>
-        KYCState(selectedIdType: resolveIdTypeDefinition('NG', idType));
+    VerificationState picked(String idType) =>
+        VerificationState(selectedIdType: resolveIdTypeDefinition('NG', idType));
 
     test('is absent while nothing resolves to ask for', () {
       expect(
         buildStepOrder(_config(), picked('nin')),
-        isNot(contains(KYCStep.supportingDocuments)),
+        isNot(contains(VerificationStep.supportingDocuments)),
       );
       // The switch is on, but this applicant used a BVN.
       expect(
         buildStepOrder(_config(docs: _ninSlipOnly()), picked('bvn')),
-        isNot(contains(KYCStep.supportingDocuments)),
+        isNot(contains(VerificationStep.supportingDocuments)),
       );
     });
 
@@ -163,14 +163,14 @@ void main() {
         ),
         picked('nin'),
       );
-      expect(order, contains(KYCStep.supportingDocuments));
+      expect(order, contains(VerificationStep.supportingDocuments));
       expect(
-        order.indexOf(KYCStep.supportingDocuments),
-        greaterThan(order.indexOf(KYCStep.liveness)),
+        order.indexOf(VerificationStep.supportingDocuments),
+        greaterThan(order.indexOf(VerificationStep.liveness)),
       );
       expect(
-        order.indexOf(KYCStep.supportingDocuments),
-        lessThan(order.indexOf(KYCStep.proofOfAddress)),
+        order.indexOf(VerificationStep.supportingDocuments),
+        lessThan(order.indexOf(VerificationStep.proofOfAddress)),
       );
     });
 
@@ -202,7 +202,7 @@ void main() {
 
   group('the uploads survive a resume', () {
     test('ride progress as ids alone and restore without a preview', () {
-      final state = const KYCState().copyWith(
+      final state = const VerificationState().copyWith(
         supportingDocuments: const [
           SupportingDocumentUpload(
             type: 'nin_slip',
@@ -216,13 +216,13 @@ void main() {
       final data = (saved['data'] as Map)['supportingDocuments'] as List;
       expect(data.single, {'type': 'nin_slip', 'mediaId': 'med_1'});
 
-      final restored = restoredState(const KYCState(), saved);
+      final restored = restoredState(const VerificationState(), saved);
       expect(restored.supportingDocuments.single.mediaId, 'med_1');
       expect(restored.supportingDocuments.single.previewPath, isNull);
     });
 
     test('a row with no mediaId is dropped rather than half-restored', () {
-      final restored = restoredState(const KYCState(), {
+      final restored = restoredState(const VerificationState(), {
         'step': 'supporting-documents',
         'mediaIds': const {},
         'data': {

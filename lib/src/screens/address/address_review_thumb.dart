@@ -36,7 +36,7 @@ class ReviewEntranceThumb extends StatelessWidget {
     final colors = context.myazaColors;
     // The hero wears the card's own radius (16), the smaller one a step down
     // (12): web's rounded-2xl beside rounded-xl.
-    final radius = size == kReviewHeroSize ? MyazaRadius.md : MyazaRadius.sm;
+    final radius = size == kReviewHeroSize ? UiRadius.md : UiRadius.sm;
     return Container(
       width: size,
       height: size,

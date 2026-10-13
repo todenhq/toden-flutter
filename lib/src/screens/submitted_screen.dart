@@ -6,8 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/biometric_copy.dart';
 import '../config/biometric_options.dart';
-import '../config/kyc_config.dart';
-import '../config/kyc_result.dart';
+import '../config/verification_config.dart';
+import '../config/verification_result.dart';
 import '../config/result_copy.dart';
 import '../config/scope.dart';
 import '../config/selfie_upload_wait.dart';
@@ -16,20 +16,20 @@ import '../config/theme.dart';
 import '../config/contact_recovery.dart';
 import '../config/submit_recovery.dart';
 import '../providers/step_order.dart' show buildStepOrder;
-import '../providers/kyc_state.dart';
+import '../providers/verification_state.dart';
 import 'submitted_error_view.dart';
 import 'submitted_result_view.dart';
 import 'submitted_waiting_view.dart';
 import '../widgets/check_badge.dart';
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 import '../services/api_service.dart';
-import '../services/kyc_error_mapper.dart';
+import '../services/verification_error_mapper.dart';
 import '../widgets/keep_links_sheet.dart';
 import '../widgets/key_people_await_list.dart';
 import '../widgets/presence_blocks.dart';
 import '../providers/awaiting_people.dart';
 import '../presence/presence_auto_report.dart';
-import '../widgets/myaza_button.dart';
+import '../widgets/ui_button.dart';
 import '../i18n/text_scope.dart';
 
 // ─── Submission status (local UI state) ──────────────────────────────────────
@@ -57,17 +57,17 @@ const Map<String, String> _kScopeDescriptions = {
 // ─── Submitted screen ─────────────────────────────────────────────────────────
 //
 // Replaces the old ProcessingScreen + ResultScreen pair. On mount, calls
-// kycProvider.submitAsync() which POSTs to /api/kyc/verify. The server
+// verificationProvider.submitAsync() which POSTs to /api/v1/verify. The server
 // returns 202 with { verificationId, status: 'pending' } in ~200ms — the
 // SDK's job ends there. Final result arrives via webhook to the org's
 // backend.
 
 class SubmittedScreen extends ConsumerStatefulWidget {
   /// Called once the verify request succeeds (202).
-  final void Function(KYCSubmission submission)? onSubmitted;
+  final void Function(VerificationSubmission submission)? onSubmitted;
 
   /// Called when the verify request fails (network, 401, 402, etc).
-  final void Function(KYCError error)? onError;
+  final void Function(VerificationError error)? onError;
 
   /// Called when the user taps Done after a successful submission, OR
   /// taps "Close" on the error screen. Closes the modal/sheet.
@@ -75,8 +75,8 @@ class SubmittedScreen extends ConsumerStatefulWidget {
 
   /// The verdict, on a flow that WAITS for it in the app (a biometric
   /// re-authentication on the default delivery). Fires once, never on a wait
-  /// that timed out. See [KYCResult].
-  final void Function(KYCResult result)? onResult;
+  /// that timed out. See [VerificationResult].
+  final void Function(VerificationResult result)? onResult;
 
   const SubmittedScreen({
     super.key,
@@ -92,15 +92,15 @@ class SubmittedScreen extends ConsumerStatefulWidget {
 
 class _SubmittedScreenState extends ConsumerState<SubmittedScreen> {
   _SubmitStatus _status = _SubmitStatus.submitting;
-  KYCSubmission? _submission;
-  KYCError? _error;
+  VerificationSubmission? _submission;
+  VerificationError? _error;
 
   /// Set while a transient failure is being retried — drives the "Reconnecting…
   /// retrying (n/total)" copy under the spinner.
   ({int attempt, int total})? _retryInfo;
   /// Where Go back lands after a refusal (submit_recovery.dart); null when
   /// going back cannot help.
-  KYCStep? _recoverTo;
+  VerificationStep? _recoverTo;
 
   bool _kicked = false;
 
@@ -123,15 +123,22 @@ class _SubmittedScreenState extends ConsumerState<SubmittedScreen> {
     // The biometric scopes hand over BEFORE the selfie upload lands (the
     // review is off, so nothing on the liveness screen gated on it): wait for
     // the upload's own record here, under the same loading screen. A failed
-    // upload was already reported to onError by the screen that ran it.
-    if (!ref.read(kycConfigProvider).showsSelfieReviewOption) {
+    // upload was already reported to onError by the screen that ran it. A
+    // flow with no liveness step has no selfie to wait for.
+    SelfieUploadSnapshot readUpload() {
+      final s = ref.read(kYCNotifierProvider);
+      return SelfieUploadSnapshot(selfieUpload: s.selfieUpload, selfieMediaId: s.mediaIds.selfie);
+    }
+
+    final config = ref.read(verificationConfigProvider);
+    final hasLiveness =
+        buildStepOrder(config, ref.read(kYCNotifierProvider)).contains(VerificationStep.liveness);
+    if (!config.showsSelfieReviewOption &&
+        selfieUploadExpected(readUpload(), hasLivenessStep: hasLiveness)) {
       final upload = await awaitSelfieUpload(
-        read: () {
-          final s = ref.read(kYCNotifierProvider);
-          return SelfieUploadSnapshot(selfieUpload: s.selfieUpload, selfieMediaId: s.mediaIds.selfie);
-        },
+        read: readUpload,
         subscribe: (listener) {
-          final sub = ref.listenManual<KYCState>(kYCNotifierProvider, (_, __) => listener());
+          final sub = ref.listenManual<VerificationState>(kYCNotifierProvider, (_, __) => listener());
           return sub.close;
         },
       );
@@ -139,7 +146,7 @@ class _SubmittedScreenState extends ConsumerState<SubmittedScreen> {
       if (upload is SelfieUploadFailed) {
         setState(() {
           _status = _SubmitStatus.error;
-          _error = KYCError(code: 'upload_failed', message: upload.message);
+          _error = VerificationError(code: 'upload_failed', message: upload.message);
         });
         return;
       }
@@ -156,8 +163,8 @@ class _SubmittedScreenState extends ConsumerState<SubmittedScreen> {
       );
       if (!mounted) return;
 
-      final config = ref.read(kycConfigProvider);
-      final submission = KYCSubmission(
+      final config = ref.read(verificationConfigProvider);
+      final submission = VerificationSubmission(
         verificationId: result.verificationId,
         status: result.status,
         metadata: {...?config.metadata},
@@ -174,7 +181,7 @@ class _SubmittedScreenState extends ConsumerState<SubmittedScreen> {
       // The SDK's own first presence report (presence_auto_report.dart):
       // fire-and-forget, so presence never waits on the host app's code.
       unawaited(autoReportPresence(config));
-    } on KYCApiException catch (e) {
+    } on VerificationApiException catch (e) {
       if (!mounted) return;
       // An organisation cancelled this verification: no Try again, no Go back.
       // The flow swaps to the dedicated cancelled screen, which reports
@@ -195,11 +202,11 @@ class _SubmittedScreenState extends ConsumerState<SubmittedScreen> {
         return;
       }
       // Retries (if any) are exhausted — surface a typed error.
-      final error = mapToKycError(e, context: ErrorContext.verify);
+      final error = mapToVerificationError(e, context: ErrorContext.verify);
       final mediaKey = e.details?['mediaKey'];
       final recoverTo = recoveryStepFor(
         e.error,
-        buildStepOrder(ref.read(kycConfigProvider), ref.read(kYCNotifierProvider)),
+        buildStepOrder(ref.read(verificationConfigProvider), ref.read(kYCNotifierProvider)),
         mediaKey: mediaKey is String ? mediaKey : null,
       );
       setState(() {
@@ -211,7 +218,7 @@ class _SubmittedScreenState extends ConsumerState<SubmittedScreen> {
       widget.onError?.call(error);
     } catch (_) {
       if (!mounted) return;
-      const error = KYCError(
+      const error = VerificationError(
         code: 'unknown',
         message: 'Something went wrong. Please try again.',
       );
@@ -236,7 +243,7 @@ class _SubmittedScreenState extends ConsumerState<SubmittedScreen> {
   void _retryUpload() {
     final notifier = ref.read(kYCNotifierProvider.notifier);
     notifier.setSelfieUpload(kIdleSelfieUpload);
-    notifier.goToStep(KYCStep.liveness);
+    notifier.goToStep(VerificationStep.liveness);
   }
 
   void _close() {
@@ -251,9 +258,9 @@ class _SubmittedScreenState extends ConsumerState<SubmittedScreen> {
   /// falling back to "we minted invites" before it arrives. Offering to keep
   /// links alive when everybody has already verified is a prompt about nothing.
   void _handleDone(bool hasOutstanding) {
-    final kycState = ref.read(kYCNotifierProvider);
-    final config = ref.read(kycConfigProvider);
-    final url = kycState.sessionUrl;
+    final verificationState = ref.read(kYCNotifierProvider);
+    final config = ref.read(verificationConfigProvider);
+    final url = verificationState.sessionUrl;
     if (hasOutstanding && url != null && config.keyPeopleLinkRecovery) {
       showKeepLinksSheet(context, url: url, onDone: _close);
       return;
@@ -265,7 +272,7 @@ class _SubmittedScreenState extends ConsumerState<SubmittedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final config = ref.watch(kycConfigProvider);
+    final config = ref.watch(verificationConfigProvider);
     // Catalogue texts; the org's success.title/description are their older
     // fields and still win, tokens filled. A scope's own line keeps this
     // SDK's wording (only the base descriptions are customisable).
@@ -358,7 +365,7 @@ class _SubmittedScreenState extends ConsumerState<SubmittedScreen> {
 // ─── Success view ─────────────────────────────────────────────────────────────
 
 class _SuccessView extends ConsumerStatefulWidget {
-  final KYCSubmission submission;
+  final VerificationSubmission submission;
   final String title;
   final String description;
   final List<KeyPersonInvite> invites;
@@ -393,7 +400,7 @@ class _SuccessViewState extends ConsumerState<_SuccessView> {
     final sessionId = ref.read(kYCNotifierProvider).sessionId;
     // KYB only: an individual verification has no key people to wait on.
     if (sessionId == null ||
-        ref.read(kycConfigProvider).subjectType != 'business') {
+        ref.read(verificationConfigProvider).subjectType != 'business') {
       return;
     }
     _awaiting = AwaitingPeopleController(
@@ -425,7 +432,7 @@ class _SuccessViewState extends ConsumerState<_SuccessView> {
     // loading, and an applicant could close the sheet without ever seeing the
     // people they have to chase. Bounded by the controller's give-up.
     if (_awaiting != null && !_awaiting!.finished) {
-      final t = context.kycText;
+      final t = context.verificationText;
       return SubmittedWaitingView(
         title: t('keyPeople.pending.title'),
         description: t('keyPeople.pending.body'),
@@ -439,9 +446,9 @@ class _SuccessViewState extends ConsumerState<_SuccessView> {
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: MyazaSpacing.xl),
+            const SizedBox(height: UiSpacing.xl),
             const Center(child: CheckBadge()),
-            const SizedBox(height: MyazaSpacing.lg),
+            const SizedBox(height: UiSpacing.lg),
             Text(
               title,
               style: text.heading1.copyWith(height: 1.2),
@@ -450,7 +457,7 @@ class _SuccessViewState extends ConsumerState<_SuccessView> {
                 .animate(delay: 200.ms)
                 .fadeIn(duration: 350.ms)
                 .moveY(begin: 8, end: 0, duration: 350.ms),
-            const SizedBox(height: MyazaSpacing.sm),
+            const SizedBox(height: UiSpacing.sm),
             Text(
               description,
               style: text.bodyMedium,
@@ -465,19 +472,19 @@ class _SuccessViewState extends ConsumerState<_SuccessView> {
             // the early return above): a list shown earlier is one director
             // short, permanently. Absent here only when the give-up passed with
             // nothing readable, which is better than a list that may be wrong.
-            if (ref.read(kycConfigProvider).addressCollection?.presenceEnabled == true &&
+            if (ref.read(verificationConfigProvider).addressCollection?.presenceEnabled == true &&
                 ref.read(kYCNotifierProvider).address != null)
               const PresenceExpectations().animate(delay: 400.ms).fadeIn(duration: 350.ms),
             if (awaiting != null)
               KeyPeopleAwaitList(people: awaiting)
                   .animate(delay: 450.ms)
                   .fadeIn(duration: 350.ms),
-            const SizedBox(height: MyazaSpacing.xl),
+            const SizedBox(height: UiSpacing.xl),
           ],
         ),
         if (widget.showDone)
-          MyazaButton(
-            label: context.kycText('common.done'),
+          UiButton(
+            label: context.verificationText('common.done'),
             onPressed: () => widget.onDone(
               awaiting != null
                   ? awaiting.any((p) => p.stillOwes)

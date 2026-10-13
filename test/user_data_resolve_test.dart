@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/kyc_config.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_provider.dart';
+import 'package:myaza_kyc_sdk_flutter/src/config/verification_config.dart';
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_provider.dart';
 
 /// The submit used to read `state.userData` alone. `setUserData` is called from the
 /// ID-input screen and nowhere else, and that screen appears only for number-only ids

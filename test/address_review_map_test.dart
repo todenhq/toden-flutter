@@ -17,7 +17,7 @@ import 'package:myaza_kyc_sdk_flutter/src/widgets/map_pin_picker.dart';
 // report 2026-09-08, the iPhone).
 
 Widget _host(Widget child) => MaterialApp(
-      theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+      theme: ThemeData(extensions: const [UiColorScheme.light]),
       home: Scaffold(body: child),
     );
 

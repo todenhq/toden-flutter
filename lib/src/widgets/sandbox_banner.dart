@@ -11,7 +11,7 @@ import 'icons/icons.dart';
 /// `pk_test_` key shipped to production looks like it works right up until
 /// nobody is actually verified.
 ///
-/// Environment comes from the SERVER (`/api/kyc/config`), not the API key
+/// Environment comes from the SERVER (`/api/v1/config`), not the API key
 /// prefix. Hosted sessions authenticate with an `hs_` handoff token that
 /// carries no environment slot, so key-sniffing would leave exactly the surface
 /// an end user sees unlabelled.
@@ -63,14 +63,14 @@ class SandboxBanner extends StatelessWidget {
         width: double.infinity,
         color: tint,
         padding: const EdgeInsets.symmetric(
-          horizontal: MyazaSpacing.md,
-          vertical: MyazaSpacing.xs + 2,
+          horizontal: UiSpacing.md,
+          vertical: UiSpacing.xs + 2,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const MyazaIcon(MyazaIcons.flaskConical, size: 13, color: _ink),
-            const SizedBox(width: MyazaSpacing.xs),
+            const UiIcon(UiIcons.flaskConical, size: 13, color: _ink),
+            const SizedBox(width: UiSpacing.xs),
             Text(
               sandbox ? 'SANDBOX' : 'DEVELOPMENT',
               style: text.bodySmall.copyWith(
@@ -80,7 +80,7 @@ class SandboxBanner extends StatelessWidget {
                 color: _ink,
               ),
             ),
-            const SizedBox(width: MyazaSpacing.xs),
+            const SizedBox(width: UiSpacing.xs),
             Flexible(
               child: Text(
                 sandbox

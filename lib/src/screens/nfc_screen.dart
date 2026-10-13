@@ -8,17 +8,17 @@ import '../config/theme.dart';
 import '../widgets/nfc_read_progress.dart';
 import '../widgets/nfc_read_sheet.dart';
 import '../widgets/nfc_scan_illustration.dart';
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 import '../services/mrz_parser.dart';
 import '../nfc/emrtd_active_auth.dart';
 import '../services/nfc_reader.dart';
 import '../services/nfc_reader_emrtd.dart';
-import '../widgets/myaza_button.dart';
+import '../widgets/ui_button.dart';
 import 'mrz_scan_view.dart';
 import '../widgets/nfc_scanned_summary.dart';
 import 'nfc_screen_parts.dart';
 import '../i18n/text_scope.dart';
-import '../widgets/myaza_spinner.dart';
+import '../widgets/ui_spinner.dart';
 
 // ─── NFC chip step ────────────────────────────────────────────────────────────
 //
@@ -110,7 +110,7 @@ class _NfcScreenState extends ConsumerState<NfcScreen> {
     Navigator.of(context, rootNavigator: true).maybePop();
   }
 
-  bool get _allowSkip => ref.read(kycConfigProvider).nfc?.allowSkip ?? false;
+  bool get _allowSkip => ref.read(verificationConfigProvider).nfc?.allowSkip ?? false;
 
   @override
   void initState() {
@@ -230,8 +230,8 @@ class _NfcScreenState extends ConsumerState<NfcScreen> {
 
     if (_phase == _Phase.checking) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: MyazaSpacing.xl),
-        child: Center(child: MyazaSpinner()),
+        padding: EdgeInsets.symmetric(vertical: UiSpacing.xl),
+        child: Center(child: UiSpinner()),
       );
     }
 
@@ -249,9 +249,9 @@ class _NfcScreenState extends ConsumerState<NfcScreen> {
                 ref.read(kYCNotifierProvider).nfcChipData?.missingSod ?? false,
             onRetry: _rescan,
           ),
-          const SizedBox(height: MyazaSpacing.xl),
-          MyazaButton(
-            label: context.kycText('common.continue'),
+          const SizedBox(height: UiSpacing.xl),
+          UiButton(
+            label: context.verificationText('common.continue'),
             onPressed: () => ref.read(kYCNotifierProvider.notifier).nextStep(),
           ),
         ],
@@ -267,16 +267,16 @@ class _NfcScreenState extends ConsumerState<NfcScreen> {
             'the printed code that unlocks its chip.',
             style: text.bodyMedium,
           ),
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
           MrzScanView(onScanned: _onScanned),
         ] else ...[
           const NfcScanIllustration(),
-          const SizedBox(height: MyazaSpacing.lg),
+          const SizedBox(height: UiSpacing.lg),
           Text(
             _phase == _Phase.reading
                 ? switch (_stage) {
                     // Nothing detected yet: an instruction, and a catalogue text.
-                    NfcReadStage.waiting => context.kycText('nfc.waiting'),
+                    NfcReadStage.waiting => context.verificationText('nfc.waiting'),
                     // Android took the tag before our reader started and will
                     // not hand it over again, so the ONLY thing that recovers
                     // is a physical lift and replace. Without this case the
@@ -296,28 +296,28 @@ class _NfcScreenState extends ConsumerState<NfcScreen> {
             textAlign: TextAlign.center,
           ),
           if (scan != null) ...[
-            const SizedBox(height: MyazaSpacing.md),
+            const SizedBox(height: UiSpacing.md),
             NfcScannedSummary(scan: scan),
           ],
           if (_phase == _Phase.reading) ...[
-            const SizedBox(height: MyazaSpacing.lg),
+            const SizedBox(height: UiSpacing.lg),
             NfcReadProgress(stage: _stage),
           ],
         ],
         if (_error != null) ...[
-          const SizedBox(height: MyazaSpacing.sm),
+          const SizedBox(height: UiSpacing.sm),
           Text(_error!,
-              style: text.bodySmall.copyWith(color: MyazaColors.error)),
+              style: text.bodySmall.copyWith(color: UiColors.error)),
         ],
         if (_phase == _Phase.failed) ...[
-          const SizedBox(height: MyazaSpacing.lg),
+          const SizedBox(height: UiSpacing.lg),
           // One recovery action only. "Scan the document again" (a fresh MRZ
           // scan via _rescan) earned its keep never: the MRZ that unlocked
           // nothing is check-digit valid — rescanning the same page yields the
           // same key — and two escape routes on a failure screen just split
           // the user's attention. The success panel keeps its rescan for the
           // "wrong document" case.
-          MyazaButton(
+          UiButton(
             label: 'Try the chip again',
             onPressed: scan == null ? null : () => _onScanned(scan),
           ),
@@ -326,11 +326,11 @@ class _NfcScreenState extends ConsumerState<NfcScreen> {
         // it — see the header comment. Still hidden mid-read: the reader has no
         // cancel API, so leaving then would strand the session.
         if (_allowSkip && _skipRevealed && _phase != _Phase.reading) ...[
-          const SizedBox(height: MyazaSpacing.sm),
+          const SizedBox(height: UiSpacing.sm),
           Center(
             child: TextButton(
               onPressed: _skip,
-              child: Text(context.kycText('nfc.skip')),
+              child: Text(context.verificationText('nfc.skip')),
             ),
           ),
         ],

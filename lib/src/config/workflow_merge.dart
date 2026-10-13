@@ -2,7 +2,7 @@ import '../services/api_service.dart' show ApplicantWorkflow, WorkflowFlowConfig
 import 'biometric_options.dart';
 import 'business.dart';
 import 'contact_verification.dart';
-import 'kyc_config.dart';
+import 'verification_config.dart';
 import 'nfc_config.dart';
 import 'address_collection.dart';
 import 'proof_of_address.dart';
@@ -18,14 +18,14 @@ import '../i18n/translate.dart' show parseWorkflowTexts;
 /// shallowly, per-field. Mirrors the web SDK's `mergeWorkflowConfig`.
 ///
 /// Runtime data (apiKey, devUrl, userId, userData, metadata) is never
-/// flow-controlled — [MyazaKYCConfig.copyWith] doesn't expose those keys.
+/// flow-controlled — [VerificationConfig.copyWith] doesn't expose those keys.
 ///
 /// Only the keys the Flutter SDK currently supports are merged; later
 /// workstreams (country-select, questionnaire, proof of address, NFC, liveness
 /// modes, device intelligence) extend this as their config fields land — they
 /// can read the untouched values from [WorkflowFlowConfig.raw] until then.
-MyazaKYCConfig mergeWorkflowIntoConfig(
-  MyazaKYCConfig base,
+VerificationConfig mergeWorkflowIntoConfig(
+  VerificationConfig base,
   WorkflowFlowConfig flow,
 ) {
   // Business (KYB) workflows carry no top-level country — fall back to the
@@ -152,15 +152,15 @@ MyazaKYCConfig mergeWorkflowIntoConfig(
     showThemeToggle: flow.showThemeToggle,
     progressStyle: flow.progressStyle == null
         ? null
-        : MyazaProgressStyle.fromJson(flow.progressStyle),
+        : VerificationProgressStyle.fromJson(flow.progressStyle),
     disableClose: flow.disableClose,
     appearance:
-        MyazaKYCAppearance.mergeFromJson(base.appearance, flow.appearance),
+        VerificationAppearance.mergeFromJson(base.appearance, flow.appearance),
     consent: flow.consent != null
-        ? KYCConsentContent.fromJson(flow.consent!)
+        ? VerificationConsentContent.fromJson(flow.consent!)
         : null,
     success: flow.success != null
-        ? KYCSuccessContent.fromJson(flow.success!)
+        ? VerificationSuccessContent.fromJson(flow.success!)
         : null,
     voiceGuidance: VoiceGuidanceConfig.fromDynamic(flow.voiceGuidance),
     // Custom copy, replaced wholesale like consent (web: WORKFLOW_KEYS).
@@ -177,8 +177,8 @@ MyazaKYCConfig mergeWorkflowIntoConfig(
 /// by construction. Contact OTPs, the questionnaire, branding and device
 /// policy stay the KYB workflow's own. Mirrors the web SDK's
 /// `overlayApplicantWorkflow`.
-MyazaKYCConfig overlayApplicantWorkflow(
-  MyazaKYCConfig merged,
+VerificationConfig overlayApplicantWorkflow(
+  VerificationConfig merged,
   ApplicantWorkflow? applicant,
 ) {
   if (applicant == null) return merged;

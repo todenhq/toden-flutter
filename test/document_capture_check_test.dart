@@ -4,7 +4,7 @@ import 'package:myaza_kyc_sdk_flutter/src/config/document_capture_check.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
 import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
 import 'package:myaza_kyc_sdk_flutter/src/widgets/document_capture_check_notice.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/myaza_button.dart';
+import 'package:myaza_kyc_sdk_flutter/src/widgets/ui_button.dart';
 
 // ─── Document capture check ───────────────────────────────────────────────────
 //
@@ -31,7 +31,7 @@ double _contrast(Color a, Color b) {
 }
 
 Widget _host(Widget child, {bool reduceMotion = false}) => MaterialApp(
-      theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+      theme: ThemeData(extensions: const [UiColorScheme.light]),
       builder: (context, app) => MediaQuery(
         data: MediaQuery.of(context).copyWith(disableAnimations: reduceMotion),
         child: app!,
@@ -177,7 +177,7 @@ void main() {
   });
 
   test('the notice ink clears WCAG AA on its ground in both schemes', () {
-    for (final scheme in [MyazaColorScheme.light, MyazaColorScheme.dark]) {
+    for (final scheme in [UiColorScheme.light, UiColorScheme.dark]) {
       expect(_contrast(captureNoticeInk(scheme), scheme.warningBg),
           greaterThanOrEqualTo(4.5));
     }
@@ -203,19 +203,19 @@ void main() {
       expect(find.text(captureProblemMessage(_noFace)), findsOneWidget);
       expect(find.text(captureProblemMessage(_noBarcode)), findsOneWidget);
 
-      MyazaButton button(String label) =>
-          tester.widget<MyazaButton>(find.widgetWithText(MyazaButton, label));
-      expect(button('Retake front').variant, MyazaButtonVariant.primary);
-      expect(button('Retake back').variant, MyazaButtonVariant.outline);
+      UiButton button(String label) =>
+          tester.widget<UiButton>(find.widgetWithText(UiButton, label));
+      expect(button('Retake front').variant, UiButtonVariant.primary);
+      expect(button('Retake back').variant, UiButtonVariant.outline);
       expect(button(kCaptureCheckContinueAnyway).variant,
-          MyazaButtonVariant.outline);
+          UiButtonVariant.outline);
 
-      await tester.tap(find.widgetWithText(MyazaButton, 'Retake back'));
-      await tester.tap(find.widgetWithText(MyazaButton, 'Retake front'));
+      await tester.tap(find.widgetWithText(UiButton, 'Retake back'));
+      await tester.tap(find.widgetWithText(UiButton, 'Retake front'));
       expect(retaken, ['back', 'front']);
 
       await tester.tap(
-          find.widgetWithText(MyazaButton, kCaptureCheckContinueAnyway));
+          find.widgetWithText(UiButton, kCaptureCheckContinueAnyway));
       expect(continued, 1);
     });
 
@@ -228,9 +228,9 @@ void main() {
       )));
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(MyazaButton, 'Retake front'), findsOneWidget);
-      expect(find.widgetWithText(MyazaButton, 'Retake back'), findsNothing);
-      expect(find.widgetWithText(MyazaButton, kCaptureCheckContinueAnyway),
+      expect(find.widgetWithText(UiButton, 'Retake front'), findsOneWidget);
+      expect(find.widgetWithText(UiButton, 'Retake back'), findsNothing);
+      expect(find.widgetWithText(UiButton, kCaptureCheckContinueAnyway),
           findsOneWidget);
     });
 
@@ -244,7 +244,7 @@ void main() {
       )));
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(MyazaButton, 'Replace back'), findsOneWidget);
+      expect(find.widgetWithText(UiButton, 'Replace back'), findsOneWidget);
     });
 
     testWidgets('the notice is announced as it appears', (tester) async {

@@ -22,7 +22,7 @@ AwaitingPerson _ubo(String id, String name) => AwaitingPerson(
     );
 
 Widget _host(Widget child) => MaterialApp(
-      theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+      theme: ThemeData(extensions: const [UiColorScheme.light]),
       home: Scaffold(
         body: SizedBox(width: 360, child: SingleChildScrollView(child: child)),
       ),
@@ -40,7 +40,7 @@ void main() {
     expect(cards, findsNWidgets(2));
     final firstBottom = tester.getRect(cards.at(0)).bottom;
     final secondTop = tester.getRect(cards.at(1)).top;
-    expect(secondTop - firstBottom, greaterThanOrEqualTo(MyazaSpacing.sm));
+    expect(secondTop - firstBottom, greaterThanOrEqualTo(UiSpacing.sm));
   });
 
   testWidgets('the role line keeps the role and share whole', (tester) async {

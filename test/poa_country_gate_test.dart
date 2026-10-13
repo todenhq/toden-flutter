@@ -26,6 +26,6 @@ void main() {
     expect(src, contains('poaCountryDeclared('));
     // The gate sits on the button, not merely computed.
     // The label is the `common.continue` catalogue text.
-    expect(src, matches(RegExp(r"label: context\.kycText\('common\.continue'\),[\s\S]{0,200}countryDeclared")));
+    expect(src, matches(RegExp(r"label: context\.verificationText\('common\.continue'\),[\s\S]{0,200}countryDeclared")));
   });
 }

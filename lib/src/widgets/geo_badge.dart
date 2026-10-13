@@ -19,7 +19,7 @@ class GeoBadge extends StatelessWidget {
     final colors = context.myazaColors;
     final text = context.myazaText;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: MyazaSpacing.sm, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: UiSpacing.sm, vertical: 2),
       decoration: BoxDecoration(
         color: colors.primary50,
         border: Border.all(color: colors.primary),

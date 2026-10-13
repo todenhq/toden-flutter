@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/id_types.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/kyc_config.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_state.dart';
+import 'package:myaza_kyc_sdk_flutter/src/config/verification_config.dart';
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
 import 'package:myaza_kyc_sdk_flutter/src/providers/resubmit_kept_id.dart';
 import 'package:myaza_kyc_sdk_flutter/src/providers/step_order.dart';
 import 'package:myaza_kyc_sdk_flutter/src/providers/step_resubmit.dart';
@@ -19,23 +19,23 @@ import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
 // lib/resubmit.ts.
 
 const _order = [
-  KYCStep.consent,
-  KYCStep.idType,
-  KYCStep.documentCapture,
-  KYCStep.liveness,
-  KYCStep.submitted,
+  VerificationStep.consent,
+  VerificationStep.idType,
+  VerificationStep.documentCapture,
+  VerificationStep.liveness,
+  VerificationStep.submitted,
 ];
 
 ResubmitConfig _plan(List<String> steps, [String? idType]) =>
     ResubmitConfig(steps: steps, idType: idType);
 
-MyazaKYCConfig _config({
+VerificationConfig _config({
   ResubmitConfig? resubmit,
   String country = 'NG',
   String subjectType = 'individual',
   bool consentStep = true,
 }) =>
-    MyazaKYCConfig(
+    VerificationConfig(
       apiKey: 'pk_test_x',
       country: country,
       resubmit: resubmit,
@@ -78,36 +78,36 @@ void main() {
     test('walks only the frame and what was asked when no evidence was asked', () {
       expect(
         applyResubmitSteps(_order, _plan(['liveness'], 'passport')),
-        [KYCStep.consent, KYCStep.liveness, KYCStep.submitted],
+        [VerificationStep.consent, VerificationStep.liveness, VerificationStep.submitted],
       );
     });
 
     test('keeps the evidence family when evidence was asked, but not the picker', () {
       const withChip = [
-        KYCStep.consent,
-        KYCStep.idType,
-        KYCStep.documentCapture,
-        KYCStep.nfc,
-        KYCStep.liveness,
-        KYCStep.submitted,
+        VerificationStep.consent,
+        VerificationStep.idType,
+        VerificationStep.documentCapture,
+        VerificationStep.nfc,
+        VerificationStep.liveness,
+        VerificationStep.submitted,
       ];
       expect(
         applyResubmitSteps(withChip, _plan(['document-capture'], 'passport')),
-        [KYCStep.consent, KYCStep.documentCapture, KYCStep.nfc, KYCStep.submitted],
+        [VerificationStep.consent, VerificationStep.documentCapture, VerificationStep.nfc, VerificationStep.submitted],
       );
     });
 
     test('keeps the number step for a number-only kept ID', () {
       const numberOnly = [
-        KYCStep.consent,
-        KYCStep.idType,
-        KYCStep.idInput,
-        KYCStep.liveness,
-        KYCStep.submitted,
+        VerificationStep.consent,
+        VerificationStep.idType,
+        VerificationStep.idInput,
+        VerificationStep.liveness,
+        VerificationStep.submitted,
       ];
       expect(
         applyResubmitSteps(numberOnly, _plan(['id-input'], 'bvn')),
-        [KYCStep.consent, KYCStep.idInput, KYCStep.submitted],
+        [VerificationStep.consent, VerificationStep.idInput, VerificationStep.submitted],
       );
     });
 
@@ -122,11 +122,11 @@ void main() {
       expect(
         applyResubmitSteps(_order, _plan(['liveness'])),
         [
-          KYCStep.consent,
-          KYCStep.idType,
-          KYCStep.documentCapture,
-          KYCStep.liveness,
-          KYCStep.submitted,
+          VerificationStep.consent,
+          VerificationStep.idType,
+          VerificationStep.documentCapture,
+          VerificationStep.liveness,
+          VerificationStep.submitted,
         ],
       );
     });
@@ -135,11 +135,11 @@ void main() {
       expect(
         applyResubmitSteps(_order, _plan(['id-type', 'liveness'], 'passport')),
         [
-          KYCStep.consent,
-          KYCStep.idType,
-          KYCStep.documentCapture,
-          KYCStep.liveness,
-          KYCStep.submitted,
+          VerificationStep.consent,
+          VerificationStep.idType,
+          VerificationStep.documentCapture,
+          VerificationStep.liveness,
+          VerificationStep.submitted,
         ],
       );
     });
@@ -148,14 +148,14 @@ void main() {
   group('a business redo', () {
     test('is unchanged by an idType it should never be sent', () {
       const kyb = [
-        KYCStep.consent,
-        KYCStep.businessDetails,
-        KYCStep.businessDocuments,
-        KYCStep.applicantRole,
-        KYCStep.idType,
-        KYCStep.documentCapture,
-        KYCStep.liveness,
-        KYCStep.submitted,
+        VerificationStep.consent,
+        VerificationStep.businessDetails,
+        VerificationStep.businessDocuments,
+        VerificationStep.applicantRole,
+        VerificationStep.idType,
+        VerificationStep.documentCapture,
+        VerificationStep.liveness,
+        VerificationStep.submitted,
       ];
       for (final steps in [
         ['business-documents'],
@@ -169,7 +169,7 @@ void main() {
     });
 
     test('never preselects an ID', () {
-      const initial = KYCState();
+      const initial = VerificationState();
       final config = _config(resubmit: _plan(['liveness'], 'passport'), subjectType: 'business');
       expect(identical(withKeptIdType(config, initial), initial), isTrue);
     });
@@ -195,25 +195,25 @@ void main() {
 
   group('preselecting the kept ID', () {
     test('selects it when nothing is selected', () {
-      final seeded = withKeptIdType(_config(resubmit: _plan(['liveness'], 'bvn')), const KYCState());
+      final seeded = withKeptIdType(_config(resubmit: _plan(['liveness'], 'bvn')), const VerificationState());
       expect(seeded.selectedIdType?.key, 'bvn');
       expect(seeded.selectedIdType?.requiresDocumentCapture, isFalse);
     });
 
     test('never replaces a different selection', () {
-      final picked = KYCState(selectedIdType: resolveIdTypeDefinition('NG', 'passport'));
+      final picked = VerificationState(selectedIdType: resolveIdTypeDefinition('NG', 'passport'));
       final config = _config(resubmit: _plan(['liveness'], 'bvn'));
       expect(identical(withKeptIdType(config, picked), picked), isTrue);
     });
 
     test('leaves a redo without a kept ID alone', () {
-      const initial = KYCState();
+      const initial = VerificationState();
       expect(identical(withKeptIdType(_config(resubmit: _plan(['liveness'])), initial), initial), isTrue);
       expect(identical(withKeptIdType(_config(), initial), initial), isTrue);
     });
 
     test('takes the server row for an ID with no curated definition', () {
-      const state = KYCState(
+      const state = VerificationState(
         serverConfig: ServerSdkConfig(
           status: ServerConfigStatus.ready,
           idTypes: [
@@ -243,24 +243,24 @@ void main() {
       // Consent is off and the reviewer asked for the number. Before any ID is
       // chosen the flow is shaped for a document; a BVN has no such step.
       final config = _config(consentStep: false, resubmit: _plan(['id-input'], 'bvn'));
-      final initial = KYCState(currentStep: openingStep(config));
-      expect(initial.currentStep, KYCStep.documentCapture);
-      expect(seedKeptIdType(config, initial).currentStep, KYCStep.idInput);
+      final initial = VerificationState(currentStep: openingStep(config));
+      expect(initial.currentStep, VerificationStep.documentCapture);
+      expect(seedKeptIdType(config, initial).currentStep, VerificationStep.idInput);
     });
 
     test('keeps an opening step that still exists', () {
       final config = _config(resubmit: _plan(['liveness'], 'bvn'));
-      final initial = KYCState(currentStep: openingStep(config));
+      final initial = VerificationState(currentStep: openingStep(config));
       final seeded = seedKeptIdType(config, initial);
-      expect(seeded.currentStep, KYCStep.consent);
-      expect(buildStepOrder(config, seeded), [KYCStep.consent, KYCStep.liveness, KYCStep.submitted]);
+      expect(seeded.currentStep, VerificationStep.consent);
+      expect(buildStepOrder(config, seeded), [VerificationStep.consent, VerificationStep.liveness, VerificationStep.submitted]);
     });
   });
 
   group('the submission names the kept ID and nothing else', () {
     // A SOURCE test, like multi_id_submit_guard_test: the rule is a condition
     // in a method that needs a provider, a store and a network to reach.
-    final source = File('lib/src/providers/kyc_provider.dart').readAsStringSync();
+    final source = File('lib/src/providers/verification_provider.dart').readAsStringSync();
 
     test('reads the carry rule from the reviewer instruction', () {
       expect(source.contains('final carried = carriesIdEvidence(_config.resubmit);'), isTrue);

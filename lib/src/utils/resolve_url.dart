@@ -1,6 +1,6 @@
 import 'dart:io' show Platform;
 
-import '../config/kyc_config.dart';
+import '../config/verification_config.dart';
 
 // ─── Automatic environment detection from the API key prefix ──────────────────
 //
@@ -16,10 +16,10 @@ import '../config/kyc_config.dart';
 
 /// Canonical base URLs for the non-development environments
 /// (see the kyc-dashboard environments docs).
-const _baseUrls = <KYCEnvironment, String>{
+const _baseUrls = <VerificationEnvironment, String>{
   // Sandbox and production share the same host; the key prefix selects the env.
-  KYCEnvironment.sandbox: 'https://trust.myaza.app',
-  KYCEnvironment.production: 'https://trust.myaza.app',
+  VerificationEnvironment.sandbox: 'https://trust.myaza.app',
+  VerificationEnvironment.production: 'https://trust.myaza.app',
 };
 
 /// Default base URL for development keys when no [devUrl] is provided.
@@ -36,18 +36,18 @@ final RegExp _keyEnvRe = RegExp(r'^(?:pk|sk)_(dev|test|live)_');
 /// Derives the environment from the API key prefix. Throws [ArgumentError] on an
 /// unrecognized / malformed key — never silently defaults (defaulting to
 /// production would be dangerous).
-KYCEnvironment detectEnvironment(String apiKey) {
+VerificationEnvironment detectEnvironment(String apiKey) {
   final match = _keyEnvRe.firstMatch(apiKey);
   switch (match?.group(1)) {
     case 'dev':
-      return KYCEnvironment.development;
+      return VerificationEnvironment.development;
     case 'test':
-      return KYCEnvironment.sandbox;
+      return VerificationEnvironment.sandbox;
     case 'live':
-      return KYCEnvironment.production;
+      return VerificationEnvironment.production;
     default:
       throw ArgumentError(
-        'Invalid Myaza API key: expected a dev, test, or live key prefix '
+        'Invalid Toden API key: expected a dev, test, or live key prefix '
         '(e.g. pk_dev_…, pk_test_…, or pk_live_…).',
       );
   }
@@ -62,7 +62,7 @@ KYCEnvironment detectEnvironment(String apiKey) {
 /// Throws on an invalid key (via [detectEnvironment]).
 String resolveBaseUrl(String apiKey, {String? devUrl}) {
   final environment = detectEnvironment(apiKey);
-  if (environment == KYCEnvironment.development) {
+  if (environment == VerificationEnvironment.development) {
     return devUrl ?? _defaultDevUrl;
   }
   return _baseUrls[environment]!;
@@ -92,10 +92,16 @@ String? rebaseServerUrl(String? url, String baseUrl) {
 
 /// The path every image the server serves for branding lives under: the org
 /// logo, a workflow's own logo and the custom footer logos alike.
-const String _serverBrandingPath = '/api/kyc/branding/';
+///
+/// The server issues these links under `/api/kyc` today and may issue them
+/// under `/api/v1` later; the two prefixes serve the same route.
+const List<String> _serverBrandingPaths = ['/api/kyc/branding/', '/api/v1/branding/'];
 
-bool _isServerBrandingUrl(Object? url) =>
-    url is String && (Uri.tryParse(url)?.path.startsWith(_serverBrandingPath) ?? false);
+bool _isServerBrandingUrl(Object? url) {
+  if (url is! String) return false;
+  final path = Uri.tryParse(url)?.path;
+  return path != null && _serverBrandingPaths.any(path.startsWith);
+}
 
 Map<String, dynamic>? _asMap(Object? v) =>
     v is Map ? v.cast<String, dynamic>() : null;

@@ -1,4 +1,4 @@
-import 'kyc_config.dart';
+import 'verification_config.dart';
 
 // ─── Which ID types a country offers ──────────────────────────────────────────
 //
@@ -9,7 +9,7 @@ import 'kyc_config.dart';
 // selection inside it — a one-entry list is the normal shape, not a special
 // case.
 //
-// Mirrors the web SDK's `KYCConfigContext` (`nonEmpty(countryEntry?.idTypes) ??
+// Mirrors the web SDK's `VerificationConfigContext` (`nonEmpty(countryEntry?.idTypes) ??
 // nonEmpty(effective.idTypes)`) and the React Native `IdTypeStep`. Keep the
 // three in lockstep.
 
@@ -19,7 +19,7 @@ import 'kyc_config.dart';
 /// Null means "every granted ID" — the server's own "unset = all" semantic. An
 /// EMPTY per-country list means the same thing, so it falls through to the
 /// top-level list rather than offering nothing.
-List<String>? pinnedIdTypesFor(MyazaKYCConfig config, String country) {
+List<String>? pinnedIdTypesFor(VerificationConfig config, String country) {
   final countries = config.countries;
   if (countries != null) {
     for (final option in countries) {

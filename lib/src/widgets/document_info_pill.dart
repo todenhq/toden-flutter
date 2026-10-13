@@ -39,7 +39,7 @@ class DocumentInfoPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(MyazaRadius.full),
+        borderRadius: BorderRadius.circular(UiRadius.full),
         border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
       ),
       child: Row(
@@ -48,7 +48,7 @@ class DocumentInfoPill extends StatelessWidget {
           // The flag carries the country on its own — a name beside it is the
           // same fact twice, and the flag reads faster at a glance than text.
           if (code != null && code.isNotEmpty) ...[
-            MyazaCountryFlag(country: code, size: 26),
+            UiCountryFlag(country: code, size: 26),
             const SizedBox(width: 9),
           ],
           Flexible(

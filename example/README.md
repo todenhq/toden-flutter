@@ -1,13 +1,13 @@
 # myaza_kyc_sdk_flutter example
 
-A minimal example showing how to launch the Myaza KYC flow.
+A minimal example showing how to launch the Toden flow.
 
 ```dart
 import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
 
-MyazaKYC.show(
+Verification.show(
   context: context,
-  config: const MyazaKYCConfig(
+  config: const VerificationConfig(
     apiKey: 'pk_test_...',                 // sandbox key while integrating
     country: Country.NG,
     idTypes: [IdType.bvn, IdType.nin, IdType.passport],
@@ -17,7 +17,7 @@ MyazaKYC.show(
   ),
   onSubmit: (submission) {
     // status is always 'pending'; the result arrives later via webhook
-    // (or poll GET /api/kyc/status/:verificationId).
+    // (or poll GET /api/v1/status/:verificationId).
   },
   onError: (error) {
     // technical errors only (network / 401 / 402 / upload)

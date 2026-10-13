@@ -116,19 +116,19 @@ class MapZoomControls extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.background,
         border: Border.all(color: colors.border),
-        borderRadius: BorderRadius.circular(MyazaRadius.sm),
+        borderRadius: BorderRadius.circular(UiRadius.sm),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           _ZoomButton(
-            icon: MyazaIcons.plus,
+            icon: UiIcons.plus,
             label: 'Zoom in',
             onTap: () => onZoom(1),
           ),
           Container(height: 1, width: 32, color: colors.border),
           _ZoomButton(
-            icon: MyazaIcons.minus,
+            icon: UiIcons.minus,
             label: 'Zoom out',
             onTap: () => onZoom(-1),
           ),
@@ -139,7 +139,7 @@ class MapZoomControls extends StatelessWidget {
 }
 
 class _ZoomButton extends StatelessWidget {
-  final MyazaIconData icon;
+  final UiIconData icon;
   final String label;
   final VoidCallback onTap;
   const _ZoomButton({required this.icon, required this.label, required this.onTap});
@@ -154,7 +154,7 @@ class _ZoomButton extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(8),
-          child: MyazaIcon(icon, size: 16, color: colors.textDark),
+          child: UiIcon(icon, size: 16, color: colors.textDark),
         ),
       ),
     );

@@ -47,7 +47,7 @@ void main() {
     // The test host has no platform channel behind geolocator, which is the
     // same shape as a device that cannot answer at all.
     resetCurrentFix();
-    final api = KYCApiService(baseUrl: 'https://api.example', apiKey: 'pk_test_x');
+    final api = VerificationApiService(baseUrl: 'https://api.example', apiKey: 'pk_test_x');
     expect(await prefetchCurrentFix(api), isNull);
     expect(currentFixFailure(), isNotNull);
     resetCurrentFix();

@@ -43,13 +43,13 @@ class DialCodeRow extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: MyazaSpacing.md,
+            horizontal: UiSpacing.md,
             vertical: 12,
           ),
           child: Row(
             children: [
-              MyazaCountryFlag(country: iso, size: 28),
-              const SizedBox(width: MyazaSpacing.md),
+              UiCountryFlag(country: iso, size: 28),
+              const SizedBox(width: UiSpacing.md),
               Expanded(
                 // Full body size in the foreground colour: the name IS the
                 // row, not its caption.
@@ -57,7 +57,7 @@ class DialCodeRow extends StatelessWidget {
               ),
               if (badge != null) ...[
                 GeoBadge(label: badge!),
-                const SizedBox(width: MyazaSpacing.sm),
+                const SizedBox(width: UiSpacing.sm),
               ],
               if (dial.isNotEmpty)
                 Text('+$dial',
@@ -82,10 +82,10 @@ class DialCodeRegionHeader extends StatelessWidget {
     final text = context.myazaText;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        MyazaSpacing.md,
-        MyazaSpacing.md,
-        MyazaSpacing.md,
-        MyazaSpacing.xs,
+        UiSpacing.md,
+        UiSpacing.md,
+        UiSpacing.md,
+        UiSpacing.xs,
       ),
       child: Semantics(
         header: true,
@@ -109,10 +109,10 @@ class DialCodeDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Divider(
-      height: MyazaSpacing.sm,
+      height: UiSpacing.sm,
       thickness: 0.5,
-      indent: MyazaSpacing.md,
-      endIndent: MyazaSpacing.md,
+      indent: UiSpacing.md,
+      endIndent: UiSpacing.md,
       color: context.myazaColors.border,
     );
   }

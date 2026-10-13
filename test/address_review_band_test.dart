@@ -14,7 +14,7 @@ import 'package:myaza_kyc_sdk_flutter/src/screens/address/address_review_card.da
 // either.
 
 Widget _host(Widget child, {double textScale = 1}) => MaterialApp(
-      theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+      theme: ThemeData(extensions: const [UiColorScheme.light]),
       home: MediaQuery(
         data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
         // The step body's own horizontal padding.

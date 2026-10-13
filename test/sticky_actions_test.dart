@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/myaza_button.dart';
+import 'package:myaza_kyc_sdk_flutter/src/widgets/ui_button.dart';
 import 'package:myaza_kyc_sdk_flutter/src/widgets/sticky_actions.dart';
 
 // ─── The actions stay reachable however tall the body ────────────────────────
@@ -15,16 +15,16 @@ void main() {
       (tester) async {
     var pressed = 0;
     await tester.pumpWidget(MaterialApp(
-      theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+      theme: ThemeData(extensions: const [UiColorScheme.light]),
       home: Scaffold(
         body: StickyActions(
           body: const SizedBox(height: 2000, child: Placeholder()),
-          actions: MyazaButton(label: 'Continue', onPressed: () => pressed++),
+          actions: UiButton(label: 'Continue', onPressed: () => pressed++),
         ),
       ),
     ));
 
-    final button = find.widgetWithText(MyazaButton, 'Continue');
+    final button = find.widgetWithText(UiButton, 'Continue');
     expect(button, findsOneWidget);
     // On screen without any scrolling, and below the scrolled body.
     final rect = tester.getRect(button);
@@ -36,7 +36,7 @@ void main() {
 
   testWidgets('the body scrolls beneath the actions', (tester) async {
     await tester.pumpWidget(MaterialApp(
-      theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+      theme: ThemeData(extensions: const [UiColorScheme.light]),
       home: Scaffold(
         body: StickyActions(
           body: const Column(
@@ -45,7 +45,7 @@ void main() {
               Text('the far end'),
             ],
           ),
-          actions: MyazaButton(label: 'Continue', onPressed: () {}),
+          actions: UiButton(label: 'Continue', onPressed: () {}),
         ),
       ),
     ));
@@ -53,6 +53,6 @@ void main() {
     await tester.ensureVisible(find.text('the far end'));
     await tester.pumpAndSettle();
     expect(tester.getRect(find.text('the far end')).bottom, lessThanOrEqualTo(600));
-    expect(find.widgetWithText(MyazaButton, 'Continue'), findsOneWidget);
+    expect(find.widgetWithText(UiButton, 'Continue'), findsOneWidget);
   });
 }

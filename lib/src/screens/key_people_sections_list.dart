@@ -65,7 +65,7 @@ class KeyPeopleSectionsList extends StatelessWidget {
         for (var i = 0; i < sections.length; i++) ...[
           if (i > 0)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: MyazaSpacing.lg),
+              padding: const EdgeInsets.symmetric(vertical: UiSpacing.lg),
               child: Divider(height: 1, thickness: 1, color: colors.border),
             ),
           Builder(builder: (context) {

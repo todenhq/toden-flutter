@@ -24,7 +24,7 @@ class MrzScanOverlay extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(MyazaRadius.md),
+          borderRadius: BorderRadius.circular(UiRadius.md),
           child: AspectRatio(
             // A passport opened flat is close to 3:2; framing the preview to it
             // keeps the whole photo page in shot.
@@ -46,10 +46,10 @@ class MrzScanOverlay extends StatelessWidget {
                   child: FractionallySizedBox(
                     heightFactor: 0.34,
                     child: Container(
-                      margin: const EdgeInsets.all(MyazaSpacing.sm),
+                      margin: const EdgeInsets.all(UiSpacing.sm),
                       decoration: BoxDecoration(
                         border: Border.all(color: colors.primary, width: 2),
-                        borderRadius: BorderRadius.circular(MyazaRadius.xs),
+                        borderRadius: BorderRadius.circular(UiRadius.xs),
                       ),
                     ),
                   ),
@@ -58,7 +58,7 @@ class MrzScanOverlay extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: MyazaSpacing.md),
+        const SizedBox(height: UiSpacing.md),
         Text(
           'Line up the two rows of letters and « symbols at the bottom of the '
           'photo page.',

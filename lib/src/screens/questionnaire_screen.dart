@@ -5,13 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/questionnaire.dart';
 import '../config/currency_flags.dart';
 import '../config/theme.dart';
-import '../providers/kyc_provider.dart';
-import '../widgets/myaza_button.dart';
+import '../providers/verification_provider.dart';
+import '../widgets/ui_button.dart';
 import '../widgets/amount_input_formatter.dart';
 import '../widgets/check_card.dart';
 import '../widgets/country_flag.dart';
-import '../widgets/myaza_input.dart';
-import '../widgets/myaza_select.dart';
+import '../widgets/ui_input.dart';
+import '../widgets/ui_select.dart';
 import '../widgets/themed_sheet.dart';
 import '../widgets/icons/icons.dart';
 import '../i18n/text_scope.dart';
@@ -37,7 +37,7 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
   final Map<String, String?> _errors = {};
 
   QuestionnaireConfig get _cfg =>
-      ref.read(kycConfigProvider).questionnaire ?? const QuestionnaireConfig();
+      ref.read(verificationConfigProvider).questionnaire ?? const QuestionnaireConfig();
 
   @override
   void initState() {
@@ -143,17 +143,17 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
         // of questionnaire.title/description), as on the web.
         for (final f in cfg.fields) ...[
           _FieldLabel(field: f),
-          const SizedBox(height: MyazaSpacing.xs),
+          const SizedBox(height: UiSpacing.xs),
           _buildField(f),
           ..._detailInput(f),
           if (_errors[f.key] != null) ...[
-            const SizedBox(height: MyazaSpacing.xs),
+            const SizedBox(height: UiSpacing.xs),
             Text(_errors[f.key]!,
-                style: text.bodySmall.copyWith(color: MyazaColors.error)),
+                style: text.bodySmall.copyWith(color: UiColors.error)),
           ],
-          const SizedBox(height: MyazaSpacing.lg),
+          const SizedBox(height: UiSpacing.lg),
         ],
-        MyazaButton(label: context.kycText('common.continue'), onPressed: _onContinue),
+        UiButton(label: context.verificationText('common.continue'), onPressed: _onContinue),
       ],
     );
   }
@@ -165,11 +165,11 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
     final option = _detailOptionFor(f, _answers[f.key]);
     if (option == null) return const [];
     return [
-      const SizedBox(height: MyazaSpacing.sm),
-      MyazaInput(
+      const SizedBox(height: UiSpacing.sm),
+      UiInput(
         label: (option.detailLabel?.isNotEmpty ?? false)
             ? option.detailLabel!
-            : context.kycText('questionnaire.detailLabel'),
+            : context.verificationText('questionnaire.detailLabel'),
         controller: _controllers[otherKeyFor(f)],
         hint: (option.detailPlaceholder?.isNotEmpty ?? false)
             ? option.detailPlaceholder!
@@ -181,12 +181,12 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
   }
 
   Widget _buildField(QuestionnaireField f) => switch (f.type) {
-        QuestionnaireFieldType.text => MyazaInput(
+        QuestionnaireFieldType.text => UiInput(
             controller: _controllers[f.key],
             hint: f.placeholder ?? 'Enter ${f.label.toLowerCase()}',
             onChanged: (v) => _answers[f.key] = v,
           ),
-        QuestionnaireFieldType.number => MyazaInput(
+        QuestionnaireFieldType.number => UiInput(
             controller: _controllers[f.key],
             hint: f.placeholder ?? '0',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -243,7 +243,7 @@ class _FieldLabel extends StatelessWidget {
           if (field.required)
             TextSpan(
                 text: ' *',
-                style: text.label.copyWith(color: MyazaColors.error)),
+                style: text.label.copyWith(color: UiColors.error)),
         ])),
         if (field.helpText != null)
           Text(field.helpText!,
@@ -275,7 +275,7 @@ class _MoneyField extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
     final text = context.myazaText;
-    // Matches MyazaInput's 48px single-line height so the currency control
+    // Matches UiInput's 48px single-line height so the currency control
     // lines up with the amount field instead of sitting short.
     const controlHeight = 48.0;
 
@@ -288,13 +288,13 @@ class _MoneyField extends StatelessWidget {
         if (field.currencies.length > 1)
           SizedBox(
             height: controlHeight,
-            child: MyazaSelect<String>(
+            child: UiSelect<String>(
               compact: true,
               sheetTitle: 'Currency',
               value: currency ?? field.currencies.first,
               options: [
                 for (final c in field.currencies)
-                  MyazaSelectOption(
+                  UiSelectOption(
                     value: c,
                     label: c,
                     description: currencyName(c),
@@ -308,24 +308,24 @@ class _MoneyField extends StatelessWidget {
           Container(
             height: controlHeight,
             alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: MyazaSpacing.md),
+            padding: const EdgeInsets.symmetric(horizontal: UiSpacing.md),
             decoration: BoxDecoration(
               color: colors.primary50,
-              borderRadius: BorderRadius.circular(MyazaRadius.sm),
+              borderRadius: BorderRadius.circular(UiRadius.sm),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 _CurrencyFlag(currency: field.currencies.first),
-                const SizedBox(width: MyazaSpacing.xs),
+                const SizedBox(width: UiSpacing.xs),
                 Text(field.currencies.first,
                     style: text.label.copyWith(fontWeight: FontWeight.w600)),
               ],
             ),
           ),
-        if (field.currencies.isNotEmpty) const SizedBox(width: MyazaSpacing.sm),
+        if (field.currencies.isNotEmpty) const SizedBox(width: UiSpacing.sm),
         Expanded(
-          child: MyazaInput(
+          child: UiInput(
             controller: controller,
             hint: field.placeholder ?? '0.00',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -351,7 +351,7 @@ class _CurrencyFlag extends StatelessWidget {
   Widget build(BuildContext context) {
     final country = currencyFlagCountry(currency);
     if (country == null) return const SizedBox.shrink();
-    return MyazaCountryFlag(country: country, size: 18);
+    return UiCountryFlag(country: country, size: 18);
   }
 }
 
@@ -370,13 +370,13 @@ class _SelectField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MyazaSelect<String>(
+    return UiSelect<String>(
       value: value,
       hint: field.placeholder ?? 'Select an option',
       sheetTitle: field.label,
       options: [
         for (final o in field.options)
-          MyazaSelectOption(value: o.value, label: o.label),
+          UiSelectOption(value: o.value, label: o.label),
       ],
       onChanged: onChanged,
     );
@@ -402,7 +402,7 @@ class _MultiSelectField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final o in field.options) ...[
-          MyazaCheckCard(
+          UiCheckCard(
             label: o.label,
             checked: values.contains(o.value),
             onTap: () {
@@ -415,7 +415,7 @@ class _MultiSelectField extends StatelessWidget {
               onChanged(next);
             },
           ),
-          if (o != field.options.last) const SizedBox(height: MyazaSpacing.sm),
+          if (o != field.options.last) const SizedBox(height: UiSpacing.sm),
         ],
       ],
     );
@@ -434,9 +434,9 @@ class _BooleanField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: _choice(context, context.kycText('questionnaire.yes'), true)),
-        const SizedBox(width: MyazaSpacing.sm),
-        Expanded(child: _choice(context, context.kycText('questionnaire.no'), false)),
+        Expanded(child: _choice(context, context.verificationText('questionnaire.yes'), true)),
+        const SizedBox(width: UiSpacing.sm),
+        Expanded(child: _choice(context, context.verificationText('questionnaire.no'), false)),
       ],
     );
   }
@@ -446,7 +446,7 @@ class _BooleanField extends StatelessWidget {
     final selected = value == v;
     return InkWell(
       onTap: () => onChanged(v),
-      borderRadius: BorderRadius.circular(MyazaRadius.md),
+      borderRadius: BorderRadius.circular(UiRadius.md),
       child: Container(
         height: 48,
         alignment: Alignment.center,
@@ -456,7 +456,7 @@ class _BooleanField extends StatelessWidget {
             color: selected ? colors.primary : colors.border,
             width: selected ? 1.5 : 1.0,
           ),
-          borderRadius: BorderRadius.circular(MyazaRadius.md),
+          borderRadius: BorderRadius.circular(UiRadius.md),
         ),
         child: Text(label,
             style: context.myazaText.label.copyWith(
@@ -489,7 +489,7 @@ class _DateField extends StatelessWidget {
       onTap: () async {
         final now = DateTime.now();
         final initial = DateTime.tryParse(value ?? '') ?? now;
-        final picked = await showMyazaDatePicker(
+        final picked = await showUiDatePicker(
           context,
           initialDate: initial,
           firstDate: DateTime(1900),
@@ -500,18 +500,18 @@ class _DateField extends StatelessWidget {
           onChanged(iso);
         }
       },
-      borderRadius: BorderRadius.circular(MyazaRadius.md),
+      borderRadius: BorderRadius.circular(UiRadius.md),
       child: Container(
         height: 52,
-        padding: const EdgeInsets.symmetric(horizontal: MyazaSpacing.md),
+        padding: const EdgeInsets.symmetric(horizontal: UiSpacing.md),
         decoration: BoxDecoration(
           border: Border.all(color: colors.border),
-          borderRadius: BorderRadius.circular(MyazaRadius.md),
+          borderRadius: BorderRadius.circular(UiRadius.md),
         ),
         child: Row(
           children: [
-            MyazaIcon(MyazaIcons.calendar, size: 18, color: colors.textSecondary),
-            const SizedBox(width: MyazaSpacing.sm),
+            UiIcon(UiIcons.calendar, size: 18, color: colors.textSecondary),
+            const SizedBox(width: UiSpacing.sm),
             Text(
               value ?? (field.placeholder ?? 'Select a date'),
               style: text.bodyMedium.copyWith(

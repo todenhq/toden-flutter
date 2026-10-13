@@ -54,7 +54,7 @@ class StreetViewChrome extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    context.kycText('address.entrance.framePill'),
+                    context.verificationText('address.entrance.framePill'),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,

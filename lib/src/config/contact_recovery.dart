@@ -12,12 +12,12 @@
 // back to the contact step (their data is untouched), and once re-verified
 // the step routes straight back to `submitted`, which auto-submits with the
 // fresh token.
-import '../providers/kyc_state.dart';
+import '../providers/verification_state.dart';
 import '../services/api_service.dart';
 
 /// The channels a 422 `contact_verification_required` names as missing.
 List<String> expiredContactChannels(Object? err) {
-  if (err is! KYCApiException || err.error != 'contact_verification_required') {
+  if (err is! VerificationApiException || err.error != 'contact_verification_required') {
     return const [];
   }
   final missing = err.details?['missing'];
@@ -28,19 +28,19 @@ List<String> expiredContactChannels(Object? err) {
   ];
 }
 
-KYCStep contactStepFor(String channel) =>
-    channel == 'email' ? KYCStep.contactEmail : KYCStep.contactPhone;
+VerificationStep contactStepFor(String channel) =>
+    channel == 'email' ? VerificationStep.contactEmail : VerificationStep.contactPhone;
 
 /// Where the step routes once this channel is verified. Null means the
 /// ordinary forward walk; in recovery it returns to `submitted` (which
 /// auto-submits with the fresh proof) via any OTHER still-refused channel
 /// first, so the person never re-walks steps they already completed.
-KYCStep? stepAfterContactVerified({
+VerificationStep? stepAfterContactVerified({
   required bool recovery,
   required List<String> expired,
   required String channel,
 }) {
   if (!recovery) return null;
   final remaining = expired.where((c) => c != channel).toList();
-  return remaining.isEmpty ? KYCStep.submitted : contactStepFor(remaining.first);
+  return remaining.isEmpty ? VerificationStep.submitted : contactStepFor(remaining.first);
 }

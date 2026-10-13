@@ -156,7 +156,7 @@ class _SignaturePadState extends State<SignaturePad> {
               // Dashed, like the web pad's `border-2 border-dashed`.
               foregroundPainter: DashedRoundedBorder(
                 color: colors.border,
-                radius: MyazaRadius.sm,
+                radius: UiRadius.sm,
                 strokeWidth: 2,
               ),
               child: AnimatedContainer(
@@ -166,7 +166,7 @@ class _SignaturePadState extends State<SignaturePad> {
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(MyazaRadius.sm),
+                  borderRadius: BorderRadius.circular(UiRadius.sm),
                 ),
                 child: Stack(
                   children: [

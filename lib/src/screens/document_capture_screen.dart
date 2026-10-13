@@ -14,7 +14,7 @@ import '../config/document_capture_check.dart';
 import '../config/document_capture_methods.dart';
 import '../config/document_guide.dart';
 import '../config/id_types.dart';
-import '../config/kyc_config.dart';
+import '../config/verification_config.dart';
 import '../config/silent_capture.dart';
 import '../config/theme.dart';
 import '../providers/camera_provider.dart';
@@ -26,10 +26,10 @@ import '../services/document_text_gate.dart';
 import '../services/mrz_extract.dart';
 import '../services/native_document_camera.dart';
 import '../services/text_recognition.dart';
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 import '../services/api_service.dart';
 import '../services/image_service.dart';
-import '../services/kyc_error_mapper.dart';
+import '../services/verification_error_mapper.dart';
 import '../services/media_compress_service.dart';
 import '../services/retry.dart';
 import '../services/silent_front_camera.dart';
@@ -41,14 +41,14 @@ import '../widgets/camera_permission_view.dart';
 import '../widgets/camera_permission_priming_view.dart';
 import '../widgets/ready_primer.dart';
 import '../widgets/ready_primer_content.dart';
-import '../widgets/myaza_alert.dart';
+import '../widgets/ui_alert.dart';
 import '../widgets/document_cropper.dart';
 import '../widgets/document_viewfinder.dart';
-import '../widgets/myaza_button.dart';
+import '../widgets/ui_button.dart';
 import '../services/model_readiness.dart';
 import '../widgets/icons/icons.dart';
 import '../i18n/text_scope.dart';
-import '../widgets/myaza_spinner.dart';
+import '../widgets/ui_spinner.dart';
 
 // ─── Scan phase ───────────────────────────────────────────────────────────────
 //
@@ -70,7 +70,7 @@ class _EmptyClip implements Exception {
 class DocumentCaptureScreen extends ConsumerStatefulWidget {
   /// Fires for technical errors raised on this screen (camera permission
   /// denied, document upload failed after retries).
-  final void Function(KYCError error)? onError;
+  final void Function(VerificationError error)? onError;
 
   const DocumentCaptureScreen({super.key, this.onError});
 
@@ -97,7 +97,7 @@ class _DocumentCaptureScreenState
   bool _ready = false;
   bool _showPrimer = false;
 
-  // Locally held captures — only uploaded + committed to kycProvider on Continue.
+  // Locally held captures — only uploaded + committed to verificationProvider on Continue.
   Uint8List? _frontBytes;
   Uint8List? _backBytes;
 
@@ -197,7 +197,7 @@ class _DocumentCaptureScreenState
   /// and nothing on this screen may ask for camera permission, open a camera
   /// or record a side clip.
   bool get _uploadOnly =>
-      documentCaptureMethodsFor(ref.read(kycConfigProvider)).uploadOnly;
+      documentCaptureMethodsFor(ref.read(verificationConfigProvider)).uploadOnly;
 
   /// Show the "Allow camera access" primer before requesting permission, unless
   /// the camera is already granted (in which case we open it straight away).
@@ -493,7 +493,7 @@ class _DocumentCaptureScreenState
     if (idType == null) return;
     _identity = verifyDocumentIdentity(
       lines,
-      country: effectiveCountry(ref.read(kycConfigProvider), state),
+      country: effectiveCountry(ref.read(verificationConfigProvider), state),
       idType: idType.key,
       // The back carries no branding to identify itself by — demanding the
       // front's keywords there meant a PVC back could never auto-capture.
@@ -539,11 +539,11 @@ class _DocumentCaptureScreenState
     final idType = state.selectedIdType;
     if (idType == null) return;
     if (kDebugMode && mrz != null && state.mrzScan == null) {
-      debugPrint('[MyazaKYC] MRZ read live during framing');
+      debugPrint('[Verification] MRZ read live during framing');
     }
     final guidance = _textGate.update(
       lines,
-      country: effectiveCountry(ref.read(kycConfigProvider), state),
+      country: effectiveCountry(ref.read(verificationConfigProvider), state),
       idType: idType.key,
       // The back carries no branding to identify itself by — demanding the
       // front's keywords there meant a PVC back could never auto-capture.
@@ -578,7 +578,7 @@ class _DocumentCaptureScreenState
     final idType = ref.read(kYCNotifierProvider).selectedIdType;
     return idType != null &&
         idType.supportsNfc &&
-        ref.read(kycConfigProvider).nfc?.enabled == true;
+        ref.read(verificationConfigProvider).nfc?.enabled == true;
   }
 
   Future<void> _detectFrame(CameraImage image) async {
@@ -633,7 +633,7 @@ class _DocumentCaptureScreenState
       path = await cameraNotifier.stopVideoRecording();
     }
     if (kDebugMode) {
-      debugPrint('[MyazaKYC] side clip stored: phase=$_phase path=$path');
+      debugPrint('[Verification] side clip stored: phase=$_phase path=$path');
     }
     if (path == null) return;
     if (_phase == _ScanPhase.cameraFront) {
@@ -864,7 +864,7 @@ class _DocumentCaptureScreenState
     final state = ref.read(kYCNotifierProvider);
     final idType = state.selectedIdType;
     if (idType == null || !idType.supportsNfc) return;
-    if (ref.read(kycConfigProvider).nfc?.enabled != true) return;
+    if (ref.read(verificationConfigProvider).nfc?.enabled != true) return;
     if (state.mrzScan != null) return; // already have one
 
     // Captured now: the read can outlive this screen (on Android the fetched
@@ -900,13 +900,13 @@ class _DocumentCaptureScreenState
           if (scan == null) {
             if (kDebugMode) {
               // Widths only: the text itself is a document's personal data.
-              debugPrint('[MyazaKYC] MRZ: ${lines.length} lines, no valid zone, '
+              debugPrint('[Verification] MRZ: ${lines.length} lines, no valid zone, '
                   'widths ${lines.map((l) => sanitizeMrzLine(l).length).toList()}');
             }
             continue;
           }
           if (kDebugMode) {
-            debugPrint('[MyazaKYC] MRZ read from captured photo');
+            debugPrint('[Verification] MRZ read from captured photo');
           }
           notifier.setMrzScan(scan);
           return;
@@ -915,7 +915,7 @@ class _DocumentCaptureScreenState
         }
       }
       if (kDebugMode) {
-        debugPrint('[MyazaKYC] MRZ: not found in the capture — chip step will '
+        debugPrint('[Verification] MRZ: not found in the capture — chip step will '
             'need its own scan');
       }
     }());
@@ -1023,7 +1023,7 @@ class _DocumentCaptureScreenState
   void _reportCameraPermissionDenied(String? message) {
     if (_cameraPermissionReported) return;
     _cameraPermissionReported = true;
-    final error = KYCError(
+    final error = VerificationError(
       code: 'camera_permission_denied',
       message: message ??
           'Camera access is required to photograph your document. Please allow camera access, or upload a photo instead.',
@@ -1060,7 +1060,7 @@ class _DocumentCaptureScreenState
     unawaited(_resumeCaptureForSide());
   }
 
-  // ── Continue — upload to /api/kyc/upload, then advance ────────────────────
+  // ── Continue — upload to /api/v1/upload, then advance ────────────────────
 
   Future<void> _onContinue() async {
     if (_isUploading || _frontBytes == null) return;
@@ -1158,36 +1158,36 @@ class _DocumentCaptureScreenState
         return;
       }
       _advance();
-    } on KYCApiException catch (e) {
+    } on VerificationApiException catch (e) {
       if (!mounted) return;
       // Retries exhausted — show the inline error AND report a typed error.
-      final kycError = mapToKycError(e, context: ErrorContext.upload);
+      final verificationError = mapToVerificationError(e, context: ErrorContext.upload);
       setState(() {
         _isUploading = false;
         _uploadRetryInfo = null;
-        _uploadError = kycError.message;
+        _uploadError = verificationError.message;
       });
-      widget.onError?.call(kycError);
+      widget.onError?.call(verificationError);
     } catch (e) {
       if (!mounted) return;
-      final kycError = mapToKycError(e, context: ErrorContext.upload);
+      final verificationError = mapToVerificationError(e, context: ErrorContext.upload);
       setState(() {
         _isUploading = false;
         _uploadRetryInfo = null;
-        _uploadError = kycError.message;
+        _uploadError = verificationError.message;
       });
-      widget.onError?.call(kycError);
+      widget.onError?.call(verificationError);
     }
   }
 
   /// Asks the server whether it can read one uploaded side. Resolves to null
-  /// on any failure (see [KYCApiService.checkDocumentCapture]).
+  /// on any failure (see [VerificationApiService.checkDocumentCapture]).
   Future<DocumentCaptureCheckResult?> _checkSide(
-    KYCApiService api,
+    VerificationApiService api,
     String mediaId,
     String side,
   ) {
-    final config = ref.read(kycConfigProvider);
+    final config = ref.read(verificationConfigProvider);
     final state = ref.read(kYCNotifierProvider);
     final idType = state.selectedIdType?.key;
     if (idType == null) return Future.value(null);
@@ -1221,8 +1221,8 @@ class _DocumentCaptureScreenState
 
   @override
   Widget build(BuildContext context) {
-    final kycState     = ref.watch(kYCNotifierProvider);
-    final idTypeConfig = kycState.selectedIdType!;
+    final verificationState     = ref.watch(kYCNotifierProvider);
+    final idTypeConfig = verificationState.selectedIdType!;
     final uploadOnly   = _uploadOnly;
 
     // Upload-only never touches the camera provider: each side is a picked
@@ -1267,7 +1267,7 @@ class _DocumentCaptureScreenState
           // is the last point before the camera where the user can still go
           // back and pick a different ID.
           _RequiredPill(idTypeLabel: idTypeConfig.label),
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
           // Expanded, because the step now fills the viewport rather than
           // sitting inside the sheet's scroll view: the primer scrolls itself,
           // and an unbounded child in a bounded Column overflows instead of
@@ -1288,7 +1288,7 @@ class _DocumentCaptureScreenState
     // Camera-access primer — shown before the OS prompt (camera not yet started).
     if (_showPrimer && inCameraPhase) {
       return CameraPermissionPrimingView(
-        message: context.kycText('primer.camera.bodyDocument'),
+        message: context.verificationText('primer.camera.bodyDocument'),
         onGrant: () {
           setState(() => _showPrimer = false);
           _init();
@@ -1313,8 +1313,8 @@ class _DocumentCaptureScreenState
                 _cameraPermissionReported = false;
                 _restartCamera();
               },
-        secondaryAction: MyazaButton.ghost(
-          label: context.kycText('uploadDocument.camera.uploadInstead'),
+        secondaryAction: UiButton.ghost(
+          label: context.verificationText('uploadDocument.camera.uploadInstead'),
           onPressed: _onUpload,
         ),
       );
@@ -1373,12 +1373,12 @@ class _DocumentCaptureScreenState
           // Which document, and from where — the header that used to say so is
           // gone in full-screen.
           idType: idTypeConfig,
-          country: effectiveCountry(ref.read(kycConfigProvider),
+          country: effectiveCountry(ref.read(verificationConfigProvider),
               ref.read(kYCNotifierProvider)),
           showMrzBand: idTypeConfig.key == 'passport',
           onCapture: isReady && !_isCapturing ? _onCapture : null,
           onBack: _onImmersiveBack,
-          onUpload: documentCaptureMethodsFor(ref.read(kycConfigProvider)).upload
+          onUpload: documentCaptureMethodsFor(ref.read(verificationConfigProvider)).upload
               ? _onUpload
               : null,
         );
@@ -1446,7 +1446,7 @@ class _DocumentCaptureScreenState
           sideBadge: 'Front Side',
           stepLabel: 'Step 1 of 2',
         ),
-        const SizedBox(height: MyazaSpacing.md),
+        const SizedBox(height: UiSpacing.md),
 
         // Captured front image. Expanded + contain rather than natural height
         // + cover: the step fills the viewport now, so an image sized to its
@@ -1455,7 +1455,7 @@ class _DocumentCaptureScreenState
         // document visible AND the actions on screen.
         Expanded(
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(MyazaRadius.md),
+            borderRadius: BorderRadius.circular(UiRadius.md),
             child: Image.memory(_frontBytes!, fit: BoxFit.contain),
           ),
         )
@@ -1468,7 +1468,7 @@ class _DocumentCaptureScreenState
               curve: Curves.easeOut,
             ),
 
-        const SizedBox(height: MyazaSpacing.lg),
+        const SizedBox(height: UiSpacing.lg),
 
         // Retake / Next buttons — stack vertically on narrow screens (< 400 dp)
         // so "Next: Scan Back" never overflows on phones like the S24.
@@ -1479,21 +1479,21 @@ class _DocumentCaptureScreenState
             // and the back will be another pick.
             final uploadOnly = _uploadOnly;
             final nextLabel = uploadOnly ? 'Next: Back Side' : 'Next: Scan Back';
-            final retakeLabel = uploadOnly ? 'Replace' : context.kycText('common.retake');
+            final retakeLabel = uploadOnly ? 'Replace' : context.verificationText('common.retake');
             if (narrow) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  MyazaButton(
+                  UiButton(
                     label: nextLabel,
                     onPressed: _proceedToBack,
-                    leadingIcon: const MyazaIcon(MyazaIcons.arrowRight),
+                    leadingIcon: const UiIcon(UiIcons.arrowRight),
                   ),
-                  const SizedBox(height: MyazaSpacing.sm),
-                  MyazaButton.outline(
+                  const SizedBox(height: UiSpacing.sm),
+                  UiButton.outline(
                     label: retakeLabel,
                     onPressed: _retakeFront,
-                    leadingIcon: const MyazaIcon(MyazaIcons.rotateCcw),
+                    leadingIcon: const UiIcon(UiIcons.rotateCcw),
                   ),
                 ],
               );
@@ -1501,18 +1501,18 @@ class _DocumentCaptureScreenState
             return Row(
               children: [
                 Expanded(
-                  child: MyazaButton.outline(
+                  child: UiButton.outline(
                     label: retakeLabel,
                     onPressed: _retakeFront,
-                    leadingIcon: const MyazaIcon(MyazaIcons.rotateCcw),
+                    leadingIcon: const UiIcon(UiIcons.rotateCcw),
                   ),
                 ),
-                const SizedBox(width: MyazaSpacing.md),
+                const SizedBox(width: UiSpacing.md),
                 Expanded(
-                  child: MyazaButton(
+                  child: UiButton(
                     label: nextLabel,
                     onPressed: _proceedToBack,
-                    leadingIcon: const MyazaIcon(MyazaIcons.arrowRight),
+                    leadingIcon: const UiIcon(UiIcons.arrowRight),
                   ),
                 ),
               ],
@@ -1541,7 +1541,7 @@ class _DocumentCaptureScreenState
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _RequiredPill(idTypeLabel: idTypeConfig.label),
-        const SizedBox(height: MyazaSpacing.md),
+        const SizedBox(height: UiSpacing.md),
         Expanded(
           child: DocumentReview(
             front: _frontBytes!,
@@ -1573,11 +1573,11 @@ class _DocumentCaptureScreenState
                 .copyWith(color: const Color(0xFF92400E)), // amber-800
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: MyazaSpacing.sm),
+          const SizedBox(height: UiSpacing.sm),
         ],
         if (_uploadError != null) ...[
-          MyazaAlert(
-            variant: MyazaAlertVariant.error,
+          UiAlert(
+            variant: UiAlertVariant.error,
             title: 'Upload failed',
             message: _uploadError!,
             onDismiss: () => setState(() => _uploadError = null),
@@ -1585,7 +1585,7 @@ class _DocumentCaptureScreenState
               .animate()
               .fadeIn(duration: 250.ms)
               .slideY(begin: -0.2, end: 0, duration: 250.ms),
-          const SizedBox(height: MyazaSpacing.sm),
+          const SizedBox(height: UiSpacing.sm),
         ],
         // The capture check could not read a side: retake it, or continue
         // anyway (a detector can miss, so this is never a dead end).
@@ -1597,11 +1597,11 @@ class _DocumentCaptureScreenState
             onContinueAnyway: _continueAnyway,
           )
         else if (!_isUploading)
-          MyazaButton(
-            label: _uploadError != null ? 'Try Again' : context.kycText('common.continue'),
+          UiButton(
+            label: _uploadError != null ? 'Try Again' : context.verificationText('common.continue'),
             onPressed: _onContinue,
-            leadingIcon: MyazaIcon(
-              _uploadError != null ? MyazaIcons.rotateCcw : MyazaIcons.check,
+            leadingIcon: UiIcon(
+              _uploadError != null ? UiIcons.rotateCcw : UiIcons.check,
             ),
           ),
       ],
@@ -1634,13 +1634,13 @@ class _RequiredPill extends StatelessWidget {
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
               color: colors.primary50,
-              borderRadius: BorderRadius.circular(MyazaRadius.full),
+              borderRadius: BorderRadius.circular(UiRadius.full),
               border: Border.all(color: colors.primary200),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                MyazaIcon(MyazaIcons.creditCard,
+                UiIcon(UiIcons.creditCard,
                     size: 13, color: colors.primary),
                 const SizedBox(width: 5),
                 Text(
@@ -1658,7 +1658,7 @@ class _RequiredPill extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: colors.primary100,
                       borderRadius:
-                          BorderRadius.circular(MyazaRadius.full),
+                          BorderRadius.circular(UiRadius.full),
                     ),
                     child: Text(
                       sideBadge!,
@@ -1675,7 +1675,7 @@ class _RequiredPill extends StatelessWidget {
           ),
         ),
         if (stepLabel != null) ...[
-          const SizedBox(width: MyazaSpacing.sm),
+          const SizedBox(width: UiSpacing.sm),
           Text(stepLabel!, style: text.bodySmall),
         ],
       ],
@@ -1726,7 +1726,7 @@ class _PulseLoader extends StatelessWidget {
             ),
             child: Padding(
               padding: const EdgeInsets.all(15),
-              child: MyazaSpinner(
+              child: UiSpinner(
                 color: color,
                 strokeWidth: 3,
               ),

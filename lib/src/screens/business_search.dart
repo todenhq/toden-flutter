@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/theme.dart';
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 import '../services/api_service.dart';
-import '../widgets/myaza_alert.dart';
-import '../widgets/myaza_button.dart';
-import '../widgets/myaza_input.dart';
-import '../widgets/myaza_select.dart';
+import '../widgets/ui_alert.dart';
+import '../widgets/ui_button.dart';
+import '../widgets/ui_input.dart';
+import '../widgets/ui_select.dart';
 import 'business_search_results.dart';
 import '../widgets/icons/icons.dart';
 import '../i18n/text_scope.dart';
@@ -139,14 +139,14 @@ class _BusinessSearchState extends ConsumerState<BusinessSearch> {
       children: [
         if (_regions.isNotEmpty) ...[
           Text('State or region of registration', style: text.label),
-          const SizedBox(height: MyazaSpacing.sm),
-          MyazaSelect<String>(
+          const SizedBox(height: UiSpacing.sm),
+          UiSelect<String>(
             value: (region ?? '').isEmpty ? null : region,
             sheetTitle: 'State or region',
             searchable: true,
             options: [
               for (final r in _regions)
-                MyazaSelectOption(value: r.code, label: r.name),
+                UiSelectOption(value: r.code, label: r.name),
             ],
             onChanged: (code) => ref
                 .read(kYCNotifierProvider.notifier)
@@ -157,20 +157,20 @@ class _BusinessSearchState extends ConsumerState<BusinessSearch> {
 
         // No label: the placeholder says it, and the magnifier says what kind
         // of field this is — the web SDK's exact arrangement.
-        MyazaInput(
+        UiInput(
           controller: _queryCtrl,
           hint: 'Search by company name',
-          prefix: MyazaIcon(MyazaIcons.search, size: 16, color: colors.textMuted),
+          prefix: UiIcon(UiIcons.search, size: 16, color: colors.textMuted),
           onChanged: (_) => setState(() {}),
           onSubmitted: (_) => _run(),
         ),
         const SizedBox(height: 12),
         // The spinner lives IN the button, as on web — a separate spinner row
         // pushed the results down and said the same thing twice.
-        MyazaButton(
+        UiButton(
           label: searching ? 'Searching…' : 'Search',
           leadingIcon:
-              searching ? null : const MyazaIcon(MyazaIcons.search, size: 18),
+              searching ? null : const UiIcon(UiIcons.search, size: 18),
           isLoading: searching,
           onPressed: searching ||
                   _queryCtrl.text.trim().length < 2 ||
@@ -203,8 +203,8 @@ class _BusinessSearchState extends ConsumerState<BusinessSearch> {
         if (_phase == 'unavailable')
           const Padding(
             padding: EdgeInsets.only(top: 12),
-            child: MyazaAlert(
-              variant: MyazaAlertVariant.warning,
+            child: UiAlert(
+              variant: UiAlertVariant.warning,
               title: 'Search is unavailable',
               message: 'We could not reach the company register just now. '
                   'Try again, or enter the details yourself and we will check '
@@ -220,17 +220,17 @@ class _BusinessSearchState extends ConsumerState<BusinessSearch> {
             alignment: Alignment.centerLeft,
             child: InkWell(
               onTap: widget.onManualEntry,
-              borderRadius: BorderRadius.circular(MyazaRadius.xs),
+              borderRadius: BorderRadius.circular(UiRadius.xs),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: MyazaSpacing.xs),
+                padding: const EdgeInsets.symmetric(vertical: UiSpacing.xs),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    MyazaIcon(MyazaIcons.pencil,
+                    UiIcon(UiIcons.pencil,
                         size: 14, color: colors.textSecondary),
                     const SizedBox(width: 6),
                     Text(
-                      context.kycText('business.search.manualEntry'),
+                      context.verificationText('business.search.manualEntry'),
                       style: text.bodyMedium.copyWith(
                         fontWeight: FontWeight.w500,
                         color: colors.textSecondary,

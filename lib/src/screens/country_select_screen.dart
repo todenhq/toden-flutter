@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/id_types.dart' show countryLabel;
 import '../config/theme.dart';
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 import '../providers/step_order.dart' show countrySelectOptions;
 import '../widgets/country_option_tile.dart';
 import '../widgets/country_region_picker.dart';
@@ -22,7 +22,7 @@ class CountrySelectScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final config = ref.watch(kycConfigProvider);
+    final config = ref.watch(verificationConfigProvider);
     final state = ref.watch(kYCNotifierProvider);
     final notifier = ref.read(kYCNotifierProvider.notifier);
     // Multi-region flows carry `countries`; the KYB applicant leg does not,
@@ -44,16 +44,16 @@ class CountrySelectScreen extends ConsumerWidget {
       );
     }
 
-    // The step body is in fill mode (see KycBottomSheet.fillsViewport), so this
+    // The step body is in fill mode (see VerificationBottomSheet.fillsViewport), so this
     // short list owns its scroll too — keeps it safe on small screens.
     return ListView(
       // The list runs to the PoweredBy footer, which owns the home-indicator
       // clearance for the whole sheet — so only the visual gap is needed here.
-      padding: const EdgeInsets.only(bottom: MyazaSpacing.md),
+      padding: const EdgeInsets.only(bottom: UiSpacing.md),
       children: [
         for (final code in codes)
           Padding(
-            padding: const EdgeInsets.only(bottom: MyazaSpacing.sm),
+            padding: const EdgeInsets.only(bottom: UiSpacing.sm),
             child: CountryOptionTile(
               code: code,
               label: countryLabel(code),

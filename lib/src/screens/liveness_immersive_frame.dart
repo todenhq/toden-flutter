@@ -120,7 +120,7 @@ class LivenessImmersiveFrame extends StatelessWidget {
             math.max(0.0, aboveBottom - insets.top - _kControlsBand);
         final reach = math.max(0.0, aboveBottom - aboveTop);
         final contentWidth =
-            math.max(0.0, size.width - MyazaSpacing.lg * 2);
+            math.max(0.0, size.width - UiSpacing.lg * 2);
         return Stack(
           fit: StackFit.expand,
           children: [
@@ -153,8 +153,8 @@ class LivenessImmersiveFrame extends StatelessWidget {
             ),
             Positioned.fromRect(rect: window, child: cutout(cutoutSize)),
             Positioned(
-              left: MyazaSpacing.lg,
-              right: MyazaSpacing.lg,
+              left: UiSpacing.lg,
+              right: UiSpacing.lg,
               top: aboveTop,
               // On a very short phone the words keep their height under the
               // buttons and run over the window's top edge instead.
@@ -173,8 +173,8 @@ class LivenessImmersiveFrame extends StatelessWidget {
               ),
             ),
             Positioned(
-              left: MyazaSpacing.lg,
-              right: MyazaSpacing.lg,
+              left: UiSpacing.lg,
+              right: UiSpacing.lg,
               top: centre.dy + half + 24,
               bottom:
                   insets.bottom + (footer == null ? 12 : footerReserve + 24),
@@ -182,8 +182,8 @@ class LivenessImmersiveFrame extends StatelessWidget {
             ),
             if (footer != null)
               Positioned(
-                left: MyazaSpacing.lg,
-                right: MyazaSpacing.lg,
+                left: UiSpacing.lg,
+                right: UiSpacing.lg,
                 bottom: insets.bottom + 12,
                 child: Center(child: footer),
               ),

@@ -7,7 +7,7 @@ import '../config/supporting_documents.dart';
 import '../utils/step_log.dart';
 import 'address_step_order.dart';
 import '../config/liveness_resume.dart';
-import 'kyc_state.dart';
+import 'verification_state.dart';
 
 // ─── Restoring a resumed attempt session ─────────────────────────────────────
 //
@@ -18,7 +18,7 @@ import 'kyc_state.dart';
 // snapshot carries are touched — a partial or old snapshot degrades to
 // restoring less, never to breaking the flow.
 
-final Map<String, KYCStep> _stepsByWireName = {
+final Map<String, VerificationStep> _stepsByWireName = {
   for (final e in kStepWireNames.entries) e.value: e.key,
 };
 
@@ -59,7 +59,7 @@ KeyPersonEntry? _keyPersonFromJson(Map<String, dynamic> row) {
 /// Landing on one without it is a dead end rather than a rough edge: the ID
 /// screen has no format to validate against and no endpoint to submit to, so
 /// Continue never enables and the applicant cannot go forward OR be told why.
-const _needsIdType = {KYCStep.idInput, KYCStep.documentCapture, KYCStep.nfc};
+const _needsIdType = {VerificationStep.idInput, VerificationStep.documentCapture, VerificationStep.nfc};
 
 /// The terminal step is a RESULT, not a position, so it is never resumed onto.
 ///
@@ -73,7 +73,7 @@ const _needsIdType = {KYCStep.idInput, KYCStep.documentCapture, KYCStep.nfc};
 /// Starting the flow again also re-resolves the workflow, so an applicant who
 /// was mid-flight across a republish walks the CURRENT steps rather than
 /// submitting against rules they were never shown.
-const _neverResume = {KYCStep.submitted};
+const _neverResume = {VerificationStep.submitted};
 
 /// The state after hydrating [s] from a resumed session's stored [progress].
 ///
@@ -89,12 +89,12 @@ const _neverResume = {KYCStep.submitted};
 /// clamped onto the nearest one it does — see [resumeAddressStep]. Defaults to
 /// empty, which leaves a saved address step alone: a caller that cannot say
 /// what is offered must not be taken to mean "nothing is".
-KYCState restoredState(
-  KYCState s,
+VerificationState restoredState(
+  VerificationState s,
   Map<String, dynamic> progress, {
   String? fallbackCountry,
-  List<KYCStep> offeredAddressSteps = const [],
-  KYCStep? addressExit,
+  List<VerificationStep> offeredAddressSteps = const [],
+  VerificationStep? addressExit,
 }) {
   final data = (progress['data'] as Map?)?.cast<String, dynamic>() ?? const {};
   final mediaIds = (progress['mediaIds'] as Map?)?.cast<String, dynamic>() ?? const {};
@@ -161,7 +161,7 @@ KYCState restoredState(
   final inFlow = kAddressFlowOrder.contains(target)
       ? resumeAddressStep(target, offeredAddressSteps) ?? addressExit ?? target
       : target;
-  final safeStep = idType == null && _needsIdType.contains(inFlow) ? KYCStep.idType : inFlow;
+  final safeStep = idType == null && _needsIdType.contains(inFlow) ? VerificationStep.idType : inFlow;
 
   return s.copyWith(
     currentStep: safeStep,

@@ -7,7 +7,7 @@ import 'package:myaza_kyc_sdk_flutter/src/screens/liveness_immersive.dart';
 // ─── The full-screen liveness camera's own widgets ───────────────────────────
 
 Widget _app(Widget child, {Size size = const Size(390, 844)}) => MaterialApp(
-      theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+      theme: ThemeData(extensions: const [UiColorScheme.light]),
       home: MediaQuery(
         data: MediaQueryData(size: size),
         child: Scaffold(body: child),
@@ -76,7 +76,7 @@ void main() {
         tone: LivenessInstructionTone.warning,
       )));
       expect(find.byType(Icon).evaluate().length +
-              find.byWidgetPredicate((w) => '${w.runtimeType}' == 'MyazaIcon')
+              find.byWidgetPredicate((w) => '${w.runtimeType}' == 'UiIcon')
                   .evaluate()
                   .length,
           greaterThan(0));

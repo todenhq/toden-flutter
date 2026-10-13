@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_state.dart';
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
 import 'package:myaza_kyc_sdk_flutter/src/providers/step_order.dart';
 
 // ─── The opening step reads the server's facts ───────────────────────────────
@@ -15,7 +15,7 @@ import 'package:myaza_kyc_sdk_flutter/src/providers/step_order.dart';
 // step now passes the config it holds, and the late /config path moves an
 // applicant still standing on the placeholder's opening step to the real one.
 
-MyazaKYCConfig _config({String? scope}) => MyazaKYCConfig(
+VerificationConfig _config({String? scope}) => VerificationConfig(
       apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       country: 'NG',
       consentStep: false,
@@ -28,19 +28,19 @@ const _ready = ServerSdkConfig(status: ServerConfigStatus.ready, addressSearch: 
 
 void main() {
   test('opens a consent-less address flow on the search step once search exists', () {
-    expect(openingStep(_config(scope: 'address'), serverConfig: _ready), KYCStep.addressSearch);
+    expect(openingStep(_config(scope: 'address'), serverConfig: _ready), VerificationStep.addressSearch);
     // The placeholder alone still lands on the pin: nothing says search exists yet.
-    expect(openingStep(_config(scope: 'address')), KYCStep.addressCollection);
+    expect(openingStep(_config(scope: 'address')), VerificationStep.addressCollection);
   });
 
   test('facts that add no step change nothing', () {
-    expect(openingStep(_config(), serverConfig: _ready), KYCStep.idType);
-    expect(openingStep(_config()), KYCStep.idType);
+    expect(openingStep(_config(), serverConfig: _ready), VerificationStep.idType);
+    expect(openingStep(_config()), VerificationStep.idType);
   });
 
   test('every reader passes the server config it holds', () {
-    final provider = File('lib/src/providers/kyc_provider.dart').readAsStringSync();
-    final widget = File('lib/src/widgets/myaza_kyc_widget.dart').readAsStringSync();
+    final provider = File('lib/src/providers/verification_provider.dart').readAsStringSync();
+    final widget = File('lib/src/widgets/verification_widget.dart').readAsStringSync();
     // The preloaded config is read BEFORE the opening step is computed.
     expect(
       provider.indexOf('ref.read(preloadedServerConfigProvider)'),

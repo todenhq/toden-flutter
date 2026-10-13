@@ -67,7 +67,7 @@ void main() {
   });
 
   test('the config extension reads the consumer userData', () {
-    const config = MyazaKYCConfig(
+    const config = VerificationConfig(
       apiKey: 'pk_test_x',
       country: 'NG',
       scope: 'biometric-authentication',

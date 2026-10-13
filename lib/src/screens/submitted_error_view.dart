@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../config/theme.dart';
-import '../config/kyc_config.dart';
+import '../config/verification_config.dart';
 import '../config/session_cancelled.dart';
-import '../widgets/myaza_alert.dart';
-import '../widgets/myaza_button.dart';
+import '../widgets/ui_alert.dart';
+import '../widgets/ui_button.dart';
 import '../widgets/icons/icons.dart';
 
 // ─── Error view ───────────────────────────────────────────────────────────────
 
 class ErrorView extends StatelessWidget {
-  final KYCError error;
+  final VerificationError error;
   final VoidCallback? onRetry;
   final VoidCallback onClose;
 
@@ -53,7 +53,7 @@ class ErrorView extends StatelessWidget {
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: MyazaSpacing.xl),
+            const SizedBox(height: UiSpacing.xl),
             Center(
               child: _ErrorBadge(colors: colors)
                   .animate()
@@ -65,7 +65,7 @@ class ErrorView extends StatelessWidget {
                   )
                   .fadeIn(duration: 200.ms),
             ),
-            const SizedBox(height: MyazaSpacing.lg),
+            const SizedBox(height: UiSpacing.lg),
             Text(
               title,
               style: text.heading1,
@@ -74,11 +74,11 @@ class ErrorView extends StatelessWidget {
                 .animate(delay: 200.ms)
                 .fadeIn(duration: 350.ms)
                 .moveY(begin: 8, end: 0, duration: 350.ms),
-            const SizedBox(height: MyazaSpacing.md),
+            const SizedBox(height: UiSpacing.md),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: MyazaSpacing.md),
-              child: MyazaAlert(
-                variant: MyazaAlertVariant.error,
+              padding: const EdgeInsets.symmetric(horizontal: UiSpacing.md),
+              child: UiAlert(
+                variant: UiAlertVariant.error,
                 title: 'What happened',
                 message: error.message,
               ),
@@ -89,29 +89,29 @@ class ErrorView extends StatelessWidget {
           children: [
             if (onRetry != null) ...[
               Expanded(
-                child: MyazaButton.outline(
+                child: UiButton.outline(
                   label: 'Try Again',
                   onPressed: onRetry,
-                  leadingIcon: const MyazaIcon(MyazaIcons.refreshCw),
+                  leadingIcon: const UiIcon(UiIcons.refreshCw),
                 ),
               ),
-              const SizedBox(width: MyazaSpacing.md),
+              const SizedBox(width: UiSpacing.md),
             ],
             if (onGoBack != null) ...[
               Expanded(
-                child: MyazaButton.outline(label: 'Close', onPressed: onClose),
+                child: UiButton.outline(label: 'Close', onPressed: onClose),
               ),
-              const SizedBox(width: MyazaSpacing.md),
+              const SizedBox(width: UiSpacing.md),
               Expanded(
-                child: MyazaButton(
+                child: UiButton(
                   label: 'Go back',
                   onPressed: onGoBack,
-                  leadingIcon: const MyazaIcon(MyazaIcons.arrowLeft),
+                  leadingIcon: const UiIcon(UiIcons.arrowLeft),
                 ),
               ),
             ] else
               Expanded(
-                child: MyazaButton(label: 'Close', onPressed: onClose),
+                child: UiButton(label: 'Close', onPressed: onClose),
               ),
           ],
         )
@@ -125,7 +125,7 @@ class ErrorView extends StatelessWidget {
 
 // ─── Check badge ──────────────────────────────────────────────────────────────
 class _ErrorBadge extends StatelessWidget {
-  final MyazaColorScheme colors;
+  final UiColorScheme colors;
 
   const _ErrorBadge({required this.colors});
 
@@ -138,14 +138,14 @@ class _ErrorBadge extends StatelessWidget {
         shape: BoxShape.circle,
         color: colors.errorBg,
         border: Border.all(
-          color: MyazaColors.error.withValues(alpha: 0.3),
+          color: UiColors.error.withValues(alpha: 0.3),
           width: 2,
         ),
       ),
-      child: const MyazaIcon(
-        MyazaIcons.circleAlert,
+      child: const UiIcon(
+        UiIcons.circleAlert,
         size: 44,
-        color: MyazaColors.error,
+        color: UiColors.error,
       ),
     );
   }

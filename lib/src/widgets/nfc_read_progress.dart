@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../services/nfc_reader.dart';
 import 'icons/icons.dart';
-import 'myaza_spinner.dart';
+import 'ui_spinner.dart';
 
 // ─── NFC read progress ────────────────────────────────────────────────────────
 //
@@ -49,7 +49,7 @@ class NfcReadProgress extends StatelessWidget {
               SizedBox(
                 width: 14,
                 height: 14,
-                child: MyazaSpinner(
+                child: UiSpinner(
                   strokeWidth: 2,
                   color: colors.primary,
                 ),
@@ -91,16 +91,16 @@ class _StepRow extends StatelessWidget {
 
     final Widget leading;
     if (complete) {
-      leading = const MyazaIcon(MyazaIcons.circleCheck,
-          size: 16, color: MyazaColors.success);
+      leading = const UiIcon(UiIcons.circleCheck,
+          size: 16, color: UiColors.success);
     } else if (active) {
       leading = SizedBox(
         width: 14,
         height: 14,
-        child: MyazaSpinner(strokeWidth: 2, color: colors.primary),
+        child: UiSpinner(strokeWidth: 2, color: colors.primary),
       );
     } else {
-      leading = MyazaIcon(MyazaIcons.circle, size: 16, color: colors.gray300);
+      leading = UiIcon(UiIcons.circle, size: 16, color: colors.gray300);
     }
 
     final color = complete

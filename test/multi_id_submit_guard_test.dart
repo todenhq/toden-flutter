@@ -14,7 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 // test can reach without a provider, a store and a live camera. The condition
 // is one line, and it is the line that broke.
 void main() {
-  final source = File('lib/src/providers/kyc_provider.dart').readAsStringSync();
+  final source = File('lib/src/providers/verification_provider.dart').readAsStringSync();
 
   test('the submit guard accepts a committed multi-ID run', () {
     // It must NOT throw on a null selection alone — the slots are the run's

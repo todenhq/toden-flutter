@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../config/theme.dart';
-import '../widgets/myaza_pulse_loader.dart';
+import '../widgets/ui_pulse_loader.dart';
 
 // ─── The one loading screen ─────────────────────────────────────────────────
 //
@@ -32,22 +32,22 @@ class SubmittedWaitingView extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const SizedBox(height: MyazaSpacing.xl),
-        const MyazaPulseLoader(),
-        const SizedBox(height: MyazaSpacing.lg),
+        const SizedBox(height: UiSpacing.xl),
+        const UiPulseLoader(),
+        const SizedBox(height: UiSpacing.lg),
         Text(title, style: text.heading3, textAlign: TextAlign.center)
             .animate()
             .fadeIn(duration: 400.ms),
-        const SizedBox(height: MyazaSpacing.sm),
+        const SizedBox(height: UiSpacing.sm),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: MyazaSpacing.lg),
+          padding: const EdgeInsets.symmetric(horizontal: UiSpacing.lg),
           child: Text(
             description,
-            style: retrying ? text.bodyMedium.copyWith(color: MyazaColors.warning) : text.bodyMedium,
+            style: retrying ? text.bodyMedium.copyWith(color: UiColors.warning) : text.bodyMedium,
             textAlign: TextAlign.center,
           ),
         ),
-        const SizedBox(height: MyazaSpacing.xl),
+        const SizedBox(height: UiSpacing.xl),
       ],
     );
   }

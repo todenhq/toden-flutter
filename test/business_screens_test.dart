@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_provider.dart';
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_provider.dart';
 import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_state.dart'
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart'
     show ServerConfigStatus, ServerSdkConfig;
 import 'package:myaza_kyc_sdk_flutter/src/screens/applicant_role_screen.dart';
 import 'package:myaza_kyc_sdk_flutter/src/screens/business_details_screen.dart';
@@ -24,7 +24,7 @@ import 'package:myaza_kyc_sdk_flutter/src/screens/business_key_people_screen.dar
 /// session at launch, and a live dio request in a widget test is a pending
 /// timer at teardown. The stub answers instantly, from the same seam a real
 /// mount builds its client behind.
-class _StubApi extends KYCApiService {
+class _StubApi extends VerificationApiService {
   _StubApi() : super(baseUrl: 'http://stub', apiKey: 'pk_test_stub');
 
   @override
@@ -64,19 +64,19 @@ class _StubApi extends KYCApiService {
       const BusinessRegionsResponse();
 }
 
-Widget host(MyazaKYCConfig config, Widget child) => ProviderScope(
+Widget host(VerificationConfig config, Widget child) => ProviderScope(
       overrides: [
-        kycConfigProvider.overrideWithValue(config),
-        kycApiServiceProvider.overrideWithValue(_StubApi()),
+        verificationConfigProvider.overrideWithValue(config),
+        verificationApiServiceProvider.overrideWithValue(_StubApi()),
         // Preloading the server config is what a real workflow mount does, and
-        // it skips the /api/kyc/config fetch — without it the notifier fires a
+        // it skips the /api/v1/config fetch — without it the notifier fires a
         // live dio request and the test ends with a pending timer.
         preloadedServerConfigProvider.overrideWithValue(
           const ServerSdkConfig(status: ServerConfigStatus.ready),
         ),
       ],
       child: MaterialApp(
-        theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+        theme: ThemeData(extensions: const [UiColorScheme.light]),
         home: Scaffold(
           body: SingleChildScrollView(
             child: SizedBox(width: 390, child: child),
@@ -85,7 +85,7 @@ Widget host(MyazaKYCConfig config, Widget child) => ProviderScope(
       ),
     );
 
-MyazaKYCConfig config(Map<String, dynamic> businessJson) => MyazaKYCConfig(
+VerificationConfig config(Map<String, dynamic> businessJson) => VerificationConfig(
       apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       country: 'NG',
       workflowId: 'wf_test',
@@ -94,7 +94,7 @@ MyazaKYCConfig config(Map<String, dynamic> businessJson) => MyazaKYCConfig(
           WorkflowBusinessConfig.fromJson({'country': 'NG', ...businessJson}),
     );
 
-/// The screen's primary action (always the last MyazaButton on these screens).
+/// The screen's primary action (always the last UiButton on these screens).
 bool continueEnabled(WidgetTester tester) => buttonEnabled(tester, 'Continue');
 
 /// The details phase's primary action — the button renames once the register
@@ -102,10 +102,10 @@ bool continueEnabled(WidgetTester tester) => buttonEnabled(tester, 'Continue');
 bool continueEnabled2(WidgetTester tester) =>
     buttonEnabled(tester, 'Confirm details & continue');
 
-/// Whether the last MyazaButton with [label] currently has an onPressed.
+/// Whether the last UiButton with [label] currently has an onPressed.
 bool buttonEnabled(WidgetTester tester, String label) {
   final buttons = tester
-      .widgetList<MyazaButton>(find.byType(MyazaButton))
+      .widgetList<UiButton>(find.byType(UiButton))
       .where((b) => b.label == label);
   return buttons.last.onPressed != null;
 }

@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 //
 // The device fix rides the autocomplete call as `lat`/`lng`, a RANKING bias so
 // nearby streets come first: without it "Awolowo Road" in Calabar ranks
-// against every Awolowo Road in the country. KYCApiService builds its own Dio
+// against every Awolowo Road in the country. VerificationApiService builds its own Dio
 // with no seam to stub, so this reads the wiring: the call names the params,
 // the search body carries the fix, and the search step passes the flow's fix.
 // Mirrors the web and RN SDKs' addressAutocomplete.

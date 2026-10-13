@@ -4,7 +4,7 @@ import '../config/theme.dart';
 import 'dashed_border.dart';
 import 'icons/icons.dart';
 import '../i18n/text_scope.dart';
-import 'myaza_spinner.dart';
+import 'ui_spinner.dart';
 
 // ─── The upload-only tap target ───────────────────────────────────────────────
 //
@@ -52,17 +52,17 @@ class DocumentUploadTarget extends StatelessWidget {
       excludeSemantics: true,
       child: InkWell(
         onTap: isBusy ? null : onPick,
-        borderRadius: BorderRadius.circular(MyazaRadius.md),
+        borderRadius: BorderRadius.circular(UiRadius.md),
         child: CustomPaint(
           painter: DashedRoundedBorder(
-            color: hasError ? MyazaColors.error : colors.primary200,
-            radius: MyazaRadius.md,
+            color: hasError ? UiColors.error : colors.primary200,
+            radius: UiRadius.md,
             strokeWidth: 2,
           ),
           child: AspectRatio(
             aspectRatio: aspect,
             child: Padding(
-              padding: const EdgeInsets.all(MyazaSpacing.md),
+              padding: const EdgeInsets.all(UiSpacing.md),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -76,13 +76,13 @@ class DocumentUploadTarget extends StatelessWidget {
                     child: isBusy
                         ? Padding(
                             padding: const EdgeInsets.all(15),
-                            child: MyazaSpinner(
+                            child: UiSpinner(
                                 strokeWidth: 2, color: colors.primary),
                           )
-                        : MyazaIcon(MyazaIcons.imageUp,
+                        : UiIcon(UiIcons.imageUp,
                             size: 24, color: colors.primary),
                   ),
-                  const SizedBox(height: MyazaSpacing.sm),
+                  const SizedBox(height: UiSpacing.sm),
                   Text(
                     isBack
                         ? 'Back of your $idTypeLabel'
@@ -96,11 +96,11 @@ class DocumentUploadTarget extends StatelessWidget {
                   Text(
                     isBusy
                         ? 'Preparing your photo…'
-                        : context.kycText('uploadDocument.upload.hint'),
+                        : context.verificationText('uploadDocument.upload.hint'),
                     style: text.bodySmall.copyWith(color: colors.textSecondary),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: MyazaSpacing.sm),
+                  const SizedBox(height: UiSpacing.sm),
                   // Kept in the layout while busy so the card keeps its height.
                   Visibility(
                     visible: !isBusy,
@@ -110,18 +110,18 @@ class DocumentUploadTarget extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        MyazaIcon(MyazaIcons.upload,
+                        UiIcon(UiIcons.upload,
                             size: 16, color: colors.primary),
                         const SizedBox(width: 6),
                         Text(
-                          context.kycText('uploadDocument.upload.tapToChoose'),
+                          context.verificationText('uploadDocument.upload.tapToChoose'),
                           style: text.label.copyWith(
                             color: colors.primary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(width: 2),
-                        MyazaIcon(MyazaIcons.chevronRight,
+                        UiIcon(UiIcons.chevronRight,
                             size: 16, color: colors.primary),
                       ],
                     ),

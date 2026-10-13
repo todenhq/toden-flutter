@@ -12,12 +12,12 @@ import 'api_service.dart';
 //
 // Mirrors the web SDK's `withRetry` (lib/retry.ts) so both platforms behave
 // identically. After retries are exhausted the original exception is rethrown —
-// the caller maps it to a typed KYCError for `onError`.
+// the caller maps it to a typed VerificationError for `onError`.
 
-/// Whether a [KYCApiException] (or other error) is transient and worth retrying.
+/// Whether a [VerificationApiException] (or other error) is transient and worth retrying.
 /// 5xx + the connectivity error codes are transient; 4xx are terminal.
 bool isTransientError(Object error) {
-  if (error is KYCApiException) {
+  if (error is VerificationApiException) {
     if (error.statusCode >= 500 || error.statusCode == 0) return true;
     return error.error == 'network_error' ||
         error.error == 'timeout' ||

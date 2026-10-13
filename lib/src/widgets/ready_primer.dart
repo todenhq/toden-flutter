@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../config/theme.dart';
-import 'myaza_button.dart';
+import 'ui_button.dart';
 import 'pulse_ring.dart';
 import 'ready_primer_content.dart';
 import '../i18n/text_scope.dart';
@@ -39,13 +39,13 @@ class ReadyPrimer extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
     final text = context.myazaText;
-    final t = context.kycText;
+    final t = context.verificationText;
 
     // TOP-ALIGNED, like the web. The sheet body guarantees the child at least
     // the viewport height, so a Center here parked the whole primer in the
     // middle of the sheet and left a dead band under the step indicator.
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(vertical: MyazaSpacing.md),
+      padding: const EdgeInsets.symmetric(vertical: UiSpacing.md),
       child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -58,7 +58,7 @@ class ReadyPrimer extends StatelessWidget {
               decoration: BoxDecoration(
                 color: colors.primary.withValues(alpha: 0.05),
                 border: Border.all(color: colors.primary.withValues(alpha: 0.15)),
-                borderRadius: BorderRadius.circular(MyazaRadius.lg),
+                borderRadius: BorderRadius.circular(UiRadius.lg),
               ),
               child: Column(
                 children: [
@@ -77,13 +77,13 @@ class ReadyPrimer extends StatelessWidget {
                             color: colors.primary.withValues(alpha: 0.15),
                             shape: BoxShape.circle,
                           ),
-                          child: MyazaIcon(content.icon,
+                          child: UiIcon(content.icon,
                               size: 28, color: colors.primary), // h-7 w-7
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: MyazaSpacing.md), // gap-4
+                  const SizedBox(height: UiSpacing.md), // gap-4
                   Text(t(content.titleKey),
                       style: text.heading3, textAlign: TextAlign.center),
                   const SizedBox(height: 6), // space-y-1.5
@@ -107,9 +107,9 @@ class ReadyPrimer extends StatelessWidget {
                     height: 36,
                     decoration: BoxDecoration(
                       color: colors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(MyazaRadius.xs),
+                      borderRadius: BorderRadius.circular(UiRadius.xs),
                     ),
-                    child: MyazaIcon(item.icon, size: 18, color: colors.primary),
+                    child: UiIcon(item.icon, size: 18, color: colors.primary),
                   ),
                   const SizedBox(width: 12), // gap-3
                   Expanded(
@@ -121,8 +121,8 @@ class ReadyPrimer extends StatelessWidget {
             ],
 
             const SizedBox(height: 8),
-            // One primary action. MyazaButton already clears the 44pt minimum.
-            MyazaButton(
+            // One primary action. UiButton already clears the 44pt minimum.
+            UiButton(
                 label: buttonLabel ?? t('primer.readyButton'),
                 onPressed: onReady),
           ],

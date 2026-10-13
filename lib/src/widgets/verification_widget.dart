@@ -6,23 +6,23 @@ import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../config/kyc_config.dart';
+import '../config/verification_config.dart';
 import '../config/session_cancelled.dart';
 import '../config/appearance_scheme.dart';
 import '../config/bright_screen.dart';
 import '../config/theme.dart';
 import '../liveness/liveness_types.dart';
-import '../providers/kyc_provider.dart';
-import '../providers/kyc_state.dart';
+import '../providers/verification_provider.dart';
+import '../providers/verification_state.dart';
 import '../providers/liveness_provider.dart';
 import '../providers/step_order.dart';
 import '../providers/theme_provider.dart';
 import '../utils/portrait_lock.dart';
-import 'kyc_flow_scope.dart';
+import 'verification_flow_scope.dart';
 import 'flow_step_meta.dart';
 import '../i18n/text_scope.dart';
 
-export 'kyc_flow_scope.dart' show kycFlowOverrides;
+export 'verification_flow_scope.dart' show verificationFlowOverrides;
 import '../screens/applicant_role_screen.dart';
 import '../screens/business_details_screen.dart';
 import '../screens/business_documents_screen.dart';
@@ -42,23 +42,23 @@ import '../screens/address/address_search_step.dart';
 import '../screens/proof_of_address_screen.dart';
 import '../screens/questionnaire_screen.dart';
 import 'multi_id_progress.dart';
-import 'myaza_pulse_loader.dart';
+import 'ui_pulse_loader.dart';
 import 'workflow_gate.dart';
 import '../screens/liveness_screen.dart';
 import '../screens/submitted_screen.dart';
 import '../utils/resolve_url.dart';
 import 'bright_screen_boost.dart';
-import 'kyc_bottom_sheet.dart';
+import 'verification_bottom_sheet.dart';
 import 'sandbox_banner.dart';
-import 'myaza_button.dart';
-import '../config/kyc_result.dart';
+import 'ui_button.dart';
+import '../config/verification_result.dart';
 import '../services/model_readiness.dart';
 import 'icons/icons.dart';
 
 /// Maps the appearance's initial theme to a ThemeMode. Null appearance/theme
 /// and the explicit `system` value both follow the device setting.
 // The flow's opening theme mode and its ProviderScope overrides both live in
-// kyc_flow_scope.dart, so the biometric host can mount the same scope without
+// verification_flow_scope.dart, so the biometric host can mount the same scope without
 // importing this file (which imports it — see that file's header).
 
 // ─── Public entry points ──────────────────────────────────────────────────────
@@ -70,25 +70,25 @@ import 'icons/icons.dart';
 /// development. There is no `environment` parameter.
 ///
 /// ```dart
-/// MyazaKYC.show(
+/// Verification.show(
 ///   context: context,
-///   config: MyazaKYCConfig(apiKey: 'pk_live_…', country: 'NG'),
+///   config: VerificationConfig(apiKey: 'pk_live_…', country: 'NG'),
 ///   onSubmit: (s) => print('Submitted: ${s.verificationId}'),
 ///   onError:  (e) => print('Error: ${e.code} — ${e.message}'),
 /// );
 /// ```
-class MyazaKYC {
-  MyazaKYC._();
+class Verification {
+  Verification._();
 
   static Future<void> show({
     required BuildContext context,
-    required MyazaKYCConfig config,
-    void Function(KYCSubmission)? onSubmit,
-    void Function(KYCError)? onError,
+    required VerificationConfig config,
+    void Function(VerificationSubmission)? onSubmit,
+    void Function(VerificationError)? onError,
     VoidCallback? onClose,
     /// The verdict, on a flow that waits for it in the app (a biometric
-    /// re-authentication on the default delivery). See [KYCResult].
-    void Function(KYCResult)? onResult,
+    /// re-authentication on the default delivery). See [VerificationResult].
+    void Function(VerificationResult)? onResult,
   }) async {
     // Fail loud on an invalid key prefix before presenting anything (throws
     // ArgumentError with a clear message).
@@ -117,7 +117,7 @@ class MyazaKYC {
     // resolved flow that somehow carries neither (publish rejects a country-less
     // KYC draft, and a KYB flow's country comes from its business block).
     if ((effectiveConfig.country ?? '').trim().isEmpty) {
-      onError?.call(const KYCError(
+      onError?.call(const VerificationError(
         code: 'unknown',
         message:
             'No country configured. Pass `country`, or a `workflowId` whose '
@@ -128,8 +128,8 @@ class MyazaKYC {
 
     // Shape + type from the RESOLVED appearance (so a workflow's branding wins
     // over props). Applied here, before the flow builds, because both are
-    // module-level scales read during build — see MyazaRadius.applyScale.
-    MyazaRadius.applyScale(effectiveConfig.appearance?.borderRadius);
+    // module-level scales read during build — see UiRadius.applyScale.
+    UiRadius.applyScale(effectiveConfig.appearance?.borderRadius);
     applyBrandFonts(
       body: effectiveConfig.appearance?.fontFamily,
       heading: effectiveConfig.appearance?.headingFontFamily,
@@ -146,7 +146,7 @@ class MyazaKYC {
               fullscreenDialog: true,
               builder: (ctx) => ProviderScope(
                 overrides: overrides,
-                child: _KycFlowWidget(
+                child: _VerificationFlowWidget(
                   isFullScreen: true,
                   onSubmit: onSubmit,
                   onError: onError,
@@ -171,7 +171,7 @@ class MyazaKYC {
       useSafeArea: false,
       builder: (ctx) => ProviderScope(
         overrides: overrides,
-        child: _KycFlowWidget(
+        child: _VerificationFlowWidget(
           isFullScreen: false,
           onSubmit: onSubmit,
           onError: onError,
@@ -184,23 +184,23 @@ class MyazaKYC {
 
   /// The ProviderScope overrides that mount a flow with [effectiveConfig] and,
   /// when a workflow was resolved before mount, its preloaded server config.
-  /// The list itself lives in kyc_flow_scope.dart, which both hosts import.
+  /// The list itself lives in verification_flow_scope.dart, which both hosts import.
   static List<Override> _overridesFor(
-    MyazaKYCConfig effectiveConfig,
+    VerificationConfig effectiveConfig,
     ServerSdkConfig? preloaded,
   ) =>
-      kycFlowOverrides(effectiveConfig, preloaded);
+      verificationFlowOverrides(effectiveConfig, preloaded);
 }
 
 /// Embeddable widget version. Wrap in your own layout.
-class MyazaKYCWidget extends StatelessWidget {
-  final MyazaKYCConfig config;
-  final void Function(KYCSubmission)? onSubmit;
-  final void Function(KYCError)? onError;
+class VerificationWidget extends StatelessWidget {
+  final VerificationConfig config;
+  final void Function(VerificationSubmission)? onSubmit;
+  final void Function(VerificationError)? onError;
   final VoidCallback? onClose;
-  final void Function(KYCResult)? onResult;
+  final void Function(VerificationResult)? onResult;
 
-  const MyazaKYCWidget({
+  const VerificationWidget({
     super.key,
     required this.config,
     this.onSubmit,
@@ -226,8 +226,8 @@ class MyazaKYCWidget extends StatelessWidget {
     }
 
     return ProviderScope(
-      overrides: MyazaKYC._overridesFor(config, null),
-      child: _KycFlowWidget(
+      overrides: Verification._overridesFor(config, null),
+      child: _VerificationFlowWidget(
         onSubmit: onSubmit,
         onError: onError,
         onClose: onClose,
@@ -242,14 +242,14 @@ class MyazaKYCWidget extends StatelessWidget {
 // The embeddable widget's resolve-before-mount: while the workflow resolves it
 // shows a loader; on success it mounts the flow with the merged config +
 // preloaded server config; on failure it reports onError once and shows the
-// error message inline (there's no modal to pop, unlike MyazaKYC.show).
+// error message inline (there's no modal to pop, unlike Verification.show).
 
 class _EmbeddedWorkflowGate extends StatefulWidget {
-  final MyazaKYCConfig config;
-  final void Function(KYCSubmission)? onSubmit;
-  final void Function(KYCError)? onError;
+  final VerificationConfig config;
+  final void Function(VerificationSubmission)? onSubmit;
+  final void Function(VerificationError)? onError;
   final VoidCallback? onClose;
-  final void Function(KYCResult)? onResult;
+  final void Function(VerificationResult)? onResult;
 
   const _EmbeddedWorkflowGate({
     required this.config,
@@ -281,36 +281,36 @@ class _EmbeddedWorkflowGateState extends State<_EmbeddedWorkflowGate> {
         if (snap.connectionState != ConnectionState.done) {
           return const Center(
             child: Padding(
-              padding: EdgeInsets.all(MyazaSpacing.xl),
-              child: MyazaPulseLoader(),
+              padding: EdgeInsets.all(UiSpacing.xl),
+              child: UiPulseLoader(),
             ),
           );
         }
         if (snap.hasError) {
           final err = snap.error;
-          final kycErr = err is KYCError
+          final verificationErr = err is VerificationError
               ? err
-              : const KYCError(
+              : const VerificationError(
                   code: 'invalid_workflow',
                   message: 'This verification workflow could not be loaded.',
                 );
           if (!_errorReported) {
             _errorReported = true;
             WidgetsBinding.instance.addPostFrameCallback(
-              (_) => widget.onError?.call(kycErr),
+              (_) => widget.onError?.call(verificationErr),
             );
           }
           return Center(
             child: Padding(
-              padding: const EdgeInsets.all(MyazaSpacing.xl),
-              child: Text(kycErr.message, textAlign: TextAlign.center),
+              padding: const EdgeInsets.all(UiSpacing.xl),
+              child: Text(verificationErr.message, textAlign: TextAlign.center),
             ),
           );
         }
         final result = snap.data!;
         return ProviderScope(
-          overrides: MyazaKYC._overridesFor(result.config, result.serverConfig),
-          child: _KycFlowWidget(
+          overrides: Verification._overridesFor(result.config, result.serverConfig),
+          child: _VerificationFlowWidget(
             onSubmit: widget.onSubmit,
             onError: widget.onError,
             onClose: widget.onClose,
@@ -324,14 +324,14 @@ class _EmbeddedWorkflowGateState extends State<_EmbeddedWorkflowGate> {
 
 // ─── Internal flow widget ─────────────────────────────────────────────────────
 
-class _KycFlowWidget extends ConsumerStatefulWidget {
+class _VerificationFlowWidget extends ConsumerStatefulWidget {
   final bool isFullScreen;
-  final void Function(KYCSubmission)? onSubmit;
-  final void Function(KYCError)? onError;
+  final void Function(VerificationSubmission)? onSubmit;
+  final void Function(VerificationError)? onError;
   final VoidCallback? onClose;
-  final void Function(KYCResult)? onResult;
+  final void Function(VerificationResult)? onResult;
 
-  const _KycFlowWidget({
+  const _VerificationFlowWidget({
     this.isFullScreen = false,
     this.onSubmit,
     this.onError,
@@ -340,10 +340,10 @@ class _KycFlowWidget extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_KycFlowWidget> createState() => _KycFlowWidgetState();
+  ConsumerState<_VerificationFlowWidget> createState() => _VerificationFlowWidgetState();
 }
 
-class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
+class _VerificationFlowWidgetState extends ConsumerState<_VerificationFlowWidget>
     with PortraitLock {
   /// One stable key per step, so a step's State survives being REPARENTED.
   ///
@@ -353,10 +353,10 @@ class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
   /// one: the document step lost `_ready`, fell back to its primer, lowered the
   /// immersive flag, and the shell swapped straight back — a remount loop where
   /// the camera never opened at all.
-  final _stepKeys = <KYCStep, GlobalKey>{};
+  final _stepKeys = <VerificationStep, GlobalKey>{};
 
   /// The step screen itself, inside the multi-ID wrapper: see _screenWithMultiId.
-  final _multiIdScreenKeys = <KYCStep, GlobalKey>{};
+  final _multiIdScreenKeys = <VerificationStep, GlobalKey>{};
 
   // Ensures a fatal config-load failure is reported to onError at most once.
   bool _configErrorReported = false;
@@ -389,26 +389,26 @@ class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
   Widget build(BuildContext context) {
     final state = ref.watch(kYCNotifierProvider);
     final notifier = ref.read(kYCNotifierProvider.notifier);
-    final config = ref.read(kycConfigProvider);
+    final config = ref.read(verificationConfigProvider);
 
     final step = state.currentStep;
     final meta = flowStepMeta(
       step,
       config: config,
       state: state,
-      t: ref.watch(kycTextProvider),
-      selfieComplete: step == KYCStep.liveness &&
+      t: ref.watch(verificationTextProvider),
+      selfieComplete: step == VerificationStep.liveness &&
           ref.watch(livenessNotifierProvider.select((s) => s.phase)) ==
               LivenessPhase.complete,
     );
 
     // ── Resolve theme ──────────────────────────────────────────────────────
-    final themeMode = ref.watch(kycThemeModeProvider);
+    final themeMode = ref.watch(verificationThemeModeProvider);
     final systemBrightness = MediaQuery.platformBrightnessOf(context);
     final userIsDark = themeMode == ThemeMode.dark ||
         (themeMode == ThemeMode.system && systemBrightness == Brightness.dark);
     final baseScheme =
-        userIsDark ? MyazaColorScheme.dark : MyazaColorScheme.light;
+        userIsDark ? UiColorScheme.dark : UiColorScheme.light;
     // Fold in the dark overrides FIRST: the appearance is applied on top of the
     // active base scheme, so a light background would otherwise overwrite the
     // dark one and the toggle would do nothing on a branded flow.
@@ -423,7 +423,7 @@ class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
     // theme comes back when the step is left; their toggle is hidden meanwhile.
     final brightScreen = livenessBrightScreenActive(
       enabled: config.livenessBrightScreen,
-      onLivenessStep: step == KYCStep.liveness,
+      onLivenessStep: step == VerificationStep.liveness,
       cameraOn: ref.watch(livenessCameraOnProvider),
     );
     final litScheme = brightScreenScheme(config.appearance);
@@ -449,13 +449,13 @@ class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
     final companyName = appearance?.companyName ?? branding?.companyName;
 
     void onToggleTheme() {
-      final current = ref.read(kycThemeModeProvider);
+      final current = ref.read(verificationThemeModeProvider);
       final effective = current == ThemeMode.system
           ? (systemBrightness == Brightness.dark
               ? ThemeMode.dark
               : ThemeMode.light)
           : current;
-      ref.read(kycThemeModeProvider.notifier).state =
+      ref.read(verificationThemeModeProvider.notifier).state =
           effective == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
     }
 
@@ -470,7 +470,7 @@ class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
     // means "redo the previous one", so a committed slot keeps the arrow.
     final opening = openingStep(config, serverConfig: state.serverConfig);
     final VoidCallback? onBack = switch (step) {
-      KYCStep.submitted => null, // terminal
+      VerificationStep.submitted => null, // terminal
       _ when step == opening && state.multiIdSlots.isEmpty => null,
       _ => notifier.previousStep,
     };
@@ -479,7 +479,7 @@ class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
     //    close (programmatic pop is then the only way out). ──────────────────
     // A cancelled run has nothing left to protect, so it may always be closed.
     final canDismiss =
-        (step != KYCStep.submitted || state.sessionCancelledMessage != null) &&
+        (step != VerificationStep.submitted || state.sessionCancelledMessage != null) &&
             !config.disableClose;
 
     // ── Fatal config-load failure (e.g. wrong API key) blocks the flow ─────
@@ -493,7 +493,7 @@ class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
             : null;
     if (configError != null && !_configErrorReported) {
       _configErrorReported = true;
-      final kycError = KYCError(
+      final verificationError = VerificationError(
         code: switch (serverConfig.statusCode) {
           401 => 'invalid_api_key',
           403 => 'feature_disabled',
@@ -502,7 +502,7 @@ class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
         message: configError,
       );
       WidgetsBinding.instance
-          .addPostFrameCallback((_) => widget.onError?.call(kycError));
+          .addPostFrameCallback((_) => widget.onError?.call(verificationError));
     }
 
     // ── Cancelled by the organisation (config/session_cancelled.dart) ─────
@@ -512,10 +512,10 @@ class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
         configError == null ? state.sessionCancelledMessage : null;
     if (cancelledMessage != null && !_cancelReported) {
       _cancelReported = true;
-      final kycError =
-          KYCError(code: kSessionCancelledCode, message: cancelledMessage);
+      final verificationError =
+          VerificationError(code: kSessionCancelledCode, message: cancelledMessage);
       WidgetsBinding.instance
-          .addPostFrameCallback((_) => widget.onError?.call(kycError));
+          .addPostFrameCallback((_) => widget.onError?.call(verificationError));
     }
     final blockingMessage = configError ?? cancelledMessage;
 
@@ -526,8 +526,8 @@ class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
                 ? kSessionCancelledTitle
                 : 'Unable to start verification',
             icon: cancelledMessage != null
-                ? MyazaIcons.circleX
-                : MyazaIcons.circleAlert,
+                ? UiIcons.circleX
+                : UiIcons.circleAlert,
             message: blockingMessage,
             onClose: () {
               widget.onClose?.call();
@@ -550,18 +550,18 @@ class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
     // Show the country flag beside the title on the ID-selection steps (the
     // effective country — the picked one in a multi-region flow).
     final headerCountry = blockingMessage == null &&
-            (step == KYCStep.idType || step == KYCStep.idInput)
+            (step == VerificationStep.idType || step == VerificationStep.idInput)
         ? effectiveCountry(config, state)
         : null;
 
     // The whole shell, painted in [colorScheme]: the person's own theme, the
     // lit one, or a frame of the crossing between them.
     Widget shell(
-      MyazaColorScheme colorScheme,
+      UiColorScheme colorScheme,
       bool isDark,
       Color headerSurface,
     ) {
-      final sheet = KycBottomSheet(
+      final sheet = VerificationBottomSheet(
         environment: state.serverConfig.environment,
         title: blockingMessage != null ? '' : meta.title,
         description: blockingMessage != null ? null : meta.description,
@@ -606,10 +606,10 @@ class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
       // themed system bars, and the shell draws its back and close.
       final immersiveLiveness = blockingMessage == null &&
           state.immersiveCapture &&
-          step == KYCStep.liveness;
+          step == VerificationStep.liveness;
       final immersive = blockingMessage == null &&
           state.immersiveCapture &&
-          step == KYCStep.documentCapture;
+          step == VerificationStep.documentCapture;
 
       final overlayStyle = SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -746,12 +746,12 @@ class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
   /// uses (single source of truth). The terminal `submitted` step is excluded
   /// from the count.
   ({double progress, int stepCount})? _computeStepInfo(
-      KYCState state, MyazaKYCConfig config) {
+      VerificationState state, VerificationConfig config) {
     final step = state.currentStep;
-    if (step == KYCStep.submitted) return null;
+    if (step == VerificationStep.submitted) return null;
 
     final steps = buildStepOrder(config, state)
-        .where((s) => s != KYCStep.submitted)
+        .where((s) => s != VerificationStep.submitted)
         .toList();
     final idx = steps.indexOf(step);
     if (idx < 0) return null;
@@ -771,26 +771,26 @@ class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
   ///
   /// Every other step lays out inside the scroll view, so its height is
   /// unbounded and nothing wrapping its screen may flex it.
-  static bool _fillsViewport(KYCStep step) =>
-      step == KYCStep.countrySelect ||
-      step == KYCStep.documentCapture ||
-      step == KYCStep.addressCollection ||
-      step == KYCStep.addressEntrance;
+  static bool _fillsViewport(VerificationStep step) =>
+      step == VerificationStep.countrySelect ||
+      step == VerificationStep.documentCapture ||
+      step == VerificationStep.addressCollection ||
+      step == VerificationStep.addressEntrance;
 
   /// The steps a multi-ID run walks once PER ID — the ones whose screen is
   /// about one particular check and therefore need the position strip above.
-  static const Set<KYCStep> _multiIdSteps = {
-    KYCStep.idType,
-    KYCStep.idInput,
-    KYCStep.documentCapture,
-    KYCStep.nfc,
-    KYCStep.liveness,
+  static const Set<VerificationStep> _multiIdSteps = {
+    VerificationStep.idType,
+    VerificationStep.idInput,
+    VerificationStep.documentCapture,
+    VerificationStep.nfc,
+    VerificationStep.liveness,
   };
 
   /// Wraps a step's screen with the multi-ID position strip when a run is
   /// active, so a three-ID run is not three visits to the same-looking screen
   /// with nothing saying which is which.
-  Widget _screenWithMultiId(KYCStep step) {
+  Widget _screenWithMultiId(VerificationStep step) {
     final plan = ref.read(kYCNotifierProvider.notifier).multiIdPlan();
     if (plan == null || !_multiIdSteps.contains(step)) return _screenForStep(step);
     // Keyed, because the liveness step sits under the strip in the sheet and
@@ -802,7 +802,7 @@ class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
     );
     // The full-screen liveness camera has no room for the strip, and no
     // bounded height to give a screen placed under it.
-    if (step == KYCStep.liveness &&
+    if (step == VerificationStep.liveness &&
         ref.read(kYCNotifierProvider).immersiveCapture) {
       return screen;
     }
@@ -828,15 +828,15 @@ class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
     );
   }
 
-  Widget _screenForStep(KYCStep step) => switch (step) {
-        KYCStep.consent => const ConsentScreen(),
-        KYCStep.countrySelect => const CountrySelectScreen(),
-        KYCStep.idType => const IdTypeScreen(),
-        KYCStep.documentCapture =>
+  Widget _screenForStep(VerificationStep step) => switch (step) {
+        VerificationStep.consent => const ConsentScreen(),
+        VerificationStep.countrySelect => const CountrySelectScreen(),
+        VerificationStep.idType => const IdTypeScreen(),
+        VerificationStep.documentCapture =>
           DocumentCaptureScreen(onError: widget.onError),
-        KYCStep.idInput => const IdInputScreen(),
-        KYCStep.liveness => LivenessScreen(onError: widget.onError),
-        KYCStep.submitted => SubmittedScreen(
+        VerificationStep.idInput => const IdInputScreen(),
+        VerificationStep.liveness => LivenessScreen(onError: widget.onError),
+        VerificationStep.submitted => SubmittedScreen(
             onSubmitted: widget.onSubmit,
             onError: widget.onError,
             onResult: widget.onResult,
@@ -851,52 +851,52 @@ class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
         // land (country-select WS3, questionnaire WS4, contact WS4.5, PoA WS5,
         // NFC Phase 2), so they're never routed to yet. Placeholder keeps the
         // switch exhaustive; each WS replaces its case with the real screen.
-        KYCStep.questionnaire => const QuestionnaireScreen(),
-        KYCStep.businessDetails => const BusinessDetailsScreen(),
-        KYCStep.businessKeyPeople => const BusinessKeyPeopleScreen(),
-        KYCStep.applicantRole => const ApplicantRoleScreen(),
-        KYCStep.businessDocuments => BusinessDocumentsScreen(
+        VerificationStep.questionnaire => const QuestionnaireScreen(),
+        VerificationStep.businessDetails => const BusinessDetailsScreen(),
+        VerificationStep.businessKeyPeople => const BusinessKeyPeopleScreen(),
+        VerificationStep.applicantRole => const ApplicantRoleScreen(),
+        VerificationStep.businessDocuments => BusinessDocumentsScreen(
             onError: (e) => widget.onError?.call(
-              e is KYCError
+              e is VerificationError
                   ? e
-                  : const KYCError(
+                  : const VerificationError(
                       code: 'upload_failed',
                       message: 'Business document upload failed.'),
             ),
           ),
-        KYCStep.supportingDocuments => SupportingDocumentsScreen(
+        VerificationStep.supportingDocuments => SupportingDocumentsScreen(
             onError: (e) => widget.onError?.call(
-              e is KYCError
+              e is VerificationError
                   ? e
-                  : const KYCError(
+                  : const VerificationError(
                       code: 'upload_failed',
                       message: 'Supporting document upload failed.'),
             ),
           ),
-        KYCStep.proofOfAddress => ProofOfAddressScreen(
+        VerificationStep.proofOfAddress => ProofOfAddressScreen(
             onError: (e) => widget.onError?.call(
-                  e is KYCError
+                  e is VerificationError
                       ? e
-                      : const KYCError(
+                      : const VerificationError(
                           code: 'upload_failed',
                           message: 'Proof of address upload failed.'),
                 )),
         // The address flow: find it, confirm it, show it, commit it. Each is a
         // real step in the order (see step_order.dart), so the progress bar
         // and the header's back arrow need nothing special here.
-        KYCStep.addressSearch => const AddressSearchStep(),
-        KYCStep.addressCollection => const AddressPinStep(),
-        KYCStep.addressEntrance => const AddressEntranceStep(),
-        KYCStep.addressReview => const AddressReviewStep(),
+        VerificationStep.addressSearch => const AddressSearchStep(),
+        VerificationStep.addressCollection => const AddressPinStep(),
+        VerificationStep.addressEntrance => const AddressEntranceStep(),
+        VerificationStep.addressReview => const AddressReviewStep(),
         // Both contact steps mount the SAME widget type, so without distinct
         // keys Flutter matches them by (runtimeType, key) and REUSES the State
         // across email → phone: the phone step would inherit the email step's
         // in-flight flags (stuck spinner), challenge id and destination.
-        KYCStep.contactEmail => const ContactVerificationScreen(
+        VerificationStep.contactEmail => const ContactVerificationScreen(
             key: ValueKey('contact-email'), channel: 'email'),
-        KYCStep.contactPhone => const ContactVerificationScreen(
+        VerificationStep.contactPhone => const ContactVerificationScreen(
             key: ValueKey('contact-phone'), channel: 'phone'),
-        KYCStep.nfc => const NfcScreen(),
+        VerificationStep.nfc => const NfcScreen(),
       };
 }
 
@@ -909,7 +909,7 @@ class _KycFlowWidgetState extends ConsumerState<_KycFlowWidget>
 
 class _ConfigErrorScreen extends StatelessWidget {
   final String title;
-  final MyazaIconData icon;
+  final UiIconData icon;
   final String message;
   final VoidCallback onClose;
 
@@ -932,8 +932,8 @@ class _ConfigErrorScreen extends StatelessWidget {
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(
-          horizontal: MyazaSpacing.md,
-          vertical: MyazaSpacing.xl,
+          horizontal: UiSpacing.md,
+          vertical: UiSpacing.xl,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -945,30 +945,30 @@ class _ConfigErrorScreen extends StatelessWidget {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: MyazaColors.error.withValues(alpha: 0.1),
+                  color: UiColors.error.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: MyazaIcon(
+                child: UiIcon(
                   icon,
                   size: 40,
-                  color: MyazaColors.error,
+                  color: UiColors.error,
                 ),
               ),
             ),
-            const SizedBox(height: MyazaSpacing.lg),
+            const SizedBox(height: UiSpacing.lg),
             Text(
               title,
               style: text.heading2,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: MyazaSpacing.xs),
+            const SizedBox(height: UiSpacing.xs),
             Text(
               message,
               style: text.bodyMedium.copyWith(color: colors.textSecondary),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: MyazaSpacing.lg),
-            MyazaButton(label: 'Close', onPressed: onClose),
+            const SizedBox(height: UiSpacing.lg),
+            UiButton(label: 'Close', onPressed: onClose),
           ],
         ),
       ).animate().fadeIn(duration: 250.ms),

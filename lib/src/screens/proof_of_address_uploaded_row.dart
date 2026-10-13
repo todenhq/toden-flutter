@@ -41,16 +41,16 @@ class PoaUploadedRow extends StatelessWidget {
     final text = context.myazaText;
 
     return Container(
-      padding: const EdgeInsets.all(MyazaSpacing.md),
+      padding: const EdgeInsets.all(UiSpacing.md),
       decoration: BoxDecoration(
         color: colors.backgroundSecondary,
         border: Border.all(color: colors.border),
-        borderRadius: BorderRadius.circular(MyazaRadius.md),
+        borderRadius: BorderRadius.circular(UiRadius.md),
       ),
       child: Row(
         children: [
           PoaThumb(bytes: previewBytes, isPdf: isPdf),
-          const SizedBox(width: MyazaSpacing.md),
+          const SizedBox(width: UiSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,8 +66,8 @@ class PoaUploadedRow extends StatelessWidget {
                 Row(
                   children: [
                     if (country != null) ...[
-                      MyazaCountryFlag(country: country, size: 14),
-                      const SizedBox(width: MyazaSpacing.xs),
+                      UiCountryFlag(country: country, size: 14),
+                      const SizedBox(width: UiSpacing.xs),
                     ],
                     Flexible(
                       child: Text(
@@ -88,7 +88,7 @@ class PoaUploadedRow extends StatelessWidget {
               onPressed: onRemove,
               visualDensity: VisualDensity.compact,
               tooltip: 'Remove document',
-              icon: MyazaIcon(MyazaIcons.x, size: 18, color: colors.textSecondary),
+              icon: UiIcon(UiIcons.x, size: 18, color: colors.textSecondary),
             ),
         ],
       ),
@@ -118,14 +118,14 @@ class PoaThumb extends StatelessWidget {
         decoration: BoxDecoration(
           color: colors.background,
           border: Border.all(color: colors.border),
-          borderRadius: BorderRadius.circular(MyazaRadius.xs),
+          borderRadius: BorderRadius.circular(UiRadius.xs),
         ),
-        child: MyazaIcon(MyazaIcons.fileText, size: 22, color: colors.primary),
+        child: UiIcon(UiIcons.fileText, size: 22, color: colors.primary),
       );
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(MyazaRadius.xs),
+      borderRadius: BorderRadius.circular(UiRadius.xs),
       child: Image.memory(
         data,
         width: 48,

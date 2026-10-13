@@ -34,7 +34,7 @@ class LivenessImmersiveControls extends StatelessWidget {
             left: side,
             child: _RoundButton(
               // The long arrow the header's own back button draws.
-              icon: MyazaIcons.moveLeft,
+              icon: UiIcons.moveLeft,
               iconSize: 22,
               label: 'Back',
               target: target,
@@ -46,7 +46,7 @@ class LivenessImmersiveControls extends StatelessWidget {
             top: top,
             right: side,
             child: _RoundButton(
-              icon: MyazaIcons.x,
+              icon: UiIcons.x,
               iconSize: 20,
               label: 'Close',
               target: target,
@@ -67,7 +67,7 @@ class _RoundButton extends StatelessWidget {
     required this.onTap,
   });
 
-  final MyazaIconData icon;
+  final UiIconData icon;
 
   /// The size the header draws this glyph at, so it is the same control.
   final double iconSize;
@@ -103,7 +103,7 @@ class _RoundButton extends StatelessWidget {
                 onTap: onTap,
                 child: SizedBox.square(
                   dimension: 40,
-                  child: MyazaIcon(
+                  child: UiIcon(
                     icon,
                     size: iconSize,
                     color: colors.textDark.withValues(alpha: 0.8),

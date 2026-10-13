@@ -1,10 +1,10 @@
 import '../config/address_collection.dart';
 import '../config/business_application.dart';
 import 'address_step_order.dart';
-import '../config/kyc_config.dart';
+import '../config/verification_config.dart';
 import '../config/scope.dart';
 import '../config/supporting_documents.dart';
-import 'kyc_state.dart';
+import 'verification_state.dart';
 import 'step_resubmit.dart';
 
 /// The effective country for the flow: the one picked in the country-select step
@@ -13,11 +13,11 @@ import 'step_resubmit.dart';
 /// this so a picked country flows through consistently.
 ///
 /// Returns non-null: `config.country` is optional only so a `workflowId` mount
-/// need not invent one, and `MyazaKYC.show` refuses to mount without a country
+/// need not invent one, and `Verification.show` refuses to mount without a country
 /// once the workflow has been merged in. The `?? ''` is unreachable in a mounted
 /// flow — it exists so this stays total rather than forcing a bang operator into
 /// every caller.
-String effectiveCountry(MyazaKYCConfig config, KYCState state) =>
+String effectiveCountry(VerificationConfig config, VerificationState state) =>
     state.selectedCountry ??
     config.country ??
     // KYB configs carry no individual `country` — the applicant's capture leg
@@ -27,14 +27,14 @@ String effectiveCountry(MyazaKYCConfig config, KYCState state) =>
     '';
 
 /// Whether the flow offers more than one country (→ a country-select step).
-bool hasCountrySelectStep(MyazaKYCConfig config) =>
+bool hasCountrySelectStep(VerificationConfig config) =>
     (config.countries?.length ?? 0) > 1;
 
 /// The self-selected key person's ID-issuing country (uppercase ISO-2), when
 /// the applicant picked themselves AND that entry carries one. The applicant
 /// leg then SKIPS the country-select step — they already answered "where was
 /// your ID issued?" on the key-people step.
-String? applicantSelfCountry(KYCState state) {
+String? applicantSelfCountry(VerificationState state) {
   final index = state.applicantKeyPersonIndex;
   if (index == null || index < 0 || index >= state.keyPeople.length) return null;
   final country = state.keyPeople[index].country.trim();
@@ -46,7 +46,7 @@ String? applicantSelfCountry(KYCState state) {
 /// KYB applicant leg's case (business configs carry no individual country
 /// list, and the applicant may hold an ID issued anywhere the org can
 /// verify). Empty while the server config is still loading.
-List<String> countrySelectOptions(MyazaKYCConfig config, KYCState state) {
+List<String> countrySelectOptions(VerificationConfig config, VerificationState state) {
   final configured = [
     for (final entry in config.countries ?? const <WorkflowCountryOption>[])
       entry.country.toUpperCase(),
@@ -64,7 +64,7 @@ List<String> countrySelectOptions(MyazaKYCConfig config, KYCState state) {
 /// the ID is chip-capable (`supportsNfc`), and the workflow's composite-key
 /// selection (if any) includes it. Chip-capable IDs are document IDs, so this is
 /// only ever true on the document-capture path.
-bool hasNfcStep(MyazaKYCConfig config, KYCState state) {
+bool hasNfcStep(VerificationConfig config, VerificationState state) {
   final nfc = config.nfc;
   if (nfc == null || !nfc.enabled) return false;
   final cfg = state.selectedIdType;
@@ -76,7 +76,7 @@ bool hasNfcStep(MyazaKYCConfig config, KYCState state) {
 /// included. What the supporting-documents step is resolved against: a NIN
 /// slip is asked for because the person used their NIN, so the question can
 /// only be answered once an ID is chosen.
-List<String> verifiedIdComposites(MyazaKYCConfig config, KYCState state) =>
+List<String> verifiedIdComposites(VerificationConfig config, VerificationState state) =>
     verifiedIdsFor(
       country: effectiveCountry(config, state),
       idType: state.selectedIdType?.key,
@@ -84,7 +84,7 @@ List<String> verifiedIdComposites(MyazaKYCConfig config, KYCState state) =>
     );
 
 /// Whether the supporting-documents step has anything to ask for right now.
-bool hasSupportingDocumentsFor(MyazaKYCConfig config, KYCState state) =>
+bool hasSupportingDocumentsFor(VerificationConfig config, VerificationState state) =>
     hasSupportingDocumentsStep(
       config.supportingDocuments,
       verifiedIdComposites(config, state),
@@ -93,14 +93,14 @@ bool hasSupportingDocumentsFor(MyazaKYCConfig config, KYCState state) =>
 // ─── Step order (single source of truth) ─────────────────────────────────────
 //
 // The ordered list of steps for the current config + state. Both navigation
-// (KYCNotifier.nextStep/previousStep) and the progress bar read this, mirroring
+// (VerificationNotifier.nextStep/previousStep) and the progress bar read this, mirroring
 // the web SDK's `buildStepOrder`. Optional steps are inserted only when their
 // feature is enabled; each workstream flips its own `has*` gate on as it lands.
 
 /// Whether the currently selected ID requires document capture (defaulting to
 /// true until an ID is chosen, matching the web SDK), ANDed with the global
 /// `enableDocumentCapture` flag.
-bool requiresCaptureFor(MyazaKYCConfig config, KYCState state) {
+bool requiresCaptureFor(VerificationConfig config, VerificationState state) {
   final requires = state.selectedIdType?.requiresDocumentCapture ?? true;
   return requires && config.enableDocumentCapture;
 }
@@ -108,7 +108,7 @@ bool requiresCaptureFor(MyazaKYCConfig config, KYCState state) {
 /// Whether liveness runs for the selected ID. The server per-ID `livenessCheck`
 /// flag wins; falls back to the consumer's `enableLiveness`/`enableSelfie` when
 /// the server config hasn't loaded.
-bool livenessEnabledFor(MyazaKYCConfig config, KYCState state) {
+bool livenessEnabledFor(VerificationConfig config, VerificationState state) {
   if (!config.enableLiveness || !config.enableSelfie) return false;
   final cfg = state.selectedIdType;
   if (cfg == null) return true;
@@ -124,7 +124,7 @@ bool livenessEnabledFor(MyazaKYCConfig config, KYCState state) {
 ///
 /// A reviewer's resubmission narrowing is applied LAST, over the fully-built
 /// order, so it works the same whichever branch below produced it.
-List<KYCStep> buildStepOrder(MyazaKYCConfig config, KYCState state) {
+List<VerificationStep> buildStepOrder(VerificationConfig config, VerificationState state) {
   return applyResubmitSteps(_fullStepOrder(config, state), config.resubmit);
 }
 
@@ -138,16 +138,16 @@ List<KYCStep> buildStepOrder(MyazaKYCConfig config, KYCState state) {
 /// screen appearing in the order a moment later behind it (user report
 /// 2026-09-08). RN reads the store, which already carries the preloaded
 /// config; this is the same read.
-KYCStep openingStep(MyazaKYCConfig config, {ServerSdkConfig? serverConfig}) =>
+VerificationStep openingStep(VerificationConfig config, {ServerSdkConfig? serverConfig}) =>
     buildStepOrder(
       config,
-      KYCState(serverConfig: serverConfig ?? ServerSdkConfig.loading),
+      VerificationState(serverConfig: serverConfig ?? ServerSdkConfig.loading),
     ).first;
 
 /// The flow as configured, before any reviewer narrowing. Every branch builds
 /// its head from `config.consentStep`: the consent screen is the opening
 /// screen only while the workflow keeps it.
-List<KYCStep> _fullStepOrder(MyazaKYCConfig config, KYCState state) {
+List<VerificationStep> _fullStepOrder(VerificationConfig config, VerificationState state) {
   final requiresCapture = requiresCaptureFor(config, state);
   final hasLiveness = livenessEnabledFor(config, state);
   final hasQuestionnaire = config.questionnaire?.isActive ?? false;
@@ -164,10 +164,10 @@ List<KYCStep> _fullStepOrder(MyazaKYCConfig config, KYCState state) {
   if (config.subjectType == 'business') {
     final business = config.business;
     return [
-      if (config.consentStep) KYCStep.consent,
-      if (hasEmailVerify) KYCStep.contactEmail,
-      if (hasPhoneVerify) KYCStep.contactPhone,
-      KYCStep.businessDetails,
+      if (config.consentStep) VerificationStep.consent,
+      if (hasEmailVerify) VerificationStep.contactEmail,
+      if (hasPhoneVerify) VerificationStep.contactPhone,
+      VerificationStep.businessDetails,
       // The premises pin right after the details: it is about the place the
       // applicant has just identified, before the application moves on to
       // documents and people. Mirrors the web and RN SDKs.
@@ -181,16 +181,16 @@ List<KYCStep> _fullStepOrder(MyazaKYCConfig config, KYCState state) {
       // has just identified, so they follow that thread, and the register's
       // officer list — which the key-people step is a confirmation of — is what
       // should still be in mind when they get to naming people.
-      if (hasBusinessDocumentsStep(business)) KYCStep.businessDocuments,
+      if (hasBusinessDocumentsStep(business)) VerificationStep.businessDocuments,
       // The questionnaire BEFORE key people: its questions are about the
       // COMPANY (volumes, source of funds), so they belong with the company
       // section — and naming the directors hands the application over to other
       // people, so the applicant's own questions must not trail that. Mirrors
       // the web and RN SDKs.
-      if (hasQuestionnaire) KYCStep.questionnaire,
-      if (hasKeyPeopleCollection(business)) KYCStep.businessKeyPeople,
+      if (hasQuestionnaire) VerificationStep.questionnaire,
+      if (hasKeyPeopleCollection(business)) VerificationStep.businessKeyPeople,
       if (hasApplicantVerification(business)) ...[
-        KYCStep.applicantRole,
+        VerificationStep.applicantRole,
         // The applicant may hold an ID issued anywhere the org can verify —
         // more than one granted country means they pick theirs first, exactly
         // like a multi-region individual flow. Mirrors the web SDK. EXCEPT
@@ -198,13 +198,13 @@ List<KYCStep> _fullStepOrder(MyazaKYCConfig config, KYCState state) {
         // carries a country — already answered, so the step is skipped.
         if (countrySelectOptions(config, state).length > 1 &&
             applicantSelfCountry(state) == null)
-          KYCStep.countrySelect,
-        KYCStep.idType,
-        if (requiresCapture) KYCStep.documentCapture else KYCStep.idInput,
-        if (hasNfcStep(config, state)) KYCStep.nfc,
-        if (hasLiveness) KYCStep.liveness,
+          VerificationStep.countrySelect,
+        VerificationStep.idType,
+        if (requiresCapture) VerificationStep.documentCapture else VerificationStep.idInput,
+        if (hasNfcStep(config, state)) VerificationStep.nfc,
+        if (hasLiveness) VerificationStep.liveness,
       ],
-      KYCStep.submitted,
+      VerificationStep.submitted,
     ];
   }
 
@@ -212,40 +212,40 @@ List<KYCStep> _fullStepOrder(MyazaKYCConfig config, KYCState state) {
   final scope = configScope(config.scope);
   if (scope == 'address') {
     return [
-      if (config.consentStep) KYCStep.consent,
-      if (hasEmailVerify) KYCStep.contactEmail,
-      if (hasPhoneVerify) KYCStep.contactPhone,
-      if (config.proofOfAddress?.enabled ?? false) KYCStep.proofOfAddress,
+      if (config.consentStep) VerificationStep.consent,
+      if (hasEmailVerify) VerificationStep.contactEmail,
+      if (hasPhoneVerify) VerificationStep.contactPhone,
+      if (config.proofOfAddress?.enabled ?? false) VerificationStep.proofOfAddress,
       if (hasAddressCollection) ...addressStepsFor(config, state),
-      if (hasQuestionnaire) KYCStep.questionnaire,
-      KYCStep.submitted,
+      if (hasQuestionnaire) VerificationStep.questionnaire,
+      VerificationStep.submitted,
     ];
   }
   if (isFaceScope(scope)) {
     return [
-      if (config.consentStep) KYCStep.consent,
-      if (hasEmailVerify) KYCStep.contactEmail,
-      if (hasPhoneVerify) KYCStep.contactPhone,
-      KYCStep.liveness,
-      if (hasQuestionnaire) KYCStep.questionnaire,
-      KYCStep.submitted,
+      if (config.consentStep) VerificationStep.consent,
+      if (hasEmailVerify) VerificationStep.contactEmail,
+      if (hasPhoneVerify) VerificationStep.contactPhone,
+      VerificationStep.liveness,
+      if (hasQuestionnaire) VerificationStep.questionnaire,
+      VerificationStep.submitted,
     ];
   }
   if (scope == 'questionnaire') {
     return [
-      if (config.consentStep) KYCStep.consent,
-      if (hasEmailVerify) KYCStep.contactEmail,
-      if (hasPhoneVerify) KYCStep.contactPhone,
-      KYCStep.questionnaire,
-      KYCStep.submitted,
+      if (config.consentStep) VerificationStep.consent,
+      if (hasEmailVerify) VerificationStep.contactEmail,
+      if (hasPhoneVerify) VerificationStep.contactPhone,
+      VerificationStep.questionnaire,
+      VerificationStep.submitted,
     ];
   }
   if (scope == 'contact') {
     return [
-      if (config.consentStep) KYCStep.consent,
-      if (hasEmailVerify) KYCStep.contactEmail,
-      if (hasPhoneVerify) KYCStep.contactPhone,
-      KYCStep.submitted,
+      if (config.consentStep) VerificationStep.consent,
+      if (hasEmailVerify) VerificationStep.contactEmail,
+      if (hasPhoneVerify) VerificationStep.contactPhone,
+      VerificationStep.submitted,
     ];
   }
 
@@ -254,26 +254,26 @@ List<KYCStep> _fullStepOrder(MyazaKYCConfig config, KYCState state) {
   final hasNfc = hasNfcStep(config, state);
 
   return [
-    if (config.consentStep) KYCStep.consent,
-    if (hasEmailVerify) KYCStep.contactEmail,
-    if (hasPhoneVerify) KYCStep.contactPhone,
-    if (hasCountrySelect) KYCStep.countrySelect,
-    KYCStep.idType,
-    if (requiresCapture) KYCStep.documentCapture else KYCStep.idInput,
-    if (hasNfc) KYCStep.nfc,
-    if (hasLiveness) KYCStep.liveness,
+    if (config.consentStep) VerificationStep.consent,
+    if (hasEmailVerify) VerificationStep.contactEmail,
+    if (hasPhoneVerify) VerificationStep.contactPhone,
+    if (hasCountrySelect) VerificationStep.countrySelect,
+    VerificationStep.idType,
+    if (requiresCapture) VerificationStep.documentCapture else VerificationStep.idInput,
+    if (hasNfc) VerificationStep.nfc,
+    if (hasLiveness) VerificationStep.liveness,
     // Collection, not evidence — so it sits after every check the verification
     // is decided on, and ahead of the address evidence it is judged on (user
     // decision 2026-09-22). An empty resolution drops the step entirely.
-    if (hasSupportingDocumentsFor(config, state)) KYCStep.supportingDocuments,
-    if (hasProofOfAddress) KYCStep.proofOfAddress,
+    if (hasSupportingDocumentsFor(config, state)) VerificationStep.supportingDocuments,
+    if (hasProofOfAddress) VerificationStep.proofOfAddress,
     // The address capture is REAL steps — find it, confirm it, show it, commit
     // it — so the progress bar advances through them and back/forward is
     // ordinary step navigation rather than a state machine inside one screen.
     // Which of the four apply is `addressStepsFor` (address_step_order.dart),
     // read here and by the flow itself so the two cannot disagree.
     if (hasAddressCollection) ...addressStepsFor(config, state),
-    if (hasQuestionnaire) KYCStep.questionnaire,
-    KYCStep.submitted,
+    if (hasQuestionnaire) VerificationStep.questionnaire,
+    VerificationStep.submitted,
   ];
 }

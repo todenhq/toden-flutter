@@ -1,4 +1,4 @@
-import '../providers/kyc_state.dart';
+import '../providers/verification_state.dart';
 
 // A KYB application whose BUSINESS half already committed, resumed before the
 // applicant's own verification went through.
@@ -61,9 +61,9 @@ String businessRequestId(ResumedApplication? resumed, String Function() fresh) =
 /// application; and the selfie is always taken again after a restart
 /// (config/liveness_resume.dart). Null when the order has no applicant leg, in
 /// which case the ordinary restore stands.
-KYCStep? applicantLegStart(List<KYCStep> order) {
-  final role = order.indexOf(KYCStep.applicantRole);
+VerificationStep? applicantLegStart(List<VerificationStep> order) {
+  final role = order.indexOf(VerificationStep.applicantRole);
   if (role < 0 || role + 1 >= order.length) return null;
   final next = order[role + 1];
-  return next == KYCStep.submitted ? null : next;
+  return next == VerificationStep.submitted ? null : next;
 }

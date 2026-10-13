@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/kyc_config.dart';
+import 'package:myaza_kyc_sdk_flutter/src/config/verification_config.dart';
 
 /// A brand import produces TWO palettes: the light one lands on the appearance
 /// and the dark one in `appearance.dark`.
@@ -10,11 +10,11 @@ import 'package:myaza_kyc_sdk_flutter/src/config/kyc_config.dart';
 /// one — a branded flow kept light surfaces after the theme toggle, which made
 /// dark mode useless for every customer who set colours.
 void main() {
-  const light = MyazaKYCAppearance(
+  const light = VerificationAppearance(
     primaryColor: Color(0xFF5645F5),
     backgroundColor: Color(0xFFFCF7F2),
     textColor: Color(0xFF231D2D),
-    dark: MyazaKYCAppearance(
+    dark: VerificationAppearance(
       primaryColor: Color(0xFF7B6EF7),
       backgroundColor: Color(0xFF110C1A),
       textColor: Color(0xFFF4F2FA),
@@ -37,10 +37,10 @@ void main() {
     });
 
     test('merges partially — a dark block may set only some tokens', () {
-      const partial = MyazaKYCAppearance(
+      const partial = VerificationAppearance(
         primaryColor: Color(0xFF5645F5),
         backgroundColor: Color(0xFFFFFFFF),
-        dark: MyazaKYCAppearance(backgroundColor: Color(0xFF000000)),
+        dark: VerificationAppearance(backgroundColor: Color(0xFF000000)),
       );
       final a = partial.forBrightness(true);
       expect(a.backgroundColor, const Color(0xFF000000));
@@ -50,17 +50,17 @@ void main() {
     });
 
     test('is a no-op when no dark block was given', () {
-      const only = MyazaKYCAppearance(backgroundColor: Color(0xFFFFFFFF));
+      const only = VerificationAppearance(backgroundColor: Color(0xFFFFFFFF));
       expect(only.forBrightness(true).backgroundColor, const Color(0xFFFFFFFF));
     });
 
     test('carries non-colour settings through unchanged', () {
       // Radius and fonts never differ by mode; dropping them on the dark path
       // would silently un-brand half the flow.
-      const a = MyazaKYCAppearance(
+      const a = VerificationAppearance(
         borderRadius: 4,
         fontFamily: 'Poppins',
-        dark: MyazaKYCAppearance(backgroundColor: Color(0xFF000000)),
+        dark: VerificationAppearance(backgroundColor: Color(0xFF000000)),
       );
       final d = a.forBrightness(true);
       expect(d.borderRadius, 4);

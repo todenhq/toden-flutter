@@ -25,10 +25,10 @@ class NfcScannedSummary extends StatelessWidget {
     final name = scan.displayName;
 
     return Container(
-      padding: const EdgeInsets.all(MyazaSpacing.md),
+      padding: const EdgeInsets.all(UiSpacing.md),
       decoration: BoxDecoration(
         color: colors.primary50,
-        borderRadius: BorderRadius.circular(MyazaRadius.md),
+        borderRadius: BorderRadius.circular(UiRadius.md),
         border: Border.all(color: colors.primary.withValues(alpha: 0.25)),
       ),
       child: Row(
@@ -38,9 +38,9 @@ class NfcScannedSummary extends StatelessWidget {
             // Optically aligns the tick with the first line of text rather than
             // the block's centre, which drifts as the name wraps.
             padding: const EdgeInsets.only(top: 2),
-            child: MyazaIcon(MyazaIcons.circleCheck, size: 18, color: colors.primary),
+            child: UiIcon(UiIcons.circleCheck, size: 18, color: colors.primary),
           ),
-          const SizedBox(width: MyazaSpacing.sm),
+          const SizedBox(width: UiSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,7 +61,7 @@ class NfcScannedSummary extends StatelessWidget {
                       height: 1.3,
                     ),
                   ),
-                  const SizedBox(height: MyazaSpacing.sm),
+                  const SizedBox(height: UiSpacing.sm),
                 ],
                 _label(text, colors, 'Document number'),
                 const SizedBox(height: 2),
@@ -87,7 +87,7 @@ class NfcScannedSummary extends StatelessWidget {
 
   /// Small caps-ish field label. Named fields beat a middot-joined string: the
   /// old "NAME · B51305135" gave no clue what the second value was.
-  Widget _label(MyazaThemeText text, MyazaColorScheme colors, String value) =>
+  Widget _label(UiThemeText text, UiColorScheme colors, String value) =>
       Text(
         value.toUpperCase(),
         style: text.bodySmall.copyWith(

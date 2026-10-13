@@ -13,7 +13,7 @@ import '../config/theme.dart';
 /// move on, and everything else still scrolls under them.
 ///
 /// Needs a BOUNDED parent: the step must be in the sheet's fills-viewport set
-/// (myaza_kyc_widget.dart), or the Expanded below has nothing to expand into.
+/// (verification_widget.dart), or the Expanded below has nothing to expand into.
 class StickyActions extends StatelessWidget {
   final Widget body;
   final Widget actions;
@@ -28,7 +28,7 @@ class StickyActions extends StatelessWidget {
       children: [
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: MyazaSpacing.sm),
+            padding: const EdgeInsets.only(bottom: UiSpacing.sm),
             child: body,
           ),
         ),
@@ -41,10 +41,10 @@ class StickyActions extends StatelessWidget {
         LayoutBuilder(
           builder: (context, constraints) => FractionallySizedBox(
             widthFactor:
-                (constraints.maxWidth + 2 * MyazaSpacing.md) / constraints.maxWidth,
+                (constraints.maxWidth + 2 * UiSpacing.md) / constraints.maxWidth,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(MyazaSpacing.md,
-                  MyazaSpacing.sm, MyazaSpacing.md, MyazaSpacing.md),
+              padding: const EdgeInsets.fromLTRB(UiSpacing.md,
+                  UiSpacing.sm, UiSpacing.md, UiSpacing.md),
               decoration: BoxDecoration(
                 color: colors.background,
                 border:

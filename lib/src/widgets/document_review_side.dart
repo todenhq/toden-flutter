@@ -60,7 +60,7 @@ class DocumentReviewThumb extends StatelessWidget {
       children: [
         ClipRRect(
           key: side.key,
-          borderRadius: BorderRadius.circular(MyazaRadius.md),
+          borderRadius: BorderRadius.circular(UiRadius.md),
           child: Stack(
             children: [
               GestureDetector(
@@ -80,18 +80,18 @@ class DocumentReviewThumb extends StatelessWidget {
               // radius a 6px offset puts the chip on the round, where it reads
               // as clipped.
               Positioned(
-                left: MyazaSpacing.md,
-                top: MyazaSpacing.md,
+                left: UiSpacing.md,
+                top: UiSpacing.md,
                 child: _Chip(child: Text(side.label, style: _chipTextStyle)),
               ),
               // Enlarging is a tap on the image, which nothing announces — so
               // the image says so itself.
               const Positioned(
-                right: MyazaSpacing.md,
-                bottom: MyazaSpacing.md,
+                right: UiSpacing.md,
+                bottom: UiSpacing.md,
                 child: _Chip(
                   icon: true,
-                  child: MyazaIcon(MyazaIcons.maximize2,
+                  child: UiIcon(UiIcons.maximize2,
                       size: 18, color: Colors.white),
                 ),
               ),
@@ -99,7 +99,7 @@ class DocumentReviewThumb extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: MyazaSpacing.xs),
+        const SizedBox(height: UiSpacing.xs),
         // Retake as a LABELLED control, not an icon on the photo.
         //
         // The web version hides it under the image and reveals it on hover;
@@ -108,8 +108,8 @@ class DocumentReviewThumb extends StatelessWidget {
         // is the difference between a discoverable action and a decoration.
         TextButton.icon(
           onPressed: isBusy ? null : side.onRetake,
-          icon: const MyazaIcon(MyazaIcons.rotateCcw, size: 14),
-          label: Text(uploadOnly ? 'Replace' : context.kycText('common.retake'),
+          icon: const UiIcon(UiIcons.rotateCcw, size: 14),
+          label: Text(uploadOnly ? 'Replace' : context.verificationText('common.retake'),
               style: text.bodySmall),
           style: TextButton.styleFrom(
             foregroundColor: colors.primary,
@@ -154,7 +154,7 @@ class DocumentReviewZoom extends StatelessWidget {
     return ColoredBox(
       color: const Color(0xF20A0A12), // ~95% opaque near-black
       child: Padding(
-        padding: const EdgeInsets.all(MyazaSpacing.sm),
+        padding: const EdgeInsets.all(UiSpacing.sm),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -173,20 +173,20 @@ class DocumentReviewZoom extends StatelessWidget {
                     child: const SizedBox(
                       width: 40,
                       height: 40,
-                      child: MyazaIcon(MyazaIcons.x, size: 20, color: Colors.white),
+                      child: UiIcon(UiIcons.x, size: 20, color: Colors.white),
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: MyazaSpacing.sm),
+            const SizedBox(height: UiSpacing.sm),
             Expanded(
               // Tapping the image again closes it — the same gesture that
               // opened it, which is what people try first.
               child: GestureDetector(
                 onTap: onClose,
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(MyazaRadius.md),
+                  borderRadius: BorderRadius.circular(UiRadius.md),
                   child: InteractiveViewer(
                     maxScale: 4,
                     child: Center(
@@ -196,16 +196,16 @@ class DocumentReviewZoom extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: MyazaSpacing.sm),
+            const SizedBox(height: UiSpacing.sm),
             const Text(
               'Pinch to zoom in further.',
               style: _hintTextStyle,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: MyazaSpacing.sm),
+            const SizedBox(height: UiSpacing.sm),
             FilledButton.icon(
               onPressed: isBusy ? null : onRetake,
-              icon: const MyazaIcon(MyazaIcons.rotateCcw, size: 16),
+              icon: const UiIcon(UiIcons.rotateCcw, size: 16),
               label: Text(uploadOnly
                   ? 'Replace'
                   : 'Retake ${side.label.toLowerCase()}'),

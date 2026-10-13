@@ -15,12 +15,12 @@ double _contrast(Color a, Color b) {
 
 void main() {
   test('dark handle reaches 3:1 on every surface a handle sits on', () {
-    const colors = MyazaColorScheme.dark;
+    const colors = UiColorScheme.dark;
     final handle = myazaHandleColor(colors, light: colors.gray300);
     final surfaces = {
       'background': colors.background,
       'backgroundSecondary': colors.backgroundSecondary,
-      'header tint': kycHeaderSurface(colors, isDark: true),
+      'header tint': verificationHeaderSurface(colors, isDark: true),
     };
     for (final entry in surfaces.entries) {
       final seen = Color.alphaBlend(handle, entry.value);
@@ -29,7 +29,7 @@ void main() {
   });
 
   test('a branded dark palette gets a visible handle too', () {
-    final colors = MyazaColorScheme.dark.copyWith(
+    final colors = UiColorScheme.dark.copyWith(
       background: const Color(0xFF12241A),
       backgroundSecondary: const Color(0xFF1B3326),
       textDark: const Color(0xFFE8F5EC),
@@ -40,7 +40,7 @@ void main() {
   });
 
   test('light themes keep the colour the caller used', () {
-    const colors = MyazaColorScheme.light;
+    const colors = UiColorScheme.light;
     expect(myazaHandleColor(colors, light: colors.gray300), colors.gray300);
     expect(myazaHandleColor(colors, light: colors.border), colors.border);
   });

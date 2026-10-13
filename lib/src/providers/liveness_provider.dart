@@ -16,7 +16,7 @@ import '../liveness/face_window.dart';
 import '../liveness/passive_hold.dart';
 import '../liveness/sharpest_still.dart';
 import '../services/image_service.dart';
-import 'kyc_provider.dart';
+import 'verification_provider.dart';
 
 part 'liveness_provider.g.dart';
 
@@ -211,7 +211,7 @@ class LivenessNotifier extends _$LivenessNotifier {
 
   @override
   LivenessState build() {
-    final config = ref.read(kycConfigProvider);
+    final config = ref.read(verificationConfigProvider);
     final livenessConfig = config.livenessConfig;
 
     // Flash-only liveness replaces the gesture challenges with the screen's
@@ -536,7 +536,7 @@ class LivenessNotifier extends _$LivenessNotifier {
   /// check: prove liveness with gesture challenges instead of passing on a
   /// flash nobody could measure.
   void startFallbackGestures() {
-    final livenessConfig = ref.read(kycConfigProvider).livenessConfig;
+    final livenessConfig = ref.read(verificationConfigProvider).livenessConfig;
     _fellBackToGestures = true;
     _manager = ChallengeManager(
       pool: livenessConfig?.challengePool,
@@ -736,7 +736,7 @@ class LivenessNotifier extends _$LivenessNotifier {
   /// gestures; the passive hold keeps its own, since it is not a gesture.
   int _timeoutFor(ChallengeConfig challenge) {
     if (challenge.type == LivenessChallenge.hold) return challenge.timeoutSeconds;
-    return ref.read(kycConfigProvider).livenessConfig?.timeoutPerChallenge ??
+    return ref.read(verificationConfigProvider).livenessConfig?.timeoutPerChallenge ??
         challenge.timeoutSeconds;
   }
 

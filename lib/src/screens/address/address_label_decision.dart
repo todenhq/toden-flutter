@@ -32,7 +32,7 @@ class AddressLabelDecision extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.primary.withValues(alpha: 0.05),
         border: Border.all(color: colors.primary.withValues(alpha: 0.25)),
-        borderRadius: BorderRadius.circular(MyazaRadius.md),
+        borderRadius: BorderRadius.circular(UiRadius.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -48,7 +48,7 @@ class AddressLabelDecision extends StatelessWidget {
                   color: colors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: MyazaIcon(MyazaIcons.mapPinned,
+                child: UiIcon(UiIcons.mapPinned,
                     size: 16, color: colors.primary),
               ),
               const SizedBox(width: 12),
@@ -56,7 +56,7 @@ class AddressLabelDecision extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(context.kycText('address.labelDecision.title'),
+                    Text(context.verificationText('address.labelDecision.title'),
                         style:
                             text.label.copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 2),
@@ -88,7 +88,7 @@ class AddressLabelDecision extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: MyazaSpacing.sm + 4),
+          const SizedBox(height: UiSpacing.sm + 4),
           // Indented under the text (web pl-11), and COMPACT: a 36px pair
           // rather than two 48px flow buttons, the same buttons RN draws.
           Padding(
@@ -97,15 +97,15 @@ class AddressLabelDecision extends StatelessWidget {
               children: [
                 Expanded(
                   child: _DecisionButton(
-                    label: context.kycText('address.labelDecision.keep'),
+                    label: context.verificationText('address.labelDecision.keep'),
                     primary: true,
                     onTap: onKeep,
                   ),
                 ),
-                const SizedBox(width: MyazaSpacing.sm),
+                const SizedBox(width: UiSpacing.sm),
                 Expanded(
                   child: _DecisionButton(
-                    label: context.kycText('address.labelDecision.adopt'),
+                    label: context.verificationText('address.labelDecision.adopt'),
                     onTap: onAdopt,
                   ),
                 ),
@@ -138,17 +138,17 @@ class _DecisionButton extends StatelessWidget {
       label: label,
       child: Material(
         color: primary ? colors.primary : colors.background,
-        borderRadius: BorderRadius.circular(MyazaRadius.xs),
+        borderRadius: BorderRadius.circular(UiRadius.xs),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(MyazaRadius.xs),
+          borderRadius: BorderRadius.circular(UiRadius.xs),
           child: Container(
             height: 36,
             alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: MyazaSpacing.sm),
+            padding: const EdgeInsets.symmetric(horizontal: UiSpacing.sm),
             decoration: BoxDecoration(
               border: primary ? null : Border.all(color: colors.primary),
-              borderRadius: BorderRadius.circular(MyazaRadius.xs),
+              borderRadius: BorderRadius.circular(UiRadius.xs),
             ),
             child: Text(
               label,

@@ -1,6 +1,6 @@
 import 'biometric_options.dart';
 import 'copy_tokens.dart';
-import 'kyc_config.dart';
+import 'verification_config.dart';
 import 'scope.dart';
 
 // ─── The org's copy on the biometric screens ────────────────────────────────
@@ -115,7 +115,7 @@ ResolvedBiometricCopy biometricCopyFor({
 }
 
 /// The same question asked of a whole config.
-extension BiometricCopyX on MyazaKYCConfig {
+extension BiometricCopyX on VerificationConfig {
   ResolvedBiometricCopy get biometricCopy => biometricCopyFor(
         scope: scope,
         biometric: biometric,

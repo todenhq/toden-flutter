@@ -5,7 +5,7 @@ import '../config/business.dart';
 import '../config/business_application.dart';
 import '../config/key_people_section_defs.dart';
 import '../config/key_people_sections.dart';
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 import 'key_person_sheet.dart';
 
 // Opening the add/edit sheet and folding its result back into the list. Split
@@ -21,7 +21,7 @@ double keyPersonPct(KeyPersonEntry row) => row.ownershipValue ?? 0;
 /// classified an NG flow at 25 on screen while the server read the submission
 /// at 10, so the two disagreed about who was a beneficial owner.
 double keyPeopleThreshold(WidgetRef ref) {
-  final config = ref.read(kycConfigProvider);
+  final config = ref.read(verificationConfigProvider);
   return config.business?.keyPeople?.ownershipThreshold ??
       defaultUboThreshold(
         ref.read(kYCNotifierProvider).businessCountry ??
@@ -42,7 +42,7 @@ WidgetRef ref, {
   // details step) — most directors are local, and a foreign one just
   // switches theirs.
   final defaultCountry = state.businessCountry ??
-      ref.read(kycConfigProvider).business?.country ??
+      ref.read(verificationConfigProvider).business?.country ??
       '';
   final editing = index != null;
   // A person added FROM a section starts wearing that section's hat, so the
@@ -67,14 +67,14 @@ WidgetRef ref, {
     initial: initial,
     uboThreshold: keyPeopleThreshold(ref),
     corporateKyb: ref
-            .read(kycConfigProvider)
+            .read(verificationConfigProvider)
             .business
             ?.keyPeople
             ?.corporateKyb ??
         false,
     otherPctTotal: editing ? totalPct - keyPersonPct(initial) : totalPct,
     emailRequiredFor:
-        keyPeopleRequireEmail(ref.read(kycConfigProvider).business),
+        keyPeopleRequireEmail(ref.read(verificationConfigProvider).business),
   );
   if (result == null) return;
 

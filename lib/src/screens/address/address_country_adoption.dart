@@ -1,10 +1,10 @@
 import 'package:flutter/widgets.dart' show WidgetsBinding;
 
 import '../../config/country_adoption.dart';
-import '../../config/kyc_config.dart';
+import '../../config/verification_config.dart';
 import '../../config/scope.dart';
-import '../../providers/kyc_provider.dart';
-import '../../providers/kyc_state.dart';
+import '../../providers/verification_provider.dart';
+import '../../providers/verification_state.dart';
 
 // ─── The declared country follows the evidence ───────────────────────────────
 //
@@ -15,9 +15,9 @@ import '../../providers/kyc_state.dart';
 
 mixin AddressCountryAdoption {
   // ── Provided by the controller ─────────────────────────────────────────────
-  MyazaKYCConfig get config;
-  KYCState get state;
-  KYCNotifier get notifier;
+  VerificationConfig get config;
+  VerificationState get state;
+  VerificationNotifier get notifier;
   bool get alive;
 
   /// GEOCODED EVIDENCE outranks every GUESS about the declared country; an

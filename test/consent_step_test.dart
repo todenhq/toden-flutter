@@ -12,14 +12,14 @@ import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
 // opens and resets on `openingStep`, the progress saver judges "untouched"
 // against it and the widget hides Back on it. Mirrors the web and RN tests.
 
-MyazaKYCConfig _config({
+VerificationConfig _config({
   bool consentStep = false,
   String? scope,
   String subjectType = 'individual',
   List<WorkflowCountryOption>? countries,
   EmailVerificationConfig? email,
 }) =>
-    MyazaKYCConfig(
+    VerificationConfig(
       apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       country: 'NG',
       consentStep: consentStep,
@@ -34,30 +34,30 @@ MyazaKYCConfig _config({
 
 void main() {
   test('is on by default and is what the classic flow opens on', () {
-    expect(const MyazaKYCConfig(apiKey: 'pk_test_x', country: 'NG').consentStep, isTrue);
-    expect(openingStep(_config(consentStep: true)), KYCStep.consent);
+    expect(const VerificationConfig(apiKey: 'pk_test_x', country: 'NG').consentStep, isTrue);
+    expect(openingStep(_config(consentStep: true)), VerificationStep.consent);
   });
 
   test('opens the individual flow on the ID list, the country picker, or the contact codes', () {
-    expect(openingStep(_config()), KYCStep.idType);
+    expect(openingStep(_config()), VerificationStep.idType);
     expect(
       openingStep(_config(countries: const [
         WorkflowCountryOption(country: 'NG'),
         WorkflowCountryOption(country: 'GH'),
       ])),
-      KYCStep.countrySelect,
+      VerificationStep.countrySelect,
     );
     expect(
       openingStep(_config(email: const EmailVerificationConfig(enabled: true))),
-      KYCStep.contactEmail,
+      VerificationStep.contactEmail,
     );
-    expect(buildStepOrder(_config(), const KYCState()), isNot(contains(KYCStep.consent)));
+    expect(buildStepOrder(_config(), const VerificationState()), isNot(contains(VerificationStep.consent)));
   });
 
   test('opens a KYB flow on the business form and a scoped flow on its own check', () {
-    expect(openingStep(_config(subjectType: 'business')), KYCStep.businessDetails);
-    expect(openingStep(_config(scope: 'biometric-authentication')), KYCStep.liveness);
-    expect(openingStep(_config(scope: 'address')), KYCStep.addressCollection);
+    expect(openingStep(_config(subjectType: 'business')), VerificationStep.businessDetails);
+    expect(openingStep(_config(scope: 'biometric-authentication')), VerificationStep.liveness);
+    expect(openingStep(_config(scope: 'address')), VerificationStep.addressCollection);
   });
 
   test('rides a resolved workflow like every other template key', () {
@@ -68,7 +68,7 @@ void main() {
       'idTypes': <dynamic>[],
     });
     final merged = mergeWorkflowIntoConfig(
-      const MyazaKYCConfig(apiKey: 'pk_test_x', country: 'NG'),
+      const VerificationConfig(apiKey: 'pk_test_x', country: 'NG'),
       flow.config,
     );
     expect(merged.consentStep, isFalse);
@@ -80,7 +80,7 @@ void main() {
       'idTypes': <dynamic>[],
     });
     expect(
-      mergeWorkflowIntoConfig(const MyazaKYCConfig(apiKey: 'pk_test_x', country: 'NG'), silent.config)
+      mergeWorkflowIntoConfig(const VerificationConfig(apiKey: 'pk_test_x', country: 'NG'), silent.config)
           .consentStep,
       isTrue,
     );

@@ -16,7 +16,7 @@ class LivenessOwnTheme extends InheritedWidget {
     required super.child,
   });
 
-  final MyazaColorScheme scheme;
+  final UiColorScheme scheme;
 
   /// Builds [builder] in the person's own theme, or in the surrounding one
   /// when no shell provided it.
@@ -30,7 +30,7 @@ class LivenessOwnTheme extends InheritedWidget {
     if (own == null) return Builder(builder: builder);
     final lit = context.myazaColors;
     final theme = Theme.of(context);
-    Widget themed(MyazaColorScheme scheme) => Theme(
+    Widget themed(UiColorScheme scheme) => Theme(
           data: theme.copyWith(extensions: [scheme]),
           child: Builder(builder: builder),
         );

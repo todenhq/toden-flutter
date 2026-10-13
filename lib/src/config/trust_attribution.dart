@@ -78,7 +78,7 @@ ResolvedTrustAttribution resolveTrustAttribution(
 /// Whether the consent screen must name Myaza. When an org's own logo
 /// replaces Myaza's in the footer, Myaza still processes the applicant's data,
 /// so the consent notice keeps it disclosed with a link to its terms.
-bool needsMyazaDisclosure(SdkTrustAttribution? attribution) =>
+bool needsProcessorDisclosure(SdkTrustAttribution? attribution) =>
     attribution?.isCustom ?? false;
 
 /// The organisation Myaza provides the verification for, as the consent notice

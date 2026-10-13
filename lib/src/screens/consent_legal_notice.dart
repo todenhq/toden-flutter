@@ -6,23 +6,23 @@ import 'package:url_launcher/url_launcher.dart';
 import '../config/brand.dart';
 import '../config/theme.dart';
 import '../config/trust_attribution.dart';
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 
 /// The consent notice's lead-in when the org's own logo replaces Myaza's in
 /// the footer: Myaza still processes the applicant's data (and biometrics), so
 /// the notice names it as the provider for that organisation. Null when the
 /// footer is Myaza's own. Not customisable, on any SDK.
-String? consentMyazaLead(
+String? consentProcessorLead(
   SdkTrustAttribution? attribution, {
   String? workflowCompanyName,
   String? brandingCompanyName,
 }) {
-  if (!needsMyazaDisclosure(attribution)) return null;
+  if (!needsProcessorDisclosure(attribution)) return null;
   final org = myazaProviderName(
       attribution, workflowCompanyName, brandingCompanyName);
   return org.isEmpty
-      ? 'Verification is processed by Myaza Trust.'
-      : 'Verification is processed by Myaza Trust for $org.';
+      ? 'Verification is processed by Toden.'
+      : 'Verification is processed by Toden for $org.';
 }
 
 /// The consent notice above Continue, one paragraph. Consent is given by
@@ -80,14 +80,14 @@ class _ConsentLegalNoticeState extends ConsumerState<ConsentLegalNotice> {
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
     final text = context.myazaText;
-    final config = ref.watch(kycConfigProvider);
+    final config = ref.watch(verificationConfigProvider);
     final branding =
         ref.watch(kYCNotifierProvider.select((s) => s.serverConfig.branding));
     final attribution = branding?.trustAttribution;
-    final lead = consentMyazaLead(
+    final lead = consentProcessorLead(
       attribution,
       // The appearance's built-in default is Myaza's own name, not the org's.
-      workflowCompanyName: config.appearance?.companyName == 'Myaza'
+      workflowCompanyName: config.appearance?.companyName == 'Toden'
           ? null
           : config.appearance?.companyName,
       brandingCompanyName: branding?.companyName,
@@ -108,7 +108,7 @@ class _ConsentLegalNoticeState extends ConsumerState<ConsentLegalNotice> {
           if (lead != null) TextSpan(text: '$lead '),
           TextSpan(
             text: myazaTerms
-                ? 'By tapping Continue, you agree to Myaza Trust’s '
+                ? 'By tapping Continue, you agree to Toden’s '
                 : 'By tapping Continue, you agree to the ',
           ),
           TextSpan(

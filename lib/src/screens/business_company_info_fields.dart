@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../config/business.dart';
 import '../config/theme.dart';
 import '../config/website.dart';
-import '../widgets/myaza_input.dart';
+import '../widgets/ui_input.dart';
 import '../widgets/phone_number_input.dart';
 import 'business_company_date_field.dart';
 import 'business_details_parts.dart';
@@ -58,14 +58,14 @@ class BusinessCompanyInfoFields extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(context.kycText('business.companyInfo.title'), style: text.label),
+        Text(context.verificationText('business.companyInfo.title'), style: text.label),
         const SizedBox(height: 2),
         Text(
-          context.kycText('business.companyInfo.description'),
+          context.verificationText('business.companyInfo.description'),
           style: text.bodySmall.copyWith(color: colors.textSecondary),
         ),
         for (final field in visible) ...[
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
           _field(context, field),
         ],
       ],
@@ -88,7 +88,7 @@ class BusinessCompanyInfoFields extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             label,
-            const SizedBox(height: MyazaSpacing.xs),
+            const SizedBox(height: UiSpacing.xs),
             PhoneNumberInput(
               defaultCountry: country.isNotEmpty ? country : (geoCountry ?? 'NG'),
               geoCountry: geoCountry,
@@ -105,7 +105,7 @@ class BusinessCompanyInfoFields extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             label,
-            const SizedBox(height: MyazaSpacing.xs),
+            const SizedBox(height: UiSpacing.xs),
             BusinessDateField(
               value: ctrl.text.trim().isEmpty ? null : ctrl.text.trim(),
               placeholder: field.placeholder,
@@ -131,8 +131,8 @@ class BusinessCompanyInfoFields extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             label,
-            const SizedBox(height: MyazaSpacing.xs),
-            MyazaInput(
+            const SizedBox(height: UiSpacing.xs),
+            UiInput(
               controller: ctrl,
               hint: field.placeholder,
               keyboardType: switch (field) {

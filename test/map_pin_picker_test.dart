@@ -21,7 +21,7 @@ int _zoomOf(WidgetTester tester) {
 }
 
 Widget _host(Widget child) => MaterialApp(
-      theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+      theme: ThemeData(extensions: const [UiColorScheme.light]),
       home: Scaffold(body: child),
     );
 

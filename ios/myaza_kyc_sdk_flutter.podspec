@@ -7,7 +7,7 @@ iOS face detection for the Myaza KYC Flutter SDK via Apple's Vision framework.
 Vision ships arm64 simulator slices and pulls no GoogleMLKit pod, so the SDK
 builds and runs on Apple-Silicon iOS simulators.
                        DESC
-  s.homepage         = 'https://github.com/myazahq/kyc-sdk-flutter'
+  s.homepage         = 'https://github.com/todenhq/kyc-sdk-flutter'
   s.license          = { :type => 'MIT' }
   s.author           = { 'Myaza' => 'dev@myazahq.co' }
   s.source           = { :path => '.' }

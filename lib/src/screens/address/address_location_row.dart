@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../widgets/icons/icons.dart';
 import '../../i18n/text_scope.dart';
-import '../../widgets/myaza_spinner.dart';
+import '../../widgets/ui_spinner.dart';
 
 /// "Use my current location" as a proper ROW, not a button pretending to be
 /// two: a medallion showing the fix's state, a title with the RESOLVED ADDRESS
@@ -33,15 +33,15 @@ class CurrentLocationRow extends StatelessWidget {
     final hasHint = resolved.isNotEmpty;
     return Material(
       color: colors.backgroundSecondary,
-      borderRadius: BorderRadius.circular(MyazaRadius.md),
+      borderRadius: BorderRadius.circular(UiRadius.md),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(MyazaRadius.md),
+        borderRadius: BorderRadius.circular(UiRadius.md),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             border: Border.all(color: colors.border),
-            borderRadius: BorderRadius.circular(MyazaRadius.md),
+            borderRadius: BorderRadius.circular(UiRadius.md),
           ),
           child: Row(
             children: [
@@ -59,11 +59,11 @@ class CurrentLocationRow extends StatelessWidget {
                     ? SizedBox(
                         width: 16,
                         height: 16,
-                        child: MyazaSpinner(
+                        child: UiSpinner(
                             strokeWidth: 2, color: colors.primary),
                       )
-                    : MyazaIcon(
-                        hasHint ? MyazaIcons.mapPin : MyazaIcons.locateFixed,
+                    : UiIcon(
+                        hasHint ? UiIcons.mapPin : UiIcons.locateFixed,
                         size: 18,
                         color: hasHint ? colors.onPrimary : colors.primary,
                       ),
@@ -73,7 +73,7 @@ class CurrentLocationRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(context.kycText('address.currentLocation.title'),
+                    Text(context.verificationText('address.currentLocation.title'),
                         style:
                             text.label.copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 2),
@@ -82,7 +82,7 @@ class CurrentLocationRow extends StatelessWidget {
                           ? resolved
                           : (locating
                               ? 'Finding your location…'
-                              : context.kycText('address.currentLocation.hint')),
+                              : context.verificationText('address.currentLocation.hint')),
                       style:
                           text.bodySmall.copyWith(color: colors.textSecondary),
                       maxLines: 1,
@@ -91,8 +91,8 @@ class CurrentLocationRow extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: MyazaSpacing.sm),
-              MyazaIcon(MyazaIcons.chevronRight,
+              const SizedBox(width: UiSpacing.sm),
+              UiIcon(UiIcons.chevronRight,
                   size: 16, color: colors.textSecondary),
             ],
           ),
@@ -126,18 +126,18 @@ class LocateOnMapButton extends StatelessWidget {
       label: 'Move the pin to my current location',
       child: Material(
         color: colors.background,
-        borderRadius: BorderRadius.circular(MyazaRadius.full),
+        borderRadius: BorderRadius.circular(UiRadius.full),
         elevation: 2,
         child: InkWell(
           onTap: locating ? null : onTap,
-          borderRadius: BorderRadius.circular(MyazaRadius.full),
+          borderRadius: BorderRadius.circular(UiRadius.full),
           // Web's `h-10 pl-3 pr-3.5 gap-2 shadow-md`, the numbers RN draws.
           child: Container(
             height: 40,
             padding: const EdgeInsets.only(left: 12, right: 14),
             decoration: BoxDecoration(
               border: Border.all(color: colors.border),
-              borderRadius: BorderRadius.circular(MyazaRadius.full),
+              borderRadius: BorderRadius.circular(UiRadius.full),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -146,15 +146,15 @@ class LocateOnMapButton extends StatelessWidget {
                   SizedBox(
                     width: 14,
                     height: 14,
-                    child: MyazaSpinner(
+                    child: UiSpinner(
                         strokeWidth: 2, color: colors.textSecondary),
                   )
                 else
-                  MyazaIcon(MyazaIcons.locateFixed,
+                  UiIcon(UiIcons.locateFixed,
                       size: 16, color: colors.primary),
-                const SizedBox(width: MyazaSpacing.sm),
+                const SizedBox(width: UiSpacing.sm),
                 Text(
-                  locating ? 'Finding you…' : context.kycText('address.locate.button'),
+                  locating ? 'Finding you…' : context.verificationText('address.locate.button'),
                   style: text.bodySmall.copyWith(
                       fontWeight: FontWeight.w600, color: colors.textDark),
                 ),

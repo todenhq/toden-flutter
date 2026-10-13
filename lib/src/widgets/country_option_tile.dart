@@ -45,7 +45,7 @@ class CountryOptionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
     final text = context.myazaText;
-    final radius = BorderRadius.circular(MyazaRadius.md);
+    final radius = BorderRadius.circular(UiRadius.md);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
@@ -63,10 +63,10 @@ class CountryOptionTile extends StatelessWidget {
           onTap: onTap,
           borderRadius: radius,
           child: Padding(
-            padding: const EdgeInsets.all(MyazaSpacing.md),
+            padding: const EdgeInsets.all(UiSpacing.md),
             child: Row(
               children: [
-                MyazaCountryFlag(country: code, size: 32),
+                UiCountryFlag(country: code, size: 32),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -76,10 +76,10 @@ class CountryOptionTile extends StatelessWidget {
                 ),
                 if (badge != null) ...[
                   GeoBadge(label: badge!),
-                  const SizedBox(width: MyazaSpacing.sm),
+                  const SizedBox(width: UiSpacing.sm),
                 ],
-                MyazaIcon(
-                  MyazaIcons.chevronRight,
+                UiIcon(
+                  UiIcons.chevronRight,
                   size: 18,
                   color: isSelected ? colors.primary : colors.textSecondary,
                 ),

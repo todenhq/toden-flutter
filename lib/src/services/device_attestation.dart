@@ -21,7 +21,7 @@ import 'device_intel_platform.dart';
 // device, a refused challenge or any native error is null, and the submission
 // goes out without an attestation. It never blocks one.
 
-/// `POST /api/kyc/device/challenge`, as the SDK's API client exposes it.
+/// `POST /api/v1/device/challenge`, as the SDK's API client exposes it.
 typedef ChallengeFetcher = Future<DeviceChallenge?> Function({
   required String platform,
   String? keyId,

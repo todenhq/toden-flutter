@@ -9,7 +9,7 @@ import '../config/map_frame.dart';
 import '../config/theme.dart';
 import '../utils/map_tiles.dart' show MapLatLng;
 import 'map_pin_picker.dart';
-import 'myaza_spinner.dart';
+import 'ui_spinner.dart';
 
 // ─── Framed map picker ───────────────────────────────────────────────────────
 //
@@ -160,7 +160,7 @@ class _FramedMapPickerState extends State<FramedMapPicker> {
     return SizedBox(
       height: widget.height,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(widget.cornerRadius ?? MyazaRadius.md),
+        borderRadius: BorderRadius.circular(widget.cornerRadius ?? UiRadius.md),
         child: Stack(children: [
           Positioned.fill(
             child: ColoredBox(
@@ -186,7 +186,7 @@ class _FramedMapPickerState extends State<FramedMapPicker> {
                 child: Center(
                   child: SizedBox.square(
                     dimension: 20,
-                    child: MyazaSpinner(
+                    child: UiSpinner(
                       strokeWidth: 2,
                       color: colors.primary,
                     ),
@@ -199,7 +199,7 @@ class _FramedMapPickerState extends State<FramedMapPicker> {
             Positioned(
               left: 0,
               right: 0,
-              bottom: MyazaSpacing.md,
+              bottom: UiSpacing.md,
               child: Center(child: widget.overlay!),
             ),
         ]),

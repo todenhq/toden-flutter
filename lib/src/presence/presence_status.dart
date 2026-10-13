@@ -99,8 +99,8 @@ Future<PresenceStatus> presenceStatus(String externalUserId) async {
     locationServicesEnabled: services,
     foregroundPermission: _foreground(permission),
     backgroundPermission: _background(permission),
-    geofenceArmed: await MyazaBackgroundPresence.isArmed(),
-    foregroundServiceRunning: await MyazaPresenceService.isRunning(),
+    geofenceArmed: await BackgroundPresence.isArmed(),
+    foregroundServiceRunning: await PresenceService.isRunning(),
   );
   return PresenceStatus(
     tier: resolvePresenceTier(inputs),

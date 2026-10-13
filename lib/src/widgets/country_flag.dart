@@ -7,14 +7,14 @@ import 'package:flutter/material.dart';
 // `CountryFlag` component (which uses `country-flag-icons`). Renders nothing for
 // an unknown/null country.
 
-class MyazaCountryFlag extends StatelessWidget {
+class UiCountryFlag extends StatelessWidget {
   /// ISO-3166 alpha-2 code of the country whose flag to show (e.g. `'NG'`).
   final String? country;
 
   /// Diameter of the circular flag in logical pixels.
   final double size;
 
-  const MyazaCountryFlag({
+  const UiCountryFlag({
     super.key,
     required this.country,
     this.size = 20,

@@ -30,9 +30,9 @@ class CapturingAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-KYCApiService apiWith(CapturingAdapter adapter,
+VerificationApiService apiWith(CapturingAdapter adapter,
         {Future<String?> Function()? deviceId}) =>
-    KYCApiService(
+    VerificationApiService(
       baseUrl: 'https://api.example',
       apiKey: 'pk_test_x',
       deviceId: deviceId,
@@ -144,7 +144,7 @@ void main() {
       });
       final ch =
           await apiWith(adapter).deviceChallenge(platform: 'ios', keyId: 'k1');
-      expect(adapter.requests.single.path, '/api/kyc/device/challenge');
+      expect(adapter.requests.single.path, '/api/v1/device/challenge');
       expect(adapter.requests.single.data, {'platform': 'ios', 'keyId': 'k1'});
       expect(ch!.id, 'ch_9');
       expect(ch.bytes, List.filled(32, 7));

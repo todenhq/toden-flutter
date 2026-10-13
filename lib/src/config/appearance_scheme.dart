@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import 'kyc_config.dart';
+import 'verification_config.dart';
 import 'theme.dart';
 
 // ─── Appearance → color scheme ────────────────────────────────────────────────
 //
-// Maps the consumer's MyazaKYCAppearance overrides onto the base (light/dark)
-// MyazaColorScheme. Unset colors keep the built-in token. When a primaryColor
+// Maps the consumer's VerificationAppearance overrides onto the base (light/dark)
+// UiColorScheme. Unset colors keep the built-in token. When a primaryColor
 // is given, the primary tint family (50/100/200) is derived from it so the
 // whole brand family follows; an explicit accentColor overrides the 100 tint.
 //
@@ -14,9 +14,9 @@ import 'theme.dart';
 // themes its resolve loader with it, so the loader shown BEFORE the flow opens
 // is already in the caller's brand rather than the built-in purple.
 
-MyazaColorScheme applyAppearance(
-  MyazaColorScheme base,
-  MyazaKYCAppearance? a,
+UiColorScheme applyAppearance(
+  UiColorScheme base,
+  VerificationAppearance? a,
 ) {
   if (a == null) return base;
   final primary = a.primaryColor ?? base.primary;
@@ -40,13 +40,13 @@ MyazaColorScheme applyAppearance(
 
 /// The scheme to paint with for [appearance], resolving its theme mode against
 /// the device brightness the same way the flow does.
-MyazaColorScheme schemeForAppearance(
-  MyazaKYCAppearance? appearance,
+UiColorScheme schemeForAppearance(
+  VerificationAppearance? appearance,
   ThemeMode mode, {
   required Brightness platformBrightness,
 }) {
   final isDark = mode == ThemeMode.dark ||
       (mode == ThemeMode.system && platformBrightness == Brightness.dark);
-  final base = isDark ? MyazaColorScheme.dark : MyazaColorScheme.light;
+  final base = isDark ? UiColorScheme.dark : UiColorScheme.light;
   return applyAppearance(base, appearance?.forBrightness(isDark));
 }

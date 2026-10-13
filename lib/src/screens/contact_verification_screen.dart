@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/contact_recovery.dart';
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 import '../services/api_service.dart';
 import '../services/contact_errors.dart';
-import '../widgets/myaza_alert.dart';
+import '../widgets/ui_alert.dart';
 import 'contact_header_sync.dart';
 import 'contact_verification_actions.dart';
 import 'contact_verification_entry.dart';
@@ -52,7 +52,7 @@ class _ContactVerificationScreenState
 
   bool get _isPhone => widget.channel == 'phone';
   ContactChannelSettings get _settings => ContactChannelSettings.resolve(
-        ref.read(kycConfigProvider),
+        ref.read(verificationConfigProvider),
         widget.channel,
         geoCountry: ref.read(kYCNotifierProvider).serverConfig.geoCountry,
       );
@@ -62,7 +62,7 @@ class _ContactVerificationScreenState
   bool get _canSend =>
       _isPhone ? _phoneValid : isPlausibleContactEmail(_destination);
   bool get _canVerify => _code.trim().length >= kMinCodeLength;
-  KYCApiService get _api => ref.read(kYCNotifierProvider.notifier).api;
+  VerificationApiService get _api => ref.read(kYCNotifierProvider.notifier).api;
 
   /// Entered via submit recovery? (The server refused this channel's proof at
   /// submit — the token had expired or was already claimed.) Captured once:
@@ -182,8 +182,8 @@ class _ContactVerificationScreenState
           destination: hasChallenge ? _destination : '',
         ),
         if (_recovery && !hasChallenge) ...[
-          MyazaAlert(
-            variant: MyazaAlertVariant.warning,
+          UiAlert(
+            variant: UiAlertVariant.warning,
             title: 'Please verify again',
             message:
                 'Your earlier confirmation has expired, so please verify ${_isPhone ? 'your number' : 'your email'} once more. Everything else is saved, and we will submit again straight after.',

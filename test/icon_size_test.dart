@@ -23,14 +23,14 @@ void main() {
         width: 56,
         height: 56,
         color: const Color(0xFFF4B746),
-        child: const MyazaIcon(MyazaIcons.shieldCheck, size: 28),
+        child: const UiIcon(UiIcons.shieldCheck, size: 28),
       ),
     );
     expect(tester.getSize(find.byType(HugeIcon)), const Size(28, 28));
   });
 
   testWidgets('keeps its size when the parent is loose', (tester) async {
-    await pump(tester, const MyazaIcon(MyazaIcons.shieldCheck, size: 28));
+    await pump(tester, const UiIcon(UiIcons.shieldCheck, size: 28));
     expect(tester.getSize(find.byType(HugeIcon)), const Size(28, 28));
   });
 
@@ -39,7 +39,7 @@ void main() {
       tester,
       const IconTheme(
         data: IconThemeData(size: 18),
-        child: SizedBox(width: 56, height: 56, child: MyazaIcon(MyazaIcons.x)),
+        child: SizedBox(width: 56, height: 56, child: UiIcon(UiIcons.x)),
       ),
     );
     expect(tester.getSize(find.byType(HugeIcon)), const Size(18, 18));

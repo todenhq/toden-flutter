@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
-import '../widgets/myaza_button.dart';
+import '../widgets/ui_button.dart';
 import '../widgets/icons/icons.dart';
 import '../i18n/text_scope.dart';
 
@@ -42,24 +42,24 @@ class ContactActions extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = context.myazaText;
     final colors = context.myazaColors;
-    final t = context.kycText;
+    final t = context.verificationText;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (error != null) ...[
-          const SizedBox(height: MyazaSpacing.sm),
+          const SizedBox(height: UiSpacing.sm),
           Text(error!,
-              style: text.bodySmall.copyWith(color: MyazaColors.error)),
+              style: text.bodySmall.copyWith(color: UiColors.error)),
         ],
-        const SizedBox(height: MyazaSpacing.xl),
-        MyazaButton(
+        const SizedBox(height: UiSpacing.xl),
+        UiButton(
           label: t(hasChallenge ? 'contact.verifyCode' : 'contact.sendCode'),
           isLoading: isBusy,
           onPressed: onSubmit,
         ),
         if (onSkip != null) ...[
-          const SizedBox(height: MyazaSpacing.sm),
+          const SizedBox(height: UiSpacing.sm),
           Center(
             child: TextButton(
               onPressed: isBusy ? null : onSkip,
@@ -68,18 +68,18 @@ class ContactActions extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: MyazaSpacing.md),
+        const SizedBox(height: UiSpacing.md),
         // Answers the question the step provokes: an email step is asked "what
         // will you do with my address", a phone step "will this cost me money".
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            MyazaIcon(
-              isPhone ? MyazaIcons.smartphone : MyazaIcons.mail,
+            UiIcon(
+              isPhone ? UiIcons.smartphone : UiIcons.mail,
               size: 12,
               color: colors.textSecondary,
             ),
-            const SizedBox(width: MyazaSpacing.xs),
+            const SizedBox(width: UiSpacing.xs),
             Flexible(
               child: Text(
                 t(isPhone ? 'contact.phone.footer' : 'contact.email.footer'),

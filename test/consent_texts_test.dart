@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_provider.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_state.dart'
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_provider.dart';
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart'
     show ServerConfigStatus, ServerSdkConfig;
 import 'package:myaza_kyc_sdk_flutter/src/screens/consent_screen.dart';
 import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
@@ -16,7 +16,7 @@ import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
 // Myaza Trust as the provider exactly when the footer carries the org's own
 // logo. With the Myaza footer the notice reads as it always did.
 
-class _StubApi extends KYCApiService {
+class _StubApi extends VerificationApiService {
   _StubApi() : super(baseUrl: 'http://stub', apiKey: 'pk_test_stub');
 
   @override
@@ -32,27 +32,27 @@ class _StubApi extends KYCApiService {
   Future<void> saveProgress(String sessionId, Map<String, dynamic> progress) async {}
 }
 
-Widget _host(MyazaKYCConfig config, {SdkConfigBranding? branding}) => ProviderScope(
+Widget _host(VerificationConfig config, {SdkConfigBranding? branding}) => ProviderScope(
       overrides: [
-        kycConfigProvider.overrideWithValue(config),
-        kycApiServiceProvider.overrideWithValue(_StubApi()),
+        verificationConfigProvider.overrideWithValue(config),
+        verificationApiServiceProvider.overrideWithValue(_StubApi()),
         preloadedServerConfigProvider.overrideWithValue(
           ServerSdkConfig(status: ServerConfigStatus.ready, branding: branding),
         ),
       ],
       child: MaterialApp(
-        theme: ThemeData(extensions: const [MyazaColorScheme.light]),
+        theme: ThemeData(extensions: const [UiColorScheme.light]),
         home: const Scaffold(body: SingleChildScrollView(child: ConsentScreen())),
       ),
     );
 
-MyazaKYCConfig _config({
+VerificationConfig _config({
   WorkflowTexts? texts,
   String? language,
-  KYCConsentContent? consent,
+  VerificationConsentContent? consent,
   String subjectType = 'individual',
 }) =>
-    MyazaKYCConfig(
+    VerificationConfig(
       apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       country: 'NG',
       workflowId: 'wf_test',
@@ -96,7 +96,7 @@ void main() {
 
   testWidgets('the older consent.title still wins over English copy', (tester) async {
     await tester.pumpWidget(_host(_config(
-      consent: const KYCConsentContent(title: 'Hi there'),
+      consent: const VerificationConsentContent(title: 'Hi there'),
       texts: const {'en': {'welcome.title': 'Welcome aboard'}},
     )));
     await tester.pump();
@@ -104,7 +104,7 @@ void main() {
     expect(find.text('Welcome aboard'), findsNothing);
   });
 
-  testWidgets('a custom footer logo names Myaza Trust for the org', (tester) async {
+  testWidgets('a custom footer logo names Toden for the org', (tester) async {
     await tester.pumpWidget(_host(
       _config(),
       branding: const SdkConfigBranding(
@@ -119,14 +119,14 @@ void main() {
     final notice = _notice(tester);
     expect(
       notice,
-      startsWith('Verification is processed by Myaza Trust for Acme. By tapping '
-          'Continue, you agree to Myaza Trust’s End User Terms and Privacy Policy, '
+      startsWith('Verification is processed by Toden for Acme. By tapping '
+          'Continue, you agree to Toden’s End User Terms and Privacy Policy, '
           'and consent to your personal data being processed to verify your identity.'),
     );
     expect(notice, endsWith('This includes facial recognition and recording this session.'));
   });
 
-  testWidgets('with no org name known, Myaza Trust alone, business wording', (tester) async {
+  testWidgets('with no org name known, Toden alone, business wording', (tester) async {
     await tester.pumpWidget(_host(
       _config(subjectType: 'business'),
       branding: const SdkConfigBranding(
@@ -136,20 +136,20 @@ void main() {
     await tester.pump();
     expect(
       _notice(tester),
-      startsWith('Verification is processed by Myaza Trust. By tapping Continue, you agree '
-          'to Myaza Trust’s End User Terms and Privacy Policy, and consent to your '
+      startsWith('Verification is processed by Toden. By tapping Continue, you agree '
+          'to Toden’s End User Terms and Privacy Policy, and consent to your '
           'business and personal data being processed'),
     );
   });
 
-  testWidgets('a Myaza footer keeps the notice as it was', (tester) async {
+  testWidgets('a Toden footer keeps the notice as it was', (tester) async {
     await tester.pumpWidget(_host(
       _config(),
       branding: const SdkConfigBranding(companyName: 'Brand Co'),
     ));
     await tester.pump();
     final notice = _notice(tester);
-    expect(notice, isNot(contains('processed by Myaza Trust')));
-    expect(notice, isNot(contains('Myaza Trust’s')));
+    expect(notice, isNot(contains('processed by Toden')));
+    expect(notice, isNot(contains('Toden’s')));
   });
 }

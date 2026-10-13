@@ -17,15 +17,15 @@ export 'screen_content.dart';
 
 // ─── Environment ────────────────────────────────────────────────────────────
 
-enum KYCEnvironment { development, sandbox, production }
+enum VerificationEnvironment { development, sandbox, production }
 
 // ─── Theme mode ─────────────────────────────────────────────────────────────
 
 /// `system` follows the device's platform brightness (live).
-enum MyazaThemeMode { light, dark, system }
+enum VerificationThemeMode { light, dark, system }
 
-/// How flow progress is drawn — see [MyazaKYCConfig.progressStyle].
-enum MyazaProgressStyle {
+/// How flow progress is drawn — see [VerificationConfig.progressStyle].
+enum VerificationProgressStyle {
   /// Numbered circles, one per step.
   steps,
 
@@ -40,16 +40,16 @@ enum MyazaProgressStyle {
   /// falls back to [steps] rather than throwing: a newer server adding a fourth
   /// style must not break an older SDK.
   /// An unknown value takes the default, the bar.
-  static MyazaProgressStyle fromJson(String? value) => switch (value) {
-        'steps' => MyazaProgressStyle.steps,
-        'none' => MyazaProgressStyle.none,
-        _ => MyazaProgressStyle.bar,
+  static VerificationProgressStyle fromJson(String? value) => switch (value) {
+        'steps' => VerificationProgressStyle.steps,
+        'none' => VerificationProgressStyle.none,
+        _ => VerificationProgressStyle.bar,
       };
 }
 
 // ─── Appearance ─────────────────────────────────────────────────────────────
 
-class MyazaKYCAppearance {
+class VerificationAppearance {
   /// Brand color — drives buttons, selected states, progress, the shield hero.
   /// Null falls back to the built-in theme primary (differs light/dark).
   final Color? primaryColor;
@@ -90,10 +90,10 @@ class MyazaKYCAppearance {
 
   /// Body font family. Resolved through `google_fonts` by name, so any Google
   /// font works; an unknown name falls back to a family bundled by the host app,
-  /// then to the SDK default. Null = Karla.
+  /// then to the SDK default. Null = Geist.
   final String? fontFamily;
 
-  /// Heading font family. Falls back to [fontFamily], then to Space Grotesk.
+  /// Heading font family. Falls back to [fontFamily], then to Bricolage Grotesque.
   final String? headingFontFamily;
 
   /// Colour overrides applied only in DARK mode.
@@ -102,11 +102,11 @@ class MyazaKYCAppearance {
   /// applied on top of whichever base scheme is active, so an org's light
   /// background simply overwrote the dark one and the theme toggle stopped
   /// working for any branded flow.
-  final MyazaKYCAppearance? dark;
+  final VerificationAppearance? dark;
 
-  final MyazaThemeMode theme;
+  final VerificationThemeMode theme;
 
-  const MyazaKYCAppearance({
+  const VerificationAppearance({
     this.primaryColor,
     this.primaryTextColor,
     this.accentColor,
@@ -114,22 +114,22 @@ class MyazaKYCAppearance {
     this.surfaceColor,
     this.borderColor,
     this.textColor,
-    this.companyName = 'Myaza',
+    this.companyName = 'Toden',
     this.logoAsset,
     this.logo,
     this.borderRadius,
     this.fontFamily,
     this.headingFontFamily,
     this.dark,
-    this.theme = MyazaThemeMode.light,
+    this.theme = VerificationThemeMode.light,
   });
 
   /// The palette for [isDark], with the dark overrides folded in when present.
   /// Returns `this` unchanged in light mode, or when no dark block was given.
-  MyazaKYCAppearance forBrightness(bool isDark) {
+  VerificationAppearance forBrightness(bool isDark) {
     final d = dark;
     if (!isDark || d == null) return this;
-    return MyazaKYCAppearance(
+    return VerificationAppearance(
       primaryColor: d.primaryColor ?? primaryColor,
       primaryTextColor: d.primaryTextColor ?? primaryTextColor,
       accentColor: d.accentColor ?? accentColor,
@@ -153,14 +153,14 @@ class MyazaKYCAppearance {
   /// merge). Colors are hex strings (`#5645F5`); `theme` is
   /// `'light'`/`'dark'`/`'system'`.
   /// Returns [base] unchanged when [flow] is null/empty.
-  static MyazaKYCAppearance? mergeFromJson(
-    MyazaKYCAppearance? base,
+  static VerificationAppearance? mergeFromJson(
+    VerificationAppearance? base,
     Map<String, dynamic>? flow,
   ) {
     if (flow == null || flow.isEmpty) return base;
-    final b = base ?? const MyazaKYCAppearance();
+    final b = base ?? const VerificationAppearance();
     final themeStr = (flow['theme'] as String?)?.toLowerCase();
-    return MyazaKYCAppearance(
+    return VerificationAppearance(
       primaryColor: parseHexColor(flow['primaryColor']) ?? b.primaryColor,
       primaryTextColor:
           parseHexColor(flow['primaryTextColor']) ?? b.primaryTextColor,
@@ -179,15 +179,15 @@ class MyazaKYCAppearance {
       headingFontFamily:
           (flow['headingFontFamily'] as String?) ?? b.headingFontFamily,
       dark: flow['dark'] is Map<String, dynamic>
-          ? MyazaKYCAppearance.mergeFromJson(
-              b.dark ?? const MyazaKYCAppearance(),
+          ? VerificationAppearance.mergeFromJson(
+              b.dark ?? const VerificationAppearance(),
               flow['dark'] as Map<String, dynamic>,
             )
           : b.dark,
       theme: switch (themeStr) {
-        'dark' => MyazaThemeMode.dark,
-        'light' => MyazaThemeMode.light,
-        'system' => MyazaThemeMode.system,
+        'dark' => VerificationThemeMode.dark,
+        'light' => VerificationThemeMode.light,
+        'system' => VerificationThemeMode.system,
         _ => b.theme,
       },
     );
@@ -363,7 +363,7 @@ class WorkflowCountryOption {
 
 // ─── Main SDK config ────────────────────────────────────────────────────────
 
-class MyazaKYCConfig {
+class VerificationConfig {
   /// Bearer token sent on every request. The key prefix is the single source of
   /// truth for the environment — the SDK derives it (and the base URL)
   /// automatically: `pk_dev_…` → development, `pk_test_…` → sandbox,
@@ -387,7 +387,7 @@ class MyazaKYCConfig {
   final String? country;
 
   /// Run from a published dashboard workflow (`wf_…`). The SDK resolves it via
-  /// `GET /api/kyc/workflows/:id` on launch and the **flow config wins** over
+  /// `GET /api/v1/workflows/:id` on launch and the **flow config wins** over
   /// overlapping props (country, idTypes, step toggles, appearance, consent,
   /// success copy, …). Runtime data (userId, userData, metadata, callbacks)
   /// always stays code-side. Null = configure the flow from props directly.
@@ -462,37 +462,37 @@ class MyazaKYCConfig {
 
   /// How progress through the flow is drawn in the header.
   ///
-  ///   • [MyazaProgressStyle.steps] — numbered circles, one per step,
+  ///   • [VerificationProgressStyle.steps] — numbered circles, one per step,
   ///     connected. Shows WHICH step you are on and how many there are, and
   ///     collapses to a window when they no longer fit.
-  ///   • [MyazaProgressStyle.bar] (default) — a single thin bar pinned to the header's
+  ///   • [VerificationProgressStyle.bar] (default) — a single thin bar pinned to the header's
   ///     bottom edge. Quieter, and unaffected by step count, so it suits long
   ///     flows and hosts who would rather the chrome said less.
-  ///   • [MyazaProgressStyle.none] — no progress in the header at all. For
+  ///   • [VerificationProgressStyle.none] — no progress in the header at all. For
   ///     hosts whose own surface already communicates progress, or short flows
   ///     where a step count is more noise than reassurance.
   ///
-  /// [MyazaProgressStyle.steps] and [MyazaProgressStyle.bar] convey the same
-  /// fraction; the choice is how much room it takes. [MyazaProgressStyle.none]
+  /// [VerificationProgressStyle.steps] and [VerificationProgressStyle.bar] convey the same
+  /// fraction; the choice is how much room it takes. [VerificationProgressStyle.none]
   /// opts out of conveying it here.
   /// Mirrors the RN SDK's `progressStyle`.
-  final MyazaProgressStyle progressStyle;
+  final VerificationProgressStyle progressStyle;
 
   /// Hide the close (X) button and block all user-initiated dismissal — the X
   /// button, the Android back gesture, and (on iOS) the bottom-sheet swipe-down
   /// drag / barrier tap. When `true`, the flow can only be closed
   /// programmatically by popping the route the launcher returns (see
-  /// [MyazaKYC.show], whose Future completes on close). Default `false`. The
+  /// [Verification.show], whose Future completes on close). Default `false`. The
   /// terminal "Submitted" step is already non-dismissible regardless.
   final bool disableClose;
 
-  final MyazaKYCAppearance? appearance;
+  final VerificationAppearance? appearance;
 
   /// Overrides for the consent (welcome) screen copy (title + description).
-  final KYCConsentContent? consent;
+  final VerificationConsentContent? consent;
 
   /// Overrides for the success (submitted) screen copy (title + description).
-  final KYCSuccessContent? success;
+  final VerificationSuccessContent? success;
 
   /// The org's own reference for the person being verified (e.g. your internal
   /// user id). It is NOT matched during verification — it becomes
@@ -632,7 +632,7 @@ class MyazaKYCConfig {
   /// The language [texts] are shown in (BCP-47, e.g. `en`, `fr`). Default `en`.
   final String? language;
 
-  const MyazaKYCConfig({
+  const VerificationConfig({
     required this.apiKey,
     this.country,
     this.workflowId,
@@ -649,7 +649,7 @@ class MyazaKYCConfig {
     this.livenessMode = 'gestures',
     this.flashSequenceLength = 4,
     this.showThemeToggle = true,
-    this.progressStyle = MyazaProgressStyle.bar,
+    this.progressStyle = VerificationProgressStyle.bar,
     this.disableClose = false,
     this.appearance,
     this.consent,
@@ -685,7 +685,7 @@ class MyazaKYCConfig {
   /// to produce the effective config (flow-wins) before the flow mounts. Only
   /// the flow-controlled keys are exposed here; runtime data (apiKey, userId,
   /// userData, metadata) is never overridden by a workflow.
-  MyazaKYCConfig copyWith({
+  VerificationConfig copyWith({
     String? country,
     List<WorkflowCountryOption>? countries,
     MultiIdConfig? multiId,
@@ -705,11 +705,11 @@ class MyazaKYCConfig {
     String? livenessMode,
     int? flashSequenceLength,
     bool? showThemeToggle,
-    MyazaProgressStyle? progressStyle,
+    VerificationProgressStyle? progressStyle,
     bool? disableClose,
-    MyazaKYCAppearance? appearance,
-    KYCConsentContent? consent,
-    KYCSuccessContent? success,
+    VerificationAppearance? appearance,
+    VerificationConsentContent? consent,
+    VerificationSuccessContent? success,
     VoiceGuidanceConfig? voiceGuidance,
     bool? deviceIntelligence,
     bool? keyPeopleLinkRecovery,
@@ -732,7 +732,7 @@ class MyazaKYCConfig {
     String? applicantWorkflowId,
     WorkflowTexts? texts,
   }) =>
-      MyazaKYCConfig(
+      VerificationConfig(
         apiKey: apiKey,
         country: country ?? this.country,
         workflowId: workflowId,
@@ -786,18 +786,18 @@ class MyazaKYCConfig {
 // ─── Submission callback ─────────────────────────────────────────────────────
 //
 // Fires immediately when the user completes the flow (the SDK has POSTed to
-// /api/kyc/verify and got back 202 with { verificationId, status: 'pending' }).
+// /api/v1/verify and got back 202 with { verificationId, status: 'pending' }).
 // This does NOT mean verification is done — the final result arrives later via
-// webhook to the org's backend, or via polling /api/kyc/status/:id.
+// webhook to the org's backend, or via polling /api/v1/status/:id.
 
-class KYCSubmission {
+class VerificationSubmission {
   final String verificationId;
   /// Always 'pending' at this point.
   final String status;
   final Map<String, dynamic> metadata;
   final DateTime submittedAt;
 
-  const KYCSubmission({
+  const VerificationSubmission({
     required this.verificationId,
     required this.status,
     required this.metadata,
@@ -811,13 +811,13 @@ class KYCSubmission {
 // insufficient credits, upload failure). It is NOT used for verification
 // failures — those arrive asynchronously via webhook.
 
-class KYCError {
-  /// Typed, documented error category. IDENTICAL to the web SDK's `KYCErrorCode`
+class VerificationError {
+  /// Typed, documented error category. IDENTICAL to the web SDK's `VerificationErrorCode`
   /// so integrators get one consistent contract across platforms. One of:
   ///   • 'network_error'            — connection failure / timeout (after retries)
   ///   • 'invalid_api_key'          — server returned 401
   ///   • 'insufficient_credits'     — server returned 402 (see [details])
-  ///   • 'upload_failed'            — /api/kyc/upload failed (after retries)
+  ///   • 'upload_failed'            — /api/v1/upload failed (after retries)
   ///   • 'camera_permission_denied' — the user denied / the OS blocks camera access
   ///   • 'feature_disabled'         — server returned 403 (ID type / feature not enabled)
   ///   • 'invalid_workflow'         — the workflow is unknown, unpublished, or
@@ -837,7 +837,7 @@ class KYCError {
   /// For 'insufficient_credits': { required, balance, currency }.
   final Map<String, dynamic>? details;
 
-  const KYCError({
+  const VerificationError({
     required this.code,
     required this.message,
     this.details,

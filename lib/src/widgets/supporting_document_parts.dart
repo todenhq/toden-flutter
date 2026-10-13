@@ -36,7 +36,7 @@ class DocumentMarker extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: done
-          ? MyazaIcon(MyazaIcons.check, size: 16, color: colors.onPrimary)
+          ? UiIcon(UiIcons.check, size: 16, color: colors.onPrimary)
           : total > 1
               ? Text(
                   '$position',
@@ -45,7 +45,7 @@ class DocumentMarker extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 )
-              : MyazaIcon(MyazaIcons.fileText, size: 14, color: colors.primary),
+              : UiIcon(UiIcons.fileText, size: 14, color: colors.primary),
     );
   }
 }
@@ -61,17 +61,17 @@ class DocumentStatePill extends StatelessWidget {
     final colors = context.myazaColors;
     final text = context.myazaText;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: MyazaSpacing.sm, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: UiSpacing.sm, vertical: 2),
       decoration: BoxDecoration(
         color: required ? colors.errorBg : colors.background,
-        borderRadius: BorderRadius.circular(MyazaRadius.full),
+        borderRadius: BorderRadius.circular(UiRadius.full),
       ),
       child: Text(
-        context.kycText(required
+        context.verificationText(required
             ? 'supportingDocuments.card.required'
             : 'supportingDocuments.card.optional'),
         style: text.bodySmall.copyWith(
-          color: required ? MyazaColors.error : colors.textSecondary,
+          color: required ? UiColors.error : colors.textSecondary,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -91,42 +91,42 @@ class DocumentReads extends StatelessWidget {
     final text = context.myazaText;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(MyazaSpacing.sm + 4),
+      padding: const EdgeInsets.all(UiSpacing.sm + 4),
       decoration: BoxDecoration(
         color: colors.background,
-        borderRadius: BorderRadius.circular(MyazaRadius.sm),
+        borderRadius: BorderRadius.circular(UiRadius.sm),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            context.kycText('supportingDocuments.card.reads').toUpperCase(),
+            context.verificationText('supportingDocuments.card.reads').toUpperCase(),
             style: text.bodySmall.copyWith(
               color: colors.textSecondary,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.5,
             ),
           ),
-          const SizedBox(height: MyazaSpacing.sm),
+          const SizedBox(height: UiSpacing.sm),
           Wrap(
-            spacing: MyazaSpacing.xs + 2,
-            runSpacing: MyazaSpacing.xs + 2,
+            spacing: UiSpacing.xs + 2,
+            runSpacing: UiSpacing.xs + 2,
             children: [
               for (final read in reads)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: MyazaSpacing.sm,
+                    horizontal: UiSpacing.sm,
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
                     color: colors.backgroundSecondary,
                     border: Border.all(color: colors.border),
-                    borderRadius: BorderRadius.circular(MyazaRadius.full),
+                    borderRadius: BorderRadius.circular(UiRadius.full),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      MyazaIcon(MyazaIcons.check, size: 12, color: colors.primary),
+                      UiIcon(UiIcons.check, size: 12, color: colors.primary),
                       const SizedBox(width: 4),
                       Text(read, style: text.bodySmall),
                     ],

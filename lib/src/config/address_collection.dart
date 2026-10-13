@@ -58,7 +58,7 @@ class AddressCollectionConfig {
   final bool attestPresence;
 
   /// Phase 2: multi-day presence verification. When enabled, the SDK stores
-  /// the confirmed pin ON-DEVICE so later `MyazaAddressPresence.report()`
+  /// the confirmed pin ON-DEVICE so later `AddressPresence.report()`
   /// calls can evaluate the fence locally — coordinates never leave the phone
   /// after capture.
   final bool presenceEnabled;
@@ -70,7 +70,7 @@ class AddressCollectionConfig {
   /// The org opts into OS geofencing (and the Android foreground service).
   /// Client-UX only: the intro screen says, once and up front, that an
   /// "allow all the time" prompt is coming. The host app still decides to
-  /// call `MyazaBackgroundPresence.enable()` / `MyazaPresenceService.enable()`.
+  /// call `BackgroundPresence.enable()` / `PresenceService.enable()`.
   final bool presenceBackground;
 
   const AddressCollectionConfig({

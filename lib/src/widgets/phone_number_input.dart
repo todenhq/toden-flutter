@@ -6,7 +6,7 @@ import '../config/phone_seed.dart';
 import '../config/theme.dart';
 import 'country_flag.dart';
 import 'dial_code_picker.dart';
-import 'myaza_input.dart';
+import 'ui_input.dart';
 import 'icons/icons.dart';
 
 // ─── Phone number input ───────────────────────────────────────────────────────
@@ -145,29 +145,29 @@ class _PhoneNumberInputState extends State<PhoneNumberInput> {
       children: [
         InkWell(
           onTap: _pickCountry,
-          borderRadius: BorderRadius.circular(MyazaRadius.md),
+          borderRadius: BorderRadius.circular(UiRadius.md),
           child: Container(
             height: 52,
-            padding: const EdgeInsets.symmetric(horizontal: MyazaSpacing.sm),
+            padding: const EdgeInsets.symmetric(horizontal: UiSpacing.sm),
             decoration: BoxDecoration(
               border: Border.all(color: colors.border),
-              borderRadius: BorderRadius.circular(MyazaRadius.md),
+              borderRadius: BorderRadius.circular(UiRadius.md),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                MyazaCountryFlag(country: _iso, size: 22),
-                const SizedBox(width: MyazaSpacing.xs),
+                UiCountryFlag(country: _iso, size: 22),
+                const SizedBox(width: UiSpacing.xs),
                 Text('+$_dial', style: text.label),
-                const SizedBox(width: MyazaSpacing.xs),
-                MyazaIcon(MyazaIcons.chevronDown, size: 14, color: colors.textMuted),
+                const SizedBox(width: UiSpacing.xs),
+                UiIcon(UiIcons.chevronDown, size: 14, color: colors.textMuted),
               ],
             ),
           ),
         ),
-        const SizedBox(width: MyazaSpacing.sm),
+        const SizedBox(width: UiSpacing.sm),
         Expanded(
-          child: MyazaInput(
+          child: UiInput(
             controller: _controller,
             hint: '803 123 4567',
             keyboardType: TextInputType.phone,

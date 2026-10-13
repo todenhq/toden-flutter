@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/signature.dart';
-import '../widgets/myaza_button.dart';
+import '../widgets/ui_button.dart';
 import '../widgets/signature_pad.dart';
 import '../widgets/signature_pad_parts.dart';
 
@@ -57,7 +57,7 @@ class _SupportingDocumentSignatureState
           onChanged: (drawing) => setState(() => _drawing = drawing),
         ),
         const SizedBox(height: 8),
-        MyazaButton(
+        UiButton(
           label: widget.saving ? 'Saving…' : 'Use this signature',
           isLoading: widget.saving,
           onPressed:

@@ -1,5 +1,5 @@
 import '../config/contact_verification.dart';
-import '../config/kyc_config.dart';
+import '../config/verification_config.dart';
 
 // ─── Contact verification — resolved per-channel settings ─────────────────────
 //
@@ -63,7 +63,7 @@ class ContactChannelSettings {
   /// Reads the block matching [channel] off [config], applying the same
   /// defaults the server clamps to (6 digits, segmented, required).
   factory ContactChannelSettings.resolve(
-    MyazaKYCConfig config,
+    VerificationConfig config,
     String channel, {
     /// Where the visitor appears to be, from the server's IP lookup. The LAST
     /// resort for the phone field: an explicit workflow setting wins, then the

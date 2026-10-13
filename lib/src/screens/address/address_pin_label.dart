@@ -16,7 +16,7 @@ import '../../services/api_service.dart';
 
 mixin AddressPinLabelling on ChangeNotifier {
   // ── Provided by the controller ─────────────────────────────────────────────
-  KYCApiService get api;
+  VerificationApiService get api;
   AddressState? get address;
   void writeAddress(AddressState next);
   bool get vendorsStubbed;

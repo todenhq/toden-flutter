@@ -71,7 +71,7 @@ Future<WatchState?> fetchWatchState(
       receiveTimeout: const Duration(seconds: 10),
     ));
     final res = await dio.get<Map<String, dynamic>>(
-      '/api/kyc/address/presence/${Uri.encodeComponent(externalUserId)}',
+      '/api/v1/address/presence/${Uri.encodeComponent(externalUserId)}',
     );
     final status = res.data?['status'];
     if (status is! String) return null;

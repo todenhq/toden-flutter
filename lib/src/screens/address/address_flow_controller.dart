@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/address_collection.dart';
 import '../../config/address_flow.dart';
-import '../../config/kyc_config.dart';
+import '../../config/verification_config.dart';
 import '../../presence/presence_store.dart';
 import '../../providers/address_step_order.dart';
-import '../../providers/kyc_provider.dart';
-import '../../providers/kyc_state.dart';
+import '../../providers/verification_provider.dart';
+import '../../providers/verification_state.dart';
 import '../../providers/step_order.dart';
 import '../../services/api_service.dart';
 import '../../services/location_service.dart';
@@ -22,7 +22,7 @@ import 'address_pin_label.dart';
 // Every address step mounts one of these and gets the same derived flags, the
 // same step list and the same actions — which is what keeps four separate
 // screens telling one story. Per-screen like the web SDK's useAddressFlow: the
-// ADDRESS itself lives in KYCState, so only the transient flags are local.
+// ADDRESS itself lives in VerificationState, so only the transient flags are local.
 //
 // Navigation deliberately routes through the ordinary step order rather than
 // its own state machine: these are real steps, so the progress bar advances
@@ -56,11 +56,11 @@ class AddressFlowController extends ChangeNotifier
   // ── Reads ──────────────────────────────────────────────────────────────────
 
   @override
-  MyazaKYCConfig get config => _ref.read(kycConfigProvider);
+  VerificationConfig get config => _ref.read(verificationConfigProvider);
   @override
-  KYCNotifier get notifier => _ref.read(kYCNotifierProvider.notifier);
+  VerificationNotifier get notifier => _ref.read(kYCNotifierProvider.notifier);
   @override
-  KYCState get state => _ref.read(kYCNotifierProvider);
+  VerificationState get state => _ref.read(kYCNotifierProvider);
 
   /// A reverse geocode of the fix or the pin: the declared country follows
   /// the evidence (address_country_adoption.dart).
@@ -68,7 +68,7 @@ class AddressFlowController extends ChangeNotifier
   void onGeocoded(String? country) => adoptGeocodedCountry(country);
 
   @override
-  KYCApiService get api => notifier.api;
+  VerificationApiService get api => notifier.api;
 
   @override
   AddressState? get address => state.address;
@@ -95,7 +95,7 @@ class AddressFlowController extends ChangeNotifier
   ({MapLatLng center, int zoom}) get view => defaultMapView(country);
 
   /// The address steps this mount offers.
-  List<KYCStep> get steps => addressStepsFor(config, state);
+  List<VerificationStep> get steps => addressStepsFor(config, state);
 
   /// Whether [step] is the last address step this flow offers, so its Continue
   /// is the COMMIT rather than an advance.
@@ -105,7 +105,7 @@ class AddressFlowController extends ChangeNotifier
   /// the same answer — but it answers a different question, and a flow that
   /// ever ended somewhere else would silently stop taking the attest fix and
   /// storing the presence pin, with nothing to show for it.
-  bool isLastAddressStep(KYCStep step) => nextAddressStep(steps, step) == null;
+  bool isLastAddressStep(VerificationStep step) => nextAddressStep(steps, step) == null;
 
   /// The entrance photo's mode. KYB never offers the slot: the premises pin
   /// and its directions are the capture, and the server's business path
@@ -119,7 +119,7 @@ class AddressFlowController extends ChangeNotifier
       !isBusiness && addressFlowOptionsFor(config, state).streetViewOffered;
 
   /// Whether this step should show the presence primer instead of its body.
-  bool showIntroGate(KYCStep step) =>
+  bool showIntroGate(VerificationStep step) =>
       addressIntroGateShowing(config, state, step);
 
   // ── Writes ─────────────────────────────────────────────────────────────────

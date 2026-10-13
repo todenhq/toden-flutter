@@ -7,7 +7,7 @@ import '../config/theme.dart';
 import '../config/upload_limits.dart';
 import '../widgets/dashed_border.dart';
 import '../widgets/icons/icons.dart';
-import '../widgets/myaza_spinner.dart';
+import '../widgets/ui_spinner.dart';
 
 // ─── One business-document upload slot ────────────────────────────────────────
 //
@@ -78,13 +78,13 @@ class BusinessDocumentSlot extends StatelessWidget {
     final Widget inner;
     if (done) {
       inner = Container(
-        padding: const EdgeInsets.all(MyazaSpacing.md),
+        padding: const EdgeInsets.all(UiSpacing.md),
         decoration: BoxDecoration(
           color: colors.backgroundSecondary,
           border: Border.all(
-            color: hasError ? MyazaColors.error : colors.border,
+            color: hasError ? UiColors.error : colors.border,
           ),
-          borderRadius: BorderRadius.circular(MyazaRadius.sm),
+          borderRadius: BorderRadius.circular(UiRadius.sm),
         ),
         child: Row(
           children: [
@@ -95,7 +95,7 @@ class BusinessDocumentSlot extends StatelessWidget {
               previewPath: previewPath,
               isPdf: isPdf,
             ),
-            const SizedBox(width: MyazaSpacing.sm + 4),
+            const SizedBox(width: UiSpacing.sm + 4),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,7 +121,7 @@ class BusinessDocumentSlot extends StatelessWidget {
               ),
             ),
             // Breathing room so a truncated file name never crowds the CTA.
-            const SizedBox(width: MyazaSpacing.sm + 4),
+            const SizedBox(width: UiSpacing.sm + 4),
             // Whole-row tap re-picks too; the explicit label matches web.
             Text(
               'Replace',
@@ -135,7 +135,7 @@ class BusinessDocumentSlot extends StatelessWidget {
                 onPressed: onRemove,
                 visualDensity: VisualDensity.compact,
                 tooltip: 'Remove $label',
-                icon: MyazaIcon(MyazaIcons.x,
+                icon: UiIcon(UiIcons.x,
                     size: 18, color: colors.textSecondary),
               ),
           ],
@@ -144,26 +144,26 @@ class BusinessDocumentSlot extends StatelessWidget {
     } else {
       inner = CustomPaint(
         painter: DashedRoundedBorder(
-          color: hasError ? MyazaColors.error : colors.border,
-          radius: MyazaRadius.sm,
+          color: hasError ? UiColors.error : colors.border,
+          radius: UiRadius.sm,
           strokeWidth: 2,
         ),
         child: Container(
-          padding: const EdgeInsets.all(MyazaSpacing.md),
+          padding: const EdgeInsets.all(UiSpacing.md),
           child: Row(
             children: [
               if (uploading)
                 SizedBox(
                   width: 20,
                   height: 20,
-                  child: MyazaSpinner(
+                  child: UiSpinner(
                     strokeWidth: 2,
                     color: colors.primary,
                   ),
                 )
               else
-                MyazaIcon(MyazaIcons.upload, size: 20, color: colors.textMuted),
-              const SizedBox(width: MyazaSpacing.sm + 4),
+                UiIcon(UiIcons.upload, size: 20, color: colors.textMuted),
+              const SizedBox(width: UiSpacing.sm + 4),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,7 +182,7 @@ class BusinessDocumentSlot extends StatelessWidget {
                           TextSpan(
                             text: ' *',
                             style: text.label
-                                .copyWith(color: MyazaColors.error),
+                                .copyWith(color: UiColors.error),
                           ),
                       ]),
                       maxLines: 2,
@@ -216,19 +216,19 @@ class BusinessDocumentSlot extends StatelessWidget {
     }
 
     return Padding(
-      padding: EdgeInsets.only(bottom: compact ? 0 : MyazaSpacing.md),
+      padding: EdgeInsets.only(bottom: compact ? 0 : UiSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           InkWell(
             onTap: uploading ? null : onTap,
-            borderRadius: BorderRadius.circular(MyazaRadius.sm),
+            borderRadius: BorderRadius.circular(UiRadius.sm),
             child: inner,
           ),
           if (hasError) ...[
-            const SizedBox(height: MyazaSpacing.xs),
+            const SizedBox(height: UiSpacing.xs),
             Text(error!,
-                style: text.bodySmall.copyWith(color: MyazaColors.error)),
+                style: text.bodySmall.copyWith(color: UiColors.error)),
           ],
         ],
       ),
@@ -265,7 +265,7 @@ class _Leading extends StatelessWidget {
           child: SizedBox(
             width: 18,
             height: 18,
-            child: MyazaSpinner(strokeWidth: 2),
+            child: UiSpinner(strokeWidth: 2),
           ),
         ),
       );
@@ -273,7 +273,7 @@ class _Leading extends StatelessWidget {
 
     if (done && previewBytes != null) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(MyazaRadius.xs),
+        borderRadius: BorderRadius.circular(UiRadius.xs),
         child: Image.memory(
           previewBytes!,
           width: size,
@@ -282,7 +282,7 @@ class _Leading extends StatelessWidget {
           // A picker can hand back bytes Flutter can't decode (HEIC on some
           // devices); fall back to the tile rather than throwing in build.
           errorBuilder: (_, __, ___) =>
-              _Tile(icon: MyazaIcons.fileText, colors: colors),
+              _Tile(icon: UiIcons.fileText, colors: colors),
         ),
       );
     }
@@ -291,7 +291,7 @@ class _Leading extends StatelessWidget {
     // record-persisted temp path still renders the same thumbnail.
     if (done && previewPath != null) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(MyazaRadius.xs),
+        borderRadius: BorderRadius.circular(UiRadius.xs),
         child: Image.file(
           File(previewPath!),
           width: size,
@@ -299,15 +299,15 @@ class _Leading extends StatelessWidget {
           fit: BoxFit.cover,
           // The OS may have purged the temp file — degrade to the check tile.
           errorBuilder: (_, __, ___) =>
-              _Tile(icon: MyazaIcons.check, colors: colors, tinted: true),
+              _Tile(icon: UiIcons.check, colors: colors, tinted: true),
         ),
       );
     }
 
     return _Tile(
       icon: done
-          ? (isPdf ? MyazaIcons.fileText : MyazaIcons.check)
-          : MyazaIcons.upload,
+          ? (isPdf ? UiIcons.fileText : UiIcons.check)
+          : UiIcons.upload,
       colors: colors,
       tinted: done,
     );
@@ -315,8 +315,8 @@ class _Leading extends StatelessWidget {
 }
 
 class _Tile extends StatelessWidget {
-  final MyazaIconData icon;
-  final MyazaColorScheme colors;
+  final UiIconData icon;
+  final UiColorScheme colors;
   final bool tinted;
 
   const _Tile({required this.icon, required this.colors, this.tinted = false});
@@ -328,9 +328,9 @@ class _Tile extends StatelessWidget {
       height: 44,
       decoration: BoxDecoration(
         color: tinted ? colors.primary100 : colors.backgroundSecondary,
-        borderRadius: BorderRadius.circular(MyazaRadius.sm),
+        borderRadius: BorderRadius.circular(UiRadius.sm),
       ),
-      child: MyazaIcon(icon,
+      child: UiIcon(icon,
           size: 20, color: tinted ? colors.primary : colors.textSecondary),
     );
   }

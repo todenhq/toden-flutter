@@ -85,8 +85,8 @@ class EnableForegroundServiceResult {
   const EnableForegroundServiceResult(this.started, this.reason);
 }
 
-class MyazaPresenceService {
-  MyazaPresenceService._();
+class PresenceService {
+  PresenceService._();
 
   static const MethodChannel _channel = MethodChannel('kyc_sdk_flutter/presence');
 

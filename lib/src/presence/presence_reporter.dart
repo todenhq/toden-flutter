@@ -11,7 +11,7 @@ import 'presence_watch_wait.dart';
 
 // ─── The FOREGROUND presence reporter — the default tier ─────────────────────
 //
-// The host app calls MyazaAddressPresence.report() on app open, or the moment
+// The host app calls AddressPresence.report() on app open, or the moment
 // the flow submits (presence_watch_wait.dart makes that safe: the watch is
 // minted seconds after the submission is accepted, and a fresh pin waits for
 // it); the SDK takes one while-in-use fix, evaluates the fence ON-DEVICE
@@ -48,8 +48,8 @@ class PresenceReportResult {
   const PresenceReportResult(this.reported, this.inside, this.reason, {this.background});
 }
 
-class MyazaAddressPresence {
-  MyazaAddressPresence._();
+class AddressPresence {
+  AddressPresence._();
 
   /// A fix older than this no longer says where the phone is NOW.
   static const Duration _lastKnownMaxAge = Duration(minutes: 10);
@@ -98,7 +98,7 @@ class MyazaAddressPresence {
   /// The reporter switches background monitoring on for a person whose check
   /// is running without it, asking for "allow all the time" once. Pass
   /// [autoBackground] `false` to do that yourself with
-  /// `MyazaBackgroundPresence.enable()`, at a moment you choose.
+  /// `BackgroundPresence.enable()`, at a moment you choose.
   static Future<PresenceReportResult> report({
     required String apiKey,
     required String externalUserId,
@@ -191,7 +191,7 @@ class MyazaAddressPresence {
     // An inside reading is also a "still here" check-in for the background
     // tier: a stay it is tracking is recorded now rather than when they leave.
     if (inside && !fix.isMocked) {
-      await MyazaBackgroundPresence.checkIn(
+      await BackgroundPresence.checkIn(
         lat: fix.latitude,
         lng: fix.longitude,
         accuracy: fix.accuracy.isFinite && fix.accuracy > 0 ? fix.accuracy : null,
@@ -225,7 +225,7 @@ class MyazaAddressPresence {
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
       ));
-      await dio.post<Map<String, dynamic>>('/api/kyc/address/observations', data: {
+      await dio.post<Map<String, dynamic>>('/api/v1/address/observations', data: {
         'externalUserId': externalUserId,
         'observations': [
           {

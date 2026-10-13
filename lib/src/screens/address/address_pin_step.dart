@@ -6,12 +6,12 @@ import '../../config/address_collection.dart';
 import '../../config/address_field_modes.dart';
 import '../../config/address_flow.dart';
 import '../../config/theme.dart';
-import '../../providers/kyc_provider.dart';
-import '../../providers/kyc_state.dart';
+import '../../providers/verification_provider.dart';
+import '../../providers/verification_state.dart';
 import '../../utils/address_current_location.dart';
 import '../../utils/map_tiles.dart' show mapSurfaceHeight;
 import '../../widgets/framed_map_picker.dart';
-import '../../widgets/myaza_button.dart';
+import '../../widgets/ui_button.dart';
 import '../../widgets/sticky_actions.dart';
 import 'address_details_sheet.dart';
 import 'address_flow_scaffold.dart';
@@ -47,7 +47,7 @@ class _AddressPinStepState extends ConsumerState<AddressPinStep>
   bool _missingNudge = false;
 
   @override
-  KYCStep get step => KYCStep.addressCollection;
+  VerificationStep get step => VerificationStep.addressCollection;
 
   @override
   void initState() {
@@ -137,8 +137,8 @@ class _AddressPinStepState extends ConsumerState<AddressPinStep>
       actions: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          MyazaButton(
-            label: context.kycText('common.continue'),
+          UiButton(
+            label: context.verificationText('common.continue'),
             isLoading: flow.confirming,
             onPressed: pin == null || flow.confirming ? null : _continue,
           ),
@@ -164,26 +164,26 @@ class _AddressPinStepState extends ConsumerState<AddressPinStep>
               height: mapHeight,
               overlay: pin == null ? null : LocateOnMapButton(locating: flow.locating, onTap: flow.locateToPin),
             ),
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
           AddressPinSummary(
             address: address,
             labelling: flow.labelling,
             onEdit: pin == null ? null : _openDetails,
           ),
           if (askLabel && label != null) ...[
-            const SizedBox(height: MyazaSpacing.md),
+            const SizedBox(height: UiSpacing.md),
             AddressLabelDecision(label: label, onKeep: flow.keepPickedLabel, onAdopt: flow.adoptPinAddress),
           ],
           if (pin == null) ...[
-            const SizedBox(height: MyazaSpacing.md),
+            const SizedBox(height: UiSpacing.md),
             CurrentLocationRow(hint: flow.fix?.label, locating: flow.locating, onTap: flow.applyCurrentFix),
           ],
           buildError(context),
           if (_missingNudge && missing.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: MyazaSpacing.sm),
+              padding: const EdgeInsets.only(top: UiSpacing.sm),
               child: Text(missingFieldsNudge(missing),
-                  style: context.myazaText.bodySmall.copyWith(color: MyazaColors.error)),
+                  style: context.myazaText.bodySmall.copyWith(color: UiColors.error)),
             ),
         ],
       ),

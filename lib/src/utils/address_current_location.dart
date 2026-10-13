@@ -93,7 +93,7 @@ void resetCurrentFix() {
 /// hardware (so a test key never triggers a permission prompt) and the sample
 /// line stands in for the geocoder. See [addressVendorsStubbed].
 Future<CurrentFix?> prefetchCurrentFix(
-  KYCApiService api, {
+  VerificationApiService api, {
   bool preview = false,
   bool retry = false,
   bool stubbed = false,
@@ -105,7 +105,7 @@ Future<CurrentFix?> prefetchCurrentFix(
 }
 
 Future<CurrentFix?> _attempt(
-  KYCApiService api,
+  VerificationApiService api,
   bool canned,
   bool stubbed,
 ) async {

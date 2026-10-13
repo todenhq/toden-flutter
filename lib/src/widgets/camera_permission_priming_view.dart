@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../config/theme.dart';
-import 'myaza_button.dart';
+import 'ui_button.dart';
 import '../i18n/text_scope.dart';
 import 'icons/icons.dart';
 
@@ -28,13 +28,13 @@ class CameraPermissionPrimingView extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
     final text = context.myazaText;
-    final t = context.kycText;
+    final t = context.verificationText;
 
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(
-          horizontal: MyazaSpacing.md,
-          vertical: MyazaSpacing.xl,
+          horizontal: UiSpacing.md,
+          vertical: UiSpacing.xl,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -48,27 +48,27 @@ class CameraPermissionPrimingView extends StatelessWidget {
                   color: colors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: MyazaIcon(
-                  MyazaIcons.camera,
+                child: UiIcon(
+                  UiIcons.camera,
                   size: 36,
                   color: colors.primary,
                 ),
               ),
             ),
-            const SizedBox(height: MyazaSpacing.lg),
+            const SizedBox(height: UiSpacing.lg),
             Text(
               t('primer.camera.title'),
               style: text.heading2,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: MyazaSpacing.xs),
+            const SizedBox(height: UiSpacing.xs),
             Text(
               message,
               style: text.bodyMedium.copyWith(color: colors.textSecondary),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: MyazaSpacing.lg),
-            MyazaButton(label: t('primer.camera.button'), onPressed: onGrant),
+            const SizedBox(height: UiSpacing.lg),
+            UiButton(label: t('primer.camera.button'), onPressed: onGrant),
           ],
         ),
       ).animate().fadeIn(duration: 250.ms),

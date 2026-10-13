@@ -10,7 +10,7 @@ part of 'api_service.dart';
 // and the basic explicit-submit search. Which one applies is decided by
 // `serverConfig.addressSearchMode`, never by trying one and falling back.
 
-extension KYCApiAddress on KYCApiService {
+extension VerificationApiAddress on VerificationApiService {
   /// Forward address search for the basic backend.
   ///
   /// EXPLICIT SUBMIT ONLY. Never call this per keystroke: the server's map
@@ -23,7 +23,7 @@ extension KYCApiAddress on KYCApiService {
   }) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
-        '/api/kyc/address/search',
+        '/api/v1/address/search',
         queryParameters: {
           'q': query,
           if (country != null && country.isNotEmpty) 'country': country,
@@ -61,7 +61,7 @@ extension KYCApiAddress on KYCApiService {
     int width = 640,
     int height = 360,
   }) =>
-      '$baseUrl/api/kyc/address/static-map'
+      '$baseUrl/api/v1/address/static-map'
       '?lat=$lat&lng=$lng&zoom=$zoom&width=$width&height=$height';
 
   /// The framed Street View entrance, as bytes the review card can show.
@@ -78,7 +78,7 @@ extension KYCApiAddress on KYCApiService {
   }) async {
     try {
       final response = await _dio.get<List<int>>(
-        '/api/kyc/address/street-view-preview',
+        '/api/v1/address/street-view-preview',
         queryParameters: {
           'panoId': panoId,
           'heading': heading,
@@ -102,7 +102,7 @@ extension KYCApiAddress on KYCApiService {
   Future<AddressReverseResult> addressReverse(double lat, double lng) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
-        '/api/kyc/address/reverse',
+        '/api/v1/address/reverse',
         queryParameters: {'lat': lat, 'lng': lng},
       );
       return AddressReverseResult.fromJson(response.data ?? const {});
@@ -129,7 +129,7 @@ extension KYCApiAddress on KYCApiService {
   }) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
-        '/api/kyc/address/autocomplete',
+        '/api/v1/address/autocomplete',
         queryParameters: {
           'q': query,
           'session': session,
@@ -159,12 +159,12 @@ extension KYCApiAddress on KYCApiService {
   }) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
-        '/api/kyc/address/place/${Uri.encodeComponent(placeId)}',
+        '/api/v1/address/place/${Uri.encodeComponent(placeId)}',
         queryParameters: {'session': session},
       );
       final place = response.data?['place'];
       if (place is! Map) {
-        throw const KYCApiException(
+        throw const VerificationApiException(
           statusCode: 404,
           error: 'place_not_found',
           message:

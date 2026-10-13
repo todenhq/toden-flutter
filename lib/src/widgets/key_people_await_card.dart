@@ -72,10 +72,10 @@ class KeyPeopleAwaitCardState extends State<KeyPeopleAwaitCard> {
     final row = widget.row;
 
     return Container(
-      padding: const EdgeInsets.all(MyazaSpacing.md),
+      padding: const EdgeInsets.all(UiSpacing.md),
       decoration: BoxDecoration(
         color: colors.backgroundSecondary,
-        borderRadius: BorderRadius.circular(MyazaRadius.md),
+        borderRadius: BorderRadius.circular(UiRadius.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -114,13 +114,13 @@ class KeyPeopleAwaitCardState extends State<KeyPeopleAwaitCard> {
                                   color: colors.background,
                                   border: Border.all(color: colors.border),
                                   borderRadius:
-                                      BorderRadius.circular(MyazaRadius.full),
+                                      BorderRadius.circular(UiRadius.full),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    MyazaIcon(
-                                      MyazaIcons.building2,
+                                    UiIcon(
+                                      UiIcons.building2,
                                       size: 12,
                                       color: colors.textDark,
                                     ),
@@ -159,7 +159,7 @@ class KeyPeopleAwaitCardState extends State<KeyPeopleAwaitCard> {
                             alignment: PlaceholderAlignment.middle,
                             child: Padding(
                               padding: const EdgeInsets.only(right: 4),
-                              child: MyazaCountryFlag(country: row.country, size: 14),
+                              child: UiCountryFlag(country: row.country, size: 14),
                             ),
                           ),
                           TextSpan(text: countryLabel(row.country!)),
@@ -172,15 +172,15 @@ class KeyPeopleAwaitCardState extends State<KeyPeopleAwaitCard> {
                   ],
                 ),
               ),
-              const SizedBox(width: MyazaSpacing.sm),
+              const SizedBox(width: UiSpacing.sm),
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: MyazaSpacing.sm + 4,
-                  vertical: MyazaSpacing.xs,
+                  horizontal: UiSpacing.sm + 4,
+                  vertical: UiSpacing.xs,
                 ),
                 decoration: BoxDecoration(
                   color: pillBg(row.status, colors),
-                  borderRadius: BorderRadius.circular(MyazaRadius.full),
+                  borderRadius: BorderRadius.circular(UiRadius.full),
                 ),
                 child: Text(
                   pillLabel(row.status, row.isCorporate),
@@ -195,25 +195,25 @@ class KeyPeopleAwaitCardState extends State<KeyPeopleAwaitCard> {
             ],
           ),
           if (row.inviteUrl != null) ...[
-            const SizedBox(height: MyazaSpacing.sm + 4),
+            const SizedBox(height: UiSpacing.sm + 4),
             // Both actions, since it's mobile: Copy for pasting anywhere,
             // Share for the native sheet (WhatsApp/SMS directly).
             Row(
               children: [
                 Expanded(
                   child: KeyPeopleActionPill(
-                    icon: _copied ? MyazaIcons.check : MyazaIcons.copy,
+                    icon: _copied ? UiIcons.check : UiIcons.copy,
                     label: _copied ? 'Copied' : 'Copy link',
                     onTap: _copy,
                   ),
                 ),
-                const SizedBox(width: MyazaSpacing.sm),
+                const SizedBox(width: UiSpacing.sm),
                 Expanded(
                   // Builder so the share sheet anchors to THIS pill's render
                   // box (not the whole card).
                   child: Builder(
                     builder: (pillContext) => KeyPeopleActionPill(
-                      icon: MyazaIcons.share2,
+                      icon: UiIcons.share2,
                       label: 'Share',
                       onTap: () => _share(pillContext),
                     ),

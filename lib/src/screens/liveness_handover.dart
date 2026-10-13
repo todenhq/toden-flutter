@@ -5,7 +5,7 @@ import '../config/biometric_copy.dart';
 import '../config/biometric_options.dart';
 import '../config/result_copy.dart';
 import '../config/scope.dart';
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 import 'submitted_waiting_view.dart';
 import '../i18n/text_scope.dart';
 
@@ -27,7 +27,7 @@ class LivenessHandover extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final config = ref.watch(kycConfigProvider);
+    final config = ref.watch(verificationConfigProvider);
     final copy = describeWaiting(
       scope: configScope(config.scope),
       waitsForResult: config.waitsForResultOption,

@@ -4,12 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/business.dart';
 import '../config/business_application.dart';
 import '../config/theme.dart';
-import '../providers/kyc_provider.dart';
+import '../providers/verification_provider.dart';
 import '../widgets/country_flag.dart';
 import '../widgets/dashed_border.dart';
-import '../widgets/myaza_button.dart';
-import '../widgets/myaza_input.dart';
-import '../widgets/myaza_select.dart';
+import '../widgets/ui_button.dart';
+import '../widgets/ui_input.dart';
+import '../widgets/ui_select.dart';
 import '../widgets/icons/icons.dart';
 import '../i18n/text_scope.dart';
 
@@ -70,7 +70,7 @@ class _ApplicantRoleScreenState extends ConsumerState<ApplicantRoleScreen> {
     super.initState();
     final s = ref.read(kYCNotifierProvider);
     _role = s.applicantRole;
-    final config = ref.read(kycConfigProvider);
+    final config = ref.read(verificationConfigProvider);
     final prop = [config.userData?.firstName, config.userData?.lastName]
         .whereType<String>()
         .where((p) => p.isNotEmpty)
@@ -151,10 +151,10 @@ class _ApplicantRoleScreenState extends ConsumerState<ApplicantRoleScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
-          padding: const EdgeInsets.all(MyazaSpacing.md),
+          padding: const EdgeInsets.all(UiSpacing.md),
           decoration: BoxDecoration(
             color: colors.backgroundSecondary,
-            borderRadius: BorderRadius.circular(MyazaRadius.md),
+            borderRadius: BorderRadius.circular(UiRadius.md),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -164,26 +164,26 @@ class _ApplicantRoleScreenState extends ConsumerState<ApplicantRoleScreen> {
                 height: 36,
                 decoration: BoxDecoration(
                   color: colors.primary100,
-                  borderRadius: BorderRadius.circular(MyazaRadius.sm),
+                  borderRadius: BorderRadius.circular(UiRadius.sm),
                 ),
-                child: MyazaIcon(MyazaIcons.scanFace,
+                child: UiIcon(UiIcons.scanFace,
                     size: 18, color: colors.primary),
               ),
-              const SizedBox(width: MyazaSpacing.md),
+              const SizedBox(width: UiSpacing.md),
               Expanded(
                 child: Text(
-                  context.kycText('business.applicant.notice'),
+                  context.verificationText('business.applicant.notice'),
                   style: text.bodySmall,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: MyazaSpacing.lg),
+        const SizedBox(height: UiSpacing.lg),
 
         if (people.isNotEmpty) ...[
-          Text(context.kycText('business.applicant.whoLabel'), style: text.label),
-          const SizedBox(height: MyazaSpacing.xs),
+          Text(context.verificationText('business.applicant.whoLabel'), style: text.label),
+          const SizedBox(height: UiSpacing.xs),
           for (final (index, row) in people) ...[
             _SelfTile(
               label: row.name.trim(),
@@ -196,24 +196,24 @@ class _ApplicantRoleScreenState extends ConsumerState<ApplicantRoleScreen> {
                   (_selection as _SelectionPerson).index == index,
               onTap: () => setState(() => _selection = _SelectionPerson(index)),
             ),
-            const SizedBox(height: MyazaSpacing.sm),
+            const SizedBox(height: UiSpacing.sm),
           ],
           _SelfTile(
-            label: context.kycText('business.applicant.notListed'),
+            label: context.verificationText('business.applicant.notListed'),
             other: true,
             isSelected: _selection is _SelectionOther,
             onTap: () => setState(() => _selection = const _SelectionOther()),
           ),
           if (_selection is _SelectionPerson) ...[
-            const SizedBox(height: MyazaSpacing.sm),
+            const SizedBox(height: UiSpacing.sm),
             Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: MyazaSpacing.sm + 4,
-                vertical: MyazaSpacing.sm + 2,
+                horizontal: UiSpacing.sm + 4,
+                vertical: UiSpacing.sm + 2,
               ),
               decoration: BoxDecoration(
                 color: colors.primary100,
-                borderRadius: BorderRadius.circular(MyazaRadius.xs),
+                borderRadius: BorderRadius.circular(UiRadius.xs),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,12 +221,12 @@ class _ApplicantRoleScreenState extends ConsumerState<ApplicantRoleScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child:
-                        MyazaIcon(MyazaIcons.check, size: 14, color: colors.primary),
+                        UiIcon(UiIcons.check, size: 14, color: colors.primary),
                   ),
-                  const SizedBox(width: MyazaSpacing.xs + 2),
+                  const SizedBox(width: UiSpacing.xs + 2),
                   Expanded(
                     child: Text(
-                      context.kycText('business.applicant.selfNote'),
+                      context.verificationText('business.applicant.selfNote'),
                       style: text.bodySmall,
                     ),
                   ),
@@ -234,23 +234,23 @@ class _ApplicantRoleScreenState extends ConsumerState<ApplicantRoleScreen> {
               ),
             ),
           ],
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
         ],
 
         if (showRoleForm) ...[
-          Text(context.kycText('business.applicant.roleLabel'), style: text.label),
-          const SizedBox(height: MyazaSpacing.xs),
-          MyazaSelect<ApplicantRole>(
+          Text(context.verificationText('business.applicant.roleLabel'), style: text.label),
+          const SizedBox(height: UiSpacing.xs),
+          UiSelect<ApplicantRole>(
             value: _role,
             hint: 'Select your role',
             sheetTitle: 'Your role',
             options: [
               for (final role in ApplicantRole.values)
-                MyazaSelectOption(value: role, label: role.label),
+                UiSelectOption(value: role, label: role.label),
             ],
             onChanged: (v) => setState(() => _role = v),
           ),
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
 
           Text.rich(TextSpan(children: [
             TextSpan(text: 'Full name', style: text.label),
@@ -259,8 +259,8 @@ class _ApplicantRoleScreenState extends ConsumerState<ApplicantRoleScreen> {
               style: text.bodySmall.copyWith(color: colors.textSecondary),
             ),
           ])),
-          const SizedBox(height: MyazaSpacing.xs),
-          MyazaInput(
+          const SizedBox(height: UiSpacing.xs),
+          UiInput(
             controller: _nameCtrl,
             hint: 'Enter your full name',
             // It's a person's name — start every word capitalized.
@@ -269,9 +269,9 @@ class _ApplicantRoleScreenState extends ConsumerState<ApplicantRoleScreen> {
           ),
         ],
 
-        const SizedBox(height: MyazaSpacing.xl),
-        MyazaButton(
-          label: context.kycText('common.continue'),
+        const SizedBox(height: UiSpacing.xl),
+        UiButton(
+          label: context.verificationText('common.continue'),
           onPressed: _canContinue ? _onContinue : null,
         ),
       ],
@@ -314,7 +314,7 @@ class _SelfTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
     final text = context.myazaText;
-    final radius = BorderRadius.circular(MyazaRadius.sm);
+    final radius = BorderRadius.circular(UiRadius.sm);
 
     final card = AnimatedContainer(
       duration: const Duration(milliseconds: 150),
@@ -336,7 +336,7 @@ class _SelfTile extends StatelessWidget {
           onTap: onTap,
           borderRadius: radius,
           child: Padding(
-            padding: const EdgeInsets.all(MyazaSpacing.md - 2),
+            padding: const EdgeInsets.all(UiSpacing.md - 2),
             child: Row(
               children: [
                 // Monogram avatar (or the add-person icon) with the flag badge.
@@ -357,7 +357,7 @@ class _SelfTile extends StatelessWidget {
                         ),
                         alignment: Alignment.center,
                         child: other
-                            ? MyazaIcon(MyazaIcons.userRoundPlus,
+                            ? UiIcon(UiIcons.userRoundPlus,
                                 size: 18,
                                 color: isSelected
                                     ? colors.primary
@@ -385,7 +385,7 @@ class _SelfTile extends StatelessWidget {
                               ),
                             ),
                             child: ClipOval(
-                              child: MyazaCountryFlag(
+                              child: UiCountryFlag(
                                   country: countryCode, size: 16),
                             ),
                           ),
@@ -393,7 +393,7 @@ class _SelfTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: MyazaSpacing.sm + 4),
+                const SizedBox(width: UiSpacing.sm + 4),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -414,7 +414,7 @@ class _SelfTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: MyazaSpacing.sm),
+                const SizedBox(width: UiSpacing.sm),
                 // Radio dot — filled with a check when selected.
                 Container(
                   width: 20,
@@ -428,7 +428,7 @@ class _SelfTile extends StatelessWidget {
                     ),
                   ),
                   child: isSelected
-                      ? MyazaIcon(MyazaIcons.check,
+                      ? UiIcon(UiIcons.check,
                           size: 12, color: colors.background)
                       : null,
                 ),
@@ -443,7 +443,7 @@ class _SelfTile extends StatelessWidget {
       return CustomPaint(
         painter: DashedRoundedBorder(
           color: colors.border,
-          radius: MyazaRadius.sm,
+          radius: UiRadius.sm,
         ),
         child: card,
       );

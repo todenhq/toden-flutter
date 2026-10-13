@@ -80,8 +80,8 @@ class LivenessFrostedPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _surface(
         context,
-        radius: BorderRadius.circular(MyazaRadius.md),
-        padding: const EdgeInsets.all(MyazaSpacing.md),
+        radius: BorderRadius.circular(UiRadius.md),
+        padding: const EdgeInsets.all(UiSpacing.md),
         opacity: 0.88,
         child: child,
       );
@@ -113,7 +113,7 @@ class LivenessReassurance extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              MyazaIcon(MyazaIcons.lock, size: 13, color: colors.textSecondary),
+              UiIcon(UiIcons.lock, size: 13, color: colors.textSecondary),
               const SizedBox(width: 6),
               Flexible(
                 child: Text(

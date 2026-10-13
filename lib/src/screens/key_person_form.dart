@@ -6,7 +6,7 @@ import '../config/business_application.dart';
 import '../config/key_people_sections.dart';
 import '../config/theme.dart';
 import '../widgets/country_field.dart';
-import '../widgets/myaza_input.dart';
+import '../widgets/ui_input.dart';
 import 'key_person_kind_toggle.dart';
 import 'key_person_role_chips.dart';
 import 'ownership_slider.dart';
@@ -124,11 +124,11 @@ class KeyPersonForm extends StatelessWidget {
           )),
         ),
         if (section == KeyPeopleSection.shareholders)
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
 
         Text(corp ? 'Company name' : 'Full name', style: text.label),
-        const SizedBox(height: MyazaSpacing.xs),
-        MyazaInput(
+        const SizedBox(height: UiSpacing.xs),
+        UiInput(
           controller: nameCtrl,
           hint: corp ? 'e.g. Acme Holdings Ltd' : 'e.g. Bola Owner',
           // It's a name — start every word capitalized.
@@ -138,11 +138,11 @@ class KeyPersonForm extends StatelessWidget {
               : null,
           onChanged: (v) => onChange(entry.copyWith(name: v)),
         ),
-        const SizedBox(height: MyazaSpacing.md),
+        const SizedBox(height: UiSpacing.md),
 
         if (section == KeyPeopleSection.representatives) ...[
           KeyPersonRoleChips(roles: roleSet, onRoles: setRoles),
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
         ],
 
         // The human nuance the closed role vocabulary cannot carry. A company
@@ -155,14 +155,14 @@ class KeyPersonForm extends StatelessWidget {
               style: text.bodySmall.copyWith(color: colors.textSecondary),
             ),
           ])),
-          const SizedBox(height: MyazaSpacing.xs),
-          MyazaInput(
+          const SizedBox(height: UiSpacing.xs),
+          UiInput(
             controller: titleCtrl,
             hint: 'e.g. CFO, Board Member',
             textCapitalization: TextCapitalization.words,
             onChanged: (v) => onChange(entry.copyWith(title: v)),
           ),
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
         ],
 
         Text.rich(TextSpan(children: [
@@ -172,8 +172,8 @@ class KeyPersonForm extends StatelessWidget {
             style: text.bodySmall.copyWith(color: colors.textSecondary),
           ),
         ])),
-        const SizedBox(height: MyazaSpacing.xs),
-        MyazaInput(
+        const SizedBox(height: UiSpacing.xs),
+        UiInput(
           controller: pctCtrl,
           hint: entry.role.isOwnerRole ? 'e.g. 60' : '—',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -214,7 +214,7 @@ class KeyPersonForm extends StatelessWidget {
             onChange(entry.copyWith(ownershipPct: text));
           },
         ),
-        const SizedBox(height: MyazaSpacing.md),
+        const SizedBox(height: UiSpacing.md),
 
         if (corp) ...[
           Text.rich(TextSpan(children: [
@@ -224,14 +224,14 @@ class KeyPersonForm extends StatelessWidget {
               style: text.bodySmall.copyWith(color: colors.textSecondary),
             ),
           ])),
-          const SizedBox(height: MyazaSpacing.xs),
-          MyazaInput(
+          const SizedBox(height: UiSpacing.xs),
+          UiInput(
             controller: registrationCtrl,
             hint: 'e.g. RC123456',
             textCapitalization: TextCapitalization.characters,
             onChanged: (v) => onChange(entry.copyWith(registrationNumber: v)),
           ),
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
         ],
 
         Text.rich(TextSpan(children: [
@@ -241,7 +241,7 @@ class KeyPersonForm extends StatelessWidget {
             style: text.bodySmall.copyWith(color: colors.textSecondary),
           ),
         ])),
-        const SizedBox(height: MyazaSpacing.xs),
+        const SizedBox(height: UiSpacing.xs),
         // The SAME sheet as the phone field's dial-code picker
         // (keyboard-aware, autofocused search, results pinned above the
         // keys) — minus the dial codes. Two country pickers that feel
@@ -250,7 +250,7 @@ class KeyPersonForm extends StatelessWidget {
           country: entry.country,
           onChanged: (v) => onChange(entry.copyWith(country: v)),
         ),
-        const SizedBox(height: MyazaSpacing.md),
+        const SizedBox(height: UiSpacing.md),
 
         if (corp) ...[
           KeyPersonOwners(
@@ -258,7 +258,7 @@ class KeyPersonForm extends StatelessWidget {
             companyName: entry.name,
             onChanged: (owners) => onChange(entry.copyWith(owners: owners)),
           ),
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
         ],
 
         Text.rich(TextSpan(children: [
@@ -266,7 +266,7 @@ class KeyPersonForm extends StatelessWidget {
           if (needsEmail)
             TextSpan(
               text: ' *',
-              style: text.label.copyWith(color: MyazaColors.error),
+              style: text.label.copyWith(color: UiColors.error),
             )
           else
             TextSpan(
@@ -276,8 +276,8 @@ class KeyPersonForm extends StatelessWidget {
               style: text.bodySmall.copyWith(color: colors.textSecondary),
             ),
         ])),
-        const SizedBox(height: MyazaSpacing.xs),
-        MyazaInput(
+        const SizedBox(height: UiSpacing.xs),
+        UiInput(
           controller: emailCtrl,
           hint: 'name@company.com',
           keyboardType: TextInputType.emailAddress,

@@ -20,8 +20,8 @@ class PresenceExpectations extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Catalogue texts (a workflow may reword them); defaults in i18n/.
-    final t = context.kycText;
-    PresenceMilestone milestone(int n, MyazaIconData icon) => PresenceMilestone(
+    final t = context.verificationText;
+    PresenceMilestone milestone(int n, UiIconData icon) => PresenceMilestone(
           icon: icon,
           stage: t('address.presence.step$n.stage'),
           title: t('address.presence.step$n.title'),
@@ -29,7 +29,7 @@ class PresenceExpectations extends StatelessWidget {
           active: n == 1,
         );
     return Padding(
-      padding: const EdgeInsets.only(top: MyazaSpacing.lg),
+      padding: const EdgeInsets.only(top: UiSpacing.lg),
       child: PresenceCard(
         header: PresenceHeaderBand(
           badge: PresenceBadge(
@@ -42,9 +42,9 @@ class PresenceExpectations extends StatelessWidget {
         ),
         track: PresenceMilestoneTrack(
           milestones: [
-            milestone(1, MyazaIcons.mapPinCheck),
-            milestone(2, MyazaIcons.radar),
-            milestone(3, MyazaIcons.bellRing),
+            milestone(1, UiIcons.mapPinCheck),
+            milestone(2, UiIcons.radar),
+            milestone(3, UiIcons.bellRing),
           ],
           medallion: 32,
         ),

@@ -13,7 +13,7 @@ import '../../i18n/translate.dart' show TextFn;
 // 200-line rule. Copy is a lockstep mirror of the web and RN SDKs.
 
 class _Disclosure {
-  final MyazaIconData icon;
+  final UiIconData icon;
   final String title;
   final String body;
   const _Disclosure(this.icon, this.title, this.body);
@@ -22,15 +22,15 @@ class _Disclosure {
 // Catalogue texts (a workflow may reword them); defaults in i18n/.
 List<_Disclosure> _disclosuresFor(bool background, TextFn t) => [
   _Disclosure(
-    MyazaIcons.circleHelp,
+    UiIcons.circleHelp,
     t('address.intro.howItWorks.title'),
     t(background
         ? 'address.intro.howItWorks.body.background'
         : 'address.intro.howItWorks.body'),
   ),
-  _Disclosure(MyazaIcons.slidersHorizontal, t('address.intro.control.title'),
+  _Disclosure(UiIcons.slidersHorizontal, t('address.intro.control.title'),
       t('address.intro.control.body')),
-  _Disclosure(MyazaIcons.shieldCheck, t('address.intro.privacy.title'),
+  _Disclosure(UiIcons.shieldCheck, t('address.intro.privacy.title'),
       t('address.intro.privacy.body')),
 ];
 
@@ -51,12 +51,12 @@ class _AddressIntroDisclosuresState extends State<AddressIntroDisclosures> {
   @override
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
-    final disclosures = _disclosuresFor(widget.background, context.kycText);
+    final disclosures = _disclosuresFor(widget.background, context.verificationText);
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         border: Border.all(color: colors.border),
-        borderRadius: BorderRadius.circular(MyazaRadius.md),
+        borderRadius: BorderRadius.circular(UiRadius.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -107,7 +107,7 @@ class _DisclosureRow extends StatelessWidget {
               onTap: onTap,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: MyazaSpacing.sm + 4),
+                    horizontal: 14, vertical: UiSpacing.sm + 4),
                 child: Row(
                   children: [
                     AnimatedContainer(
@@ -119,9 +119,9 @@ class _DisclosureRow extends StatelessWidget {
                         color: open
                             ? colors.primary.withValues(alpha: 0.15)
                             : colors.backgroundSecondary,
-                        borderRadius: BorderRadius.circular(MyazaRadius.xs),
+                        borderRadius: BorderRadius.circular(UiRadius.xs),
                       ),
-                      child: MyazaIcon(disclosure.icon,
+                      child: UiIcon(disclosure.icon,
                           size: 16,
                           color:
                               open ? colors.primary : colors.textSecondary),
@@ -135,7 +135,7 @@ class _DisclosureRow extends StatelessWidget {
                       turns: open ? 0.5 : 0,
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeOut,
-                      child: MyazaIcon(MyazaIcons.chevronDown,
+                      child: UiIcon(UiIcons.chevronDown,
                           size: 16, color: colors.textSecondary),
                     ),
                   ],

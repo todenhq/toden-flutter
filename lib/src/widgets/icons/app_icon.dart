@@ -6,14 +6,14 @@ import 'package:hugeicons/hugeicons.dart';
 /// The set ships icons as SVG path data rather than as [IconData], so this is
 /// deliberately NOT a font glyph: anything that stored an icon in a field or
 /// returned one from a helper holds this type instead.
-typedef MyazaIconData = List<List<dynamic>>;
+typedef UiIconData = List<List<dynamic>>;
 
 /// The stroke every icon in the SDK is drawn at.
 ///
 /// 1.6 is the dashboard's and the web SDK's weight. An icon means the same
 /// thing and looks the same wherever a customer meets it, so the number lives
 /// here once rather than at 200 call sites.
-const double kMyazaIconStrokeWidth = 1.6;
+const double kUiIconStrokeWidth = 1.6;
 
 /// The SDK's one icon widget.
 ///
@@ -25,8 +25,8 @@ const double kMyazaIconStrokeWidth = 1.6;
 /// what [Icon] does and what most of this SDK relies on. A null [icon] holds
 /// its space rather than collapsing, also like [Icon]: a row of optional icons
 /// must not shift when one of them is absent.
-class MyazaIcon extends StatelessWidget {
-  const MyazaIcon(
+class UiIcon extends StatelessWidget {
+  const UiIcon(
     this.icon, {
     super.key,
     this.size,
@@ -34,7 +34,7 @@ class MyazaIcon extends StatelessWidget {
     this.semanticLabel,
   });
 
-  final MyazaIconData? icon;
+  final UiIconData? icon;
   final double? size;
   final Color? color;
 
@@ -65,7 +65,7 @@ class MyazaIcon extends StatelessWidget {
                 icon: data,
                 size: resolved,
                 color: color,
-                strokeWidth: kMyazaIconStrokeWidth,
+                strokeWidth: kUiIconStrokeWidth,
               ),
       ),
     );

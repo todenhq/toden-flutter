@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/multi_id.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_provider.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_state.dart'
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_provider.dart';
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart'
     show ServerConfigStatus, ServerSdkConfig;
 import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
 
@@ -18,7 +18,7 @@ import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
 // This mounts the real flow, so the scroll view the screen sits in is the one
 // the SDK builds.
 
-class _StubApi extends KYCApiService {
+class _StubApi extends VerificationApiService {
   _StubApi() : super(baseUrl: 'http://stub', apiKey: 'pk_test_stub');
 
   @override
@@ -54,7 +54,7 @@ void main() {
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
 
-    const config = MyazaKYCConfig(
+    const config = VerificationConfig(
       apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       country: 'NG',
       consentStep: false,
@@ -71,11 +71,11 @@ void main() {
 
     await tester.pumpWidget(ProviderScope(
       overrides: [
-        kycApiServiceProvider.overrideWithValue(_StubApi()),
+        verificationApiServiceProvider.overrideWithValue(_StubApi()),
         preloadedServerConfigProvider.overrideWithValue(serverConfig),
       ],
       child: const MaterialApp(
-        home: Scaffold(body: MyazaKYCWidget(config: config)),
+        home: Scaffold(body: VerificationWidget(config: config)),
       ),
     ));
     await tester.pump();

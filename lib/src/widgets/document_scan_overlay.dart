@@ -88,9 +88,9 @@ class _DocumentScanOverlayState extends State<DocumentScanOverlay>
     final needsAction = framing == DocumentFraming.wrongShape ||
         framing == DocumentFraming.adjust;
     final accent = _locked
-        ? MyazaColors.success
+        ? UiColors.success
         : needsAction
-            ? MyazaColors.warning
+            ? UiColors.warning
             : colors.primary;
 
     return IgnorePointer(

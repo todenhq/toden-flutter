@@ -84,7 +84,7 @@ class _PulseRingState extends State<PulseRing>
   }
 
   Widget _ring(
-    MyazaColorScheme colors, {
+    UiColorScheme colors, {
     required double scale,
     required double opacity,
   }) {

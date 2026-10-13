@@ -9,11 +9,11 @@ import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
 // Street View, geo default all silently off on workflow embeds, user report
 // 2026-09-08); this pins them as a source diff so the next field cannot slip.
 
-/// `key: response.key` pairs in kyc_provider's /config → ServerSdkConfig block
+/// `key: response.key` pairs in verification_provider's /config → ServerSdkConfig block
 /// (built as `final ready = ServerSdkConfig(...)` so the opening-step nudge can
 /// read it before it is applied).
 Set<String> _configForwardedKeys() {
-  final src = File('lib/src/providers/kyc_provider.dart').readAsStringSync();
+  final src = File('lib/src/providers/verification_provider.dart').readAsStringSync();
   final block = RegExp(r'final ready = ServerSdkConfig\(\s*status: ServerConfigStatus\.ready,(.*?)\);', dotAll: true)
       .firstMatch(src)!
       .group(1)!;

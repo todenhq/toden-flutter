@@ -64,7 +64,7 @@ Future<EnableBackgroundResult?> maybeArmBackground({
   try {
     // Decided before anything is read from the OS when the answer is already no.
     if (!autoBackground || fresh || !pin.background) return null;
-    final armed = await MyazaBackgroundPresence.isArmed();
+    final armed = await BackgroundPresence.isArmed();
     final permission = await Geolocator.checkPermission();
     final decision = shouldArmBackground(
       optedOut: !autoBackground,
@@ -77,7 +77,7 @@ Future<EnableBackgroundResult?> maybeArmBackground({
     if (decision == ArmDecision.skip) return null;
     // Marked BEFORE the prompt: an app closed while it is showing has asked.
     if (decision == ArmDecision.ask) await markBackgroundAsked(externalUserId);
-    return await MyazaBackgroundPresence.enable(
+    return await BackgroundPresence.enable(
       apiKey: apiKey,
       externalUserId: externalUserId,
       devUrl: devUrl,

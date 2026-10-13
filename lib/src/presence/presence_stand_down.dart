@@ -16,8 +16,8 @@ import 'presence_store.dart';
 // the one case where the second user must enable again.
 
 Future<void> standDownPresence(String externalUserId) async {
-  await MyazaBackgroundPresence.disable();
-  await MyazaPresenceService.disable();
+  await BackgroundPresence.disable();
+  await PresenceService.disable();
   try {
     await clearPresencePin(externalUserId);
   } catch (_) {

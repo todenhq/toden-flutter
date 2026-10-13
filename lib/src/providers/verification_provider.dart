@@ -12,7 +12,7 @@ import '../config/business.dart';
 import '../config/business_application.dart';
 import '../config/country_id_types.dart';
 import '../config/id_types.dart';
-import '../config/kyc_config.dart';
+import '../config/verification_config.dart';
 import '../config/selfie_upload_wait.dart';
 import '../config/session_cancelled.dart';
 import '../config/silent_capture.dart';
@@ -33,7 +33,7 @@ import '../services/validators.dart';
 import '../utils/address_current_location.dart';
 import '../utils/resolve_url.dart';
 import '../utils/step_log.dart';
-import 'kyc_state.dart';
+import 'verification_state.dart';
 import 'address_step_order.dart';
 import 'resubmit_kept_id.dart';
 import 'step_order.dart';
@@ -41,17 +41,17 @@ import 'step_resubmit.dart' show carriesIdEvidence;
 import '../config/multi_id.dart';
 import '../config/resumed_application.dart';
 
-part 'kyc_provider.g.dart';
+part 'verification_provider.g.dart';
 
 // ─── Config provider ─────────────────────────────────────────────────────────
 // Override this in ProviderScope when launching the KYC flow:
 //   ProviderScope(
-//     overrides: [kycConfigProvider.overrideWithValue(config)],
+//     overrides: [verificationConfigProvider.overrideWithValue(config)],
 //     child: ...,
 //   )
 
 @Riverpod(keepAlive: true)
-MyazaKYCConfig kycConfig(Ref ref) {
+VerificationConfig verificationConfig(Ref ref) {
   throw StateError(
     'kycConfigProvider must be overridden in ProviderScope before use.',
   );
@@ -59,7 +59,7 @@ MyazaKYCConfig kycConfig(Ref ref) {
 
 /// Server config preloaded by the launcher when a workflow was resolved before
 /// mount (its `idTypes`/`branding` come from the workflow resolution, so the
-/// flow skips the `/api/kyc/config` fetch). Null (the default) means "fetch
+/// flow skips the `/api/v1/config` fetch). Null (the default) means "fetch
 /// `/config` on mount". Overridden with a value in the ProviderScope by the
 /// workflow gate. A plain provider (not codegen) so no build_runner step is
 /// needed to add it.
@@ -69,7 +69,7 @@ final preloadedServerConfigProvider =
 /// The API client, as a provider so tests can stub the network. Null (the
 /// default) means "build one from the mounted config"; a plain provider (not
 /// codegen) so no build_runner step is needed to add it.
-final kycApiServiceProvider = Provider<KYCApiService?>((ref) => null);
+final verificationApiServiceProvider = Provider<VerificationApiService?>((ref) => null);
 
 // ─── Shared UUID generator ────────────────────────────────────────────────────
 
@@ -112,9 +112,9 @@ VerifyUserData? resolveVerifyUserData(UserData? fromProp, UserData? fromState) {
   );
 }
 
-class KYCNotifier extends _$KYCNotifier {
+class VerificationNotifier extends _$VerificationNotifier {
   @override
-  KYCState build() {
+  VerificationState build() {
     _disposed = false;
     // Step journey log — a fresh provider lifecycle is a fresh session. The
     // self-listener catches EVERY currentStep write, whatever method made it;
@@ -132,8 +132,8 @@ class KYCNotifier extends _$KYCNotifier {
     final start = seedKeptIdType(
       _config,
       preloaded != null
-          ? KYCState(currentStep: opening, serverConfig: preloaded)
-          : KYCState(currentStep: opening),
+          ? VerificationState(currentStep: opening, serverConfig: preloaded)
+          : VerificationState(currentStep: opening),
     );
     StepLog.record(start.currentStep);
     _silent.reset();
@@ -171,7 +171,7 @@ class KYCNotifier extends _$KYCNotifier {
     if (preloaded != null) {
       return start;
     }
-    // Otherwise kick off the /api/kyc/config fetch asynchronously. The state
+    // Otherwise kick off the /api/v1/config fetch asynchronously. The state
     // starts in ServerConfigStatus.loading and the screens render placeholders
     // until this resolves. Errors fall through to status: error and the SDK
     // falls back to the consumer's `idTypes` prop (server still 403s anything
@@ -230,7 +230,7 @@ class KYCNotifier extends _$KYCNotifier {
   ({String message, int? statusCode, bool fatal}) _describeConfigError(
     Object err,
   ) {
-    if (err is KYCApiException) {
+    if (err is VerificationApiException) {
       if (err.statusCode == 401) {
         return (
           message: 'Invalid API key. Please check the API key configured in the SDK.',
@@ -265,11 +265,11 @@ class KYCNotifier extends _$KYCNotifier {
 
   // ── Config + service helpers ───────────────────────────────────────────────
 
-  MyazaKYCConfig get _config => ref.read(kycConfigProvider);
+  VerificationConfig get _config => ref.read(verificationConfigProvider);
 
-  KYCApiService get api =>
-      ref.read(kycApiServiceProvider) ??
-      KYCApiService(
+  VerificationApiService get api =>
+      ref.read(verificationApiServiceProvider) ??
+      VerificationApiService(
         baseUrl: resolveBaseUrl(_config.apiKey, devUrl: _config.devUrl),
         apiKey: _config.apiKey,
         deviceId: uploadDeviceIdSource(
@@ -290,10 +290,10 @@ class KYCNotifier extends _$KYCNotifier {
   /// step or if the current step isn't in the order).
   /// The steps that make up ONE ID's evidence. Leaving this set is what ends a
   /// multi-ID check — the leg has several exits depending on the ID.
-  static const Set<KYCStep> _idEvidenceSteps = {
-    KYCStep.idInput,
-    KYCStep.documentCapture,
-    KYCStep.nfc,
+  static const Set<VerificationStep> _idEvidenceSteps = {
+    VerificationStep.idInput,
+    VerificationStep.documentCapture,
+    VerificationStep.nfc,
   };
 
   void nextStep() {
@@ -311,7 +311,7 @@ class KYCNotifier extends _$KYCNotifier {
     if (plan != null &&
         _idEvidenceSteps.contains(state.currentStep) &&
         !_idEvidenceSteps.contains(next)) {
-      commitMultiIdSlot(plan.last ? next : KYCStep.idType);
+      commitMultiIdSlot(plan.last ? next : VerificationStep.idType);
       return;
     }
     _moveToStep(next);
@@ -379,7 +379,7 @@ class KYCNotifier extends _$KYCNotifier {
   ///
   /// The SELFIE and its video are run-level and deliberately untouched: one
   /// selfie covers every ID in the run.
-  void commitMultiIdSlot(KYCStep nextStep) {
+  void commitMultiIdSlot(VerificationStep nextStep) {
     final idType = state.selectedIdType;
     if (idType == null) return;
     final media = state.mediaIds;
@@ -403,7 +403,7 @@ class KYCNotifier extends _$KYCNotifier {
       // carrying this check's document or its recording into the next one
       // would file them against the wrong ID. The selfie and its liveness
       // video are run-level and kept.
-      mediaIds: KYCMediaIds(
+      mediaIds: VerificationMediaIds(
         selfie: media.selfie,
         livenessVideo: media.livenessVideo,
         proofOfAddress: media.proofOfAddress,
@@ -445,8 +445,8 @@ class KYCNotifier extends _$KYCNotifier {
       ),
       nfcChipData: last.chipData,
       currentStep: def.requiresDocumentCapture
-          ? KYCStep.documentCapture
-          : KYCStep.idInput,
+          ? VerificationStep.documentCapture
+          : VerificationStep.idInput,
     );
   }
 
@@ -456,7 +456,7 @@ class KYCNotifier extends _$KYCNotifier {
     // check, not leaving the flow. The check is uncommitted so its ID number
     // and captures come back — changing an earlier ID must not mean
     // re-photographing a document that is still perfectly good.
-    if (state.currentStep == KYCStep.idType && state.multiIdSlots.isNotEmpty) {
+    if (state.currentStep == VerificationStep.idType && state.multiIdSlots.isNotEmpty) {
       uncommitMultiIdSlot();
       return;
     }
@@ -533,14 +533,14 @@ class KYCNotifier extends _$KYCNotifier {
   /// raised flag that the shell hid (it also gates on the step) until the
   /// applicant came back, at which point the chrome-free layout applied to a
   /// screen with no camera: no header, content under the status bar.
-  void _moveToStep(KYCStep next) {
+  void _moveToStep(VerificationStep next) {
     state = state.copyWith(
       currentStep: next,
       // Only a move WITHIN document capture keeps it. The liveness camera
       // raises it too now, and going back from there to the document step
       // must not hand that step a raised flag.
-      immersiveCapture: next == KYCStep.documentCapture &&
-              state.currentStep == KYCStep.documentCapture
+      immersiveCapture: next == VerificationStep.documentCapture &&
+              state.currentStep == VerificationStep.documentCapture
           ? state.immersiveCapture
           : false,
     );
@@ -557,7 +557,7 @@ class KYCNotifier extends _$KYCNotifier {
     state = state.copyWith(idNumber: idNumber.trim());
   }
 
-  /// Stores the mediaId returned by /api/kyc/upload for the given [type].
+  /// Stores the mediaId returned by /api/v1/upload for the given [type].
   /// [type] must be one of: 'documentFront', 'documentBack', 'selfie',
   /// 'documentFrontVideo', 'documentBackVideo', 'livenessVideo'.
   void setMediaId(String type, String mediaId) {
@@ -693,7 +693,7 @@ class KYCNotifier extends _$KYCNotifier {
 
   /// Jump to a specific step (used by submit recovery to return the applicant
   /// to a contact step, and by that step to return to `submitted`).
-  void goToStep(KYCStep step) {
+  void goToStep(VerificationStep step) {
     if (state.currentStep != step) _moveToStep(step);
   }
 
@@ -734,7 +734,7 @@ class KYCNotifier extends _$KYCNotifier {
 
   /// One business field, in the canonical-key vocabulary shared with
   /// `registerPrefillPatch` and `businessFieldValues`.
-  KYCState _withBusinessValue(KYCState s, String key, String value) =>
+  VerificationState _withBusinessValue(VerificationState s, String key, String value) =>
       switch (key) {
         'country' => s.copyWith(businessCountry: value),
         'product' => s.copyWith(businessProduct: value),
@@ -942,7 +942,7 @@ class KYCNotifier extends _$KYCNotifier {
   // (OCR, YouVerify, facial comparison) runs asynchronously on the server and
   // the result arrives via webhook to the org's backend.
   //
-  // Throws [KYCApiException] for network/auth/credit errors so the caller
+  // Throws [VerificationApiException] for network/auth/credit errors so the caller
   // (SubmittedScreen) can surface them via onError.
 
   // Consumer `metadata` (stringified, requestId stripped — the SDK owns that).
@@ -1001,7 +1001,7 @@ class KYCNotifier extends _$KYCNotifier {
 
   // Business (KYB) submission — a registry lookup, no captured media. Requires a
   // published KYB workflow (the server 404s a business body without one).
-  Future<KYCSubmissionResult> _submitBusiness({
+  Future<VerificationSubmissionResult> _submitBusiness({
     void Function(int attempt, int total)? onRetry,
   }) async {
     final biz = _config.business;
@@ -1013,7 +1013,7 @@ class KYCNotifier extends _$KYCNotifier {
     // A replay of an application that already committed is answered from the
     // row that exists, whatever the restored form still holds.
     if (resumed == null && (regNumber == null || regNumber.isEmpty)) {
-      throw const KYCApiException(
+      throw const VerificationApiException(
         statusCode: 0,
         error: 'invalid_state',
         message: 'No registration number provided',
@@ -1103,7 +1103,7 @@ class KYCNotifier extends _$KYCNotifier {
 
     try {
       final response = await withRetry(() => api.verify(request), onRetry: onRetry);
-      final result = KYCSubmissionResult(
+      final result = VerificationSubmissionResult(
         verificationId: response.verificationId,
         status: response.status,
       );
@@ -1131,7 +1131,7 @@ class KYCNotifier extends _$KYCNotifier {
               .catchError((Object err) {
             if (kDebugMode) {
               debugPrint(
-                '[MyazaKYC] Applicant identity submission failed — the '
+                '[Verification] Applicant identity submission failed — the '
                 'organization can re-invite the applicant from the dashboard: $err',
               );
             }
@@ -1140,7 +1140,7 @@ class KYCNotifier extends _$KYCNotifier {
       }
 
       return result;
-    } on KYCApiException {
+    } on VerificationApiException {
       state = state.copyWith(isLoading: false);
       rethrow;
     }
@@ -1235,7 +1235,7 @@ class KYCNotifier extends _$KYCNotifier {
     await withRetry(() => api.verify(request));
   }
 
-  Future<KYCSubmissionResult> submitAsync({
+  Future<VerificationSubmissionResult> submitAsync({
     void Function(int attempt, int total)? onRetry,
   }) async {
     if (_config.subjectType == 'business') {
@@ -1252,7 +1252,7 @@ class KYCNotifier extends _$KYCNotifier {
     final committedSlots = state.multiIdSlots;
     // Scoped flows never pick an ID — the transport marker stands in.
     if (idTypeConfig == null && committedSlots.isEmpty && configScope(_config.scope) == null) {
-      throw const KYCApiException(
+      throw const VerificationApiException(
         statusCode: 0,
         error: 'invalid_state',
         message: 'No ID type selected',
@@ -1273,7 +1273,7 @@ class KYCNotifier extends _$KYCNotifier {
         idNumber = null;
       } else if (!idTypeConfig.requiresDocumentCapture) {
         if (idNumber == null || idNumber.isEmpty) {
-          throw const KYCApiException(
+          throw const VerificationApiException(
             statusCode: 0,
             error: 'invalid_state',
             message: 'No ID number provided',
@@ -1282,7 +1282,7 @@ class KYCNotifier extends _$KYCNotifier {
         final validation = validateIdNumber(
             idNumber, effectiveCountry(_config, state), idTypeConfig.key);
         if (!validation.isValid) {
-          throw KYCApiException(
+          throw VerificationApiException(
             statusCode: 0,
             error: 'invalid_state',
             message: validation.errorMessage ?? 'Invalid ID number',
@@ -1411,13 +1411,13 @@ class KYCNotifier extends _$KYCNotifier {
       // Retry the submission on transient failures (network / timeout / 5xx);
       // terminal errors (401/402/403/validation) surface immediately.
       final response = await withRetry(() => api.verify(request), onRetry: onRetry);
-      final result = KYCSubmissionResult(
+      final result = VerificationSubmissionResult(
         verificationId: response.verificationId,
         status: response.status,
       );
       state = state.copyWith(isLoading: false, submissionResult: result);
       return result;
-    } on KYCApiException {
+    } on VerificationApiException {
       state = state.copyWith(isLoading: false);
       rethrow;
     }
@@ -1505,10 +1505,10 @@ class KYCNotifier extends _$KYCNotifier {
   /// The step after the address region in the REAL order, for a resume whose
   /// flow no longer offers any address step. Questionnaire sits immediately
   /// after the region when present; submission is the floor.
-  KYCStep? _addressExitFor(KYCState state) {
+  VerificationStep? _addressExitFor(VerificationState state) {
     final order = buildStepOrder(_config, state);
     for (final step in order) {
-      if (step == KYCStep.questionnaire || step == KYCStep.submitted) return step;
+      if (step == VerificationStep.questionnaire || step == VerificationStep.submitted) return step;
     }
     return null;
   }
@@ -1521,7 +1521,7 @@ class KYCNotifier extends _$KYCNotifier {
     // The kept ID of a redo is part of the flow's start, so a reset keeps it.
     final start = seedKeptIdType(
       _config,
-      KYCState(
+      VerificationState(
         currentStep: opening,
         serverConfig: serverConfig,
         // A cancellation is the server's answer about this attempt, not
@@ -1550,7 +1550,7 @@ class KYCNotifier extends _$KYCNotifier {
   String _lastSavedProgress = '';
   bool _disposed = false;
 
-  void _scheduleProgressSave(KYCState next) {
+  void _scheduleProgressSave(VerificationState next) {
     if (next.sessionId == null || next.sessionCancelledMessage != null) return;
     _progressTimer?.cancel();
     _progressTimer = Timer(const Duration(milliseconds: 800), () {

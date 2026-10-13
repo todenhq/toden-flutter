@@ -7,10 +7,10 @@ import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'package:image/image.dart' as img;
 
 import '../config/theme.dart';
-import 'myaza_button.dart';
+import 'ui_button.dart';
 import 'icons/icons.dart';
 import '../i18n/text_scope.dart';
-import 'myaza_spinner.dart';
+import 'ui_spinner.dart';
 
 // ─── Gallery-photo cropper ────────────────────────────────────────────────────
 //
@@ -253,7 +253,7 @@ class _DocumentCropperScreenState extends State<DocumentCropperScreen> {
       appBar: AppBar(
         // The band the flow's steps sit under, so the cropper reads as part of
         // the flow rather than a separate system screen.
-        backgroundColor: kycHeaderSurface(colors, isDark: isDark),
+        backgroundColor: verificationHeaderSurface(colors, isDark: isDark),
         foregroundColor: colors.textDark,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -263,7 +263,7 @@ class _DocumentCropperScreenState extends State<DocumentCropperScreen> {
         shape: Border(bottom: BorderSide(color: colors.border)),
         leadingWidth: 56,
         leading: IconButton(
-          icon: const MyazaIcon(MyazaIcons.x, size: 20),
+          icon: const UiIcon(UiIcons.x, size: 20),
           onPressed: () => Navigator.of(context).pop<Uint8List?>(null),
           tooltip: 'Cancel',
         ),
@@ -272,14 +272,14 @@ class _DocumentCropperScreenState extends State<DocumentCropperScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              context.kycText('uploadDocument.crop.title'),
+              context.verificationText('uploadDocument.crop.title'),
               style: text.bodyMedium.copyWith(
                 fontWeight: FontWeight.w600,
                 color: colors.textDark,
               ),
             ),
             Text(
-              context.kycText('uploadDocument.crop.description'),
+              context.verificationText('uploadDocument.crop.description'),
               style: text.bodySmall.copyWith(color: colors.textMuted),
             ),
           ],
@@ -292,7 +292,7 @@ class _DocumentCropperScreenState extends State<DocumentCropperScreen> {
           Expanded(
             child: _naturalSize == null
                 ? const Center(
-                    child: MyazaSpinner(color: Colors.white),
+                    child: UiSpinner(color: Colors.white),
                   )
                 : LayoutBuilder(builder: (ctx, cons) {
                     final imgR = _computeImgRect(cons.biggest);
@@ -347,9 +347,9 @@ class _DocumentCropperScreenState extends State<DocumentCropperScreen> {
                 top: false,
                 // The flow's own button: primary fill and label from the
                 // workflow, its loading state while the crop runs.
-                child: MyazaButton(
-                  label: context.kycText('uploadDocument.crop.confirm'),
-                  leadingIcon: const MyazaIcon(MyazaIcons.check, size: 18),
+                child: UiButton(
+                  label: context.verificationText('uploadDocument.crop.confirm'),
+                  leadingIcon: const UiIcon(UiIcons.check, size: 18),
                   isLoading: _isProcessing,
                   onPressed: _cropInitialized ? _onConfirm : null,
                 ),

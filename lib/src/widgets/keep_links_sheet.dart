@@ -3,8 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../config/theme.dart';
-import 'myaza_alert.dart';
-import 'myaza_button.dart';
+import 'ui_alert.dart';
+import 'ui_button.dart';
 import 'themed_sheet.dart';
 import 'icons/icons.dart';
 
@@ -25,7 +25,7 @@ Future<void> showKeepLinksSheet(
   required String url,
   required VoidCallback onDone,
 }) {
-  return showMyazaSheet<void>(
+  return showUiSheet<void>(
     context,
     isScrollControlled: true,
     builder: (sheetContext) => _KeepLinksBody(url: url, onDone: onDone),
@@ -52,7 +52,7 @@ class _KeepLinksBodyState extends State<_KeepLinksBody> {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          MyazaSpacing.lg, MyazaSpacing.md, MyazaSpacing.lg, MyazaSpacing.lg),
+          UiSpacing.lg, UiSpacing.md, UiSpacing.lg, UiSpacing.lg),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -65,38 +65,38 @@ class _KeepLinksBodyState extends State<_KeepLinksBody> {
                 shape: BoxShape.circle,
                 color: colors.primary50,
               ),
-              child: MyazaIcon(MyazaIcons.globe, size: 26, color: colors.primary),
+              child: UiIcon(UiIcons.globe, size: 26, color: colors.primary),
             ),
           ),
-          const SizedBox(height: MyazaSpacing.md),
+          const SizedBox(height: UiSpacing.md),
           Text(
             'Keep a way back to these links',
             style: text.heading3,
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: MyazaSpacing.md),
-          const MyazaAlert(
-            variant: MyazaAlertVariant.warning,
+          const SizedBox(height: UiSpacing.md),
+          const UiAlert(
+            variant: UiAlertVariant.warning,
             title: 'This screen will not be shown again',
             message: "Your key people's links live on a web page made for you. "
                 'Open it in your browser or copy the address somewhere safe, '
                 'then check who has finished and share the links from there '
                 'at any time.',
           ),
-          const SizedBox(height: MyazaSpacing.lg),
-          MyazaButton(
+          const SizedBox(height: UiSpacing.lg),
+          UiButton(
             label: 'Open in my browser',
-            leadingIcon: const MyazaIcon(MyazaIcons.globe, size: 18),
+            leadingIcon: const UiIcon(UiIcons.globe, size: 18),
             onPressed: () {
               launchUrl(Uri.parse(widget.url),
                   mode: LaunchMode.externalApplication);
             },
           ),
-          const SizedBox(height: MyazaSpacing.sm),
-          MyazaButton.outline(
+          const SizedBox(height: UiSpacing.sm),
+          UiButton.outline(
             label: _copied ? 'Link copied' : 'Copy the page link',
-            leadingIcon: MyazaIcon(
-              _copied ? MyazaIcons.check : MyazaIcons.copy,
+            leadingIcon: UiIcon(
+              _copied ? UiIcons.check : UiIcons.copy,
               size: 18,
             ),
             onPressed: () async {
@@ -104,8 +104,8 @@ class _KeepLinksBodyState extends State<_KeepLinksBody> {
               if (mounted) setState(() => _copied = true);
             },
           ),
-          const SizedBox(height: MyazaSpacing.xs),
-          MyazaButton.ghost(
+          const SizedBox(height: UiSpacing.xs),
+          UiButton.ghost(
             label: "I'm done here",
             onPressed: () {
               Navigator.of(context).pop();

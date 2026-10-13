@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../utils/map_tiles.dart' show mapSurfaceHeight;
 import '../../widgets/dashed_border.dart';
-import '../../widgets/myaza_button.dart';
+import '../../widgets/ui_button.dart';
 import '../../widgets/sticky_actions.dart';
 import '../../widgets/icons/icons.dart';
 import '../../i18n/text_scope.dart';
@@ -36,24 +36,24 @@ class AddressEntrancePlaceholder extends StatelessWidget {
     return StickyActions(
       body: CustomPaint(
         painter: DashedRoundedBorder(
-            color: colors.border, radius: MyazaRadius.sm, strokeWidth: 2),
+            color: colors.border, radius: UiRadius.sm, strokeWidth: 2),
         child: Container(
           height: mapSurfaceHeight(MediaQuery.sizeOf(context)),
           decoration: BoxDecoration(
             color: colors.backgroundSecondary.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(MyazaRadius.sm),
+            borderRadius: BorderRadius.circular(UiRadius.sm),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              MyazaIcon(MyazaIcons.landmark,
+              UiIcon(UiIcons.landmark,
                   size: 32, color: colors.textSecondary.withValues(alpha: 0.6)),
-              const SizedBox(height: MyazaSpacing.sm),
+              const SizedBox(height: UiSpacing.sm),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 288),
                 child: Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: MyazaSpacing.lg),
+                      const EdgeInsets.symmetric(horizontal: UiSpacing.lg),
                   child: Text(
                     'Applicants pan real street imagery to frame their '
                     'entrance here. It loads only for real users.',
@@ -69,12 +69,12 @@ class AddressEntrancePlaceholder extends StatelessWidget {
       actions: Row(children: [
         if (!hideSkip) ...[
           Expanded(
-              child: MyazaButton.outline(label: context.kycText('common.skip'), onPressed: onSkip)),
-          const SizedBox(width: MyazaSpacing.sm),
+              child: UiButton.outline(label: context.verificationText('common.skip'), onPressed: onSkip)),
+          const SizedBox(width: UiSpacing.sm),
         ],
         Expanded(
-            child: MyazaButton(
-                label: context.kycText('address.entrance.useView'), onPressed: onUse)),
+            child: UiButton(
+                label: context.verificationText('address.entrance.useView'), onPressed: onUse)),
       ]),
     );
   }

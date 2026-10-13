@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/document_capture_check.dart';
 import '../config/theme.dart';
-import 'myaza_button.dart';
+import 'ui_button.dart';
 import 'icons/icons.dart';
 import '../i18n/text_scope.dart';
 
@@ -13,7 +13,7 @@ import '../i18n/text_scope.dart';
 // side at fault, then "Continue anyway", because a detector can miss and this
 // must never be a dead end.
 //
-// Shaped like MyazaAlert's warning, but inked for contrast. Bright amber text on
+// Shaped like UiAlert's warning, but inked for contrast. Bright amber text on
 // the pale amber ground measures about 1.5:1, and these lines are instructions
 // the applicant has to act on, so the light ground takes a dark amber instead.
 // The dark ground already clears AA with the bright amber.
@@ -25,10 +25,10 @@ const Color _kInkOnLightGround = Color(0xFF92400E);
 
 /// The notice's text and icon colour. Read off the ground it sits on rather
 /// than the theme's brightness, so it follows whichever scheme is painted.
-Color captureNoticeInk(MyazaColorScheme colors) =>
+Color captureNoticeInk(UiColorScheme colors) =>
     colors.warningBg.computeLuminance() > 0.5
         ? _kInkOnLightGround
-        : MyazaColors.warning;
+        : UiColors.warning;
 
 class DocumentCaptureCheckNotice extends StatelessWidget {
   final List<CaptureProblem> problems;
@@ -56,12 +56,12 @@ class DocumentCaptureCheckNotice extends StatelessWidget {
 
     Widget retake(String side, {required bool primary}) {
       final label = captureRetakeLabel(side, uploadOnly: uploadOnly);
-      const icon = MyazaIcon(MyazaIcons.rotateCcw);
+      const icon = UiIcon(UiIcons.rotateCcw);
       // One primary action: the first retake. The rest stay secondary.
       return primary
-          ? MyazaButton(
+          ? UiButton(
               label: label, onPressed: () => onRetake(side), leadingIcon: icon)
-          : MyazaButton.outline(
+          : UiButton.outline(
               label: label, onPressed: () => onRetake(side), leadingIcon: icon);
     }
 
@@ -70,7 +70,7 @@ class DocumentCaptureCheckNotice extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         _Notice(problems: problems),
-        const SizedBox(height: MyazaSpacing.md),
+        const SizedBox(height: UiSpacing.md),
         // Two retakes share a row: the footer is pinned under the photos, and
         // every stacked button is height taken from them.
         if (sides.length == 1)
@@ -79,16 +79,16 @@ class DocumentCaptureCheckNotice extends StatelessWidget {
           Row(
             children: [
               for (var i = 0; i < sides.length; i++) ...[
-                if (i > 0) const SizedBox(width: MyazaSpacing.sm),
+                if (i > 0) const SizedBox(width: UiSpacing.sm),
                 Expanded(child: retake(sides[i], primary: i == 0)),
               ],
             ],
           ),
-        const SizedBox(height: MyazaSpacing.sm),
-        MyazaButton.outline(
-          label: context.kycText('common.continueAnyway'),
+        const SizedBox(height: UiSpacing.sm),
+        UiButton.outline(
+          label: context.verificationText('common.continueAnyway'),
           onPressed: onContinueAnyway,
-          leadingIcon: const MyazaIcon(MyazaIcons.arrowRight),
+          leadingIcon: const UiIcon(UiIcons.arrowRight),
         ),
       ],
     );
@@ -130,35 +130,35 @@ class _Notice extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: colors.warningBg,
-          borderRadius: BorderRadius.circular(MyazaRadius.sm),
-          border: Border.all(color: MyazaColors.warning.withValues(alpha: 0.35)),
+          borderRadius: BorderRadius.circular(UiRadius.sm),
+          border: Border.all(color: UiColors.warning.withValues(alpha: 0.35)),
         ),
         clipBehavior: Clip.hardEdge,
         child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(width: 4, color: MyazaColors.warning),
+              Container(width: 4, color: UiColors.warning),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: MyazaSpacing.md,
-                    vertical: MyazaSpacing.sm + 2,
+                    horizontal: UiSpacing.md,
+                    vertical: UiSpacing.sm + 2,
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      MyazaIcon(MyazaIcons.triangleAlert, size: 18, color: ink),
-                      const SizedBox(width: MyazaSpacing.sm),
+                      UiIcon(UiIcons.triangleAlert, size: 18, color: ink),
+                      const SizedBox(width: UiSpacing.sm),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(context.kycText('uploadDocument.check.title'),
+                            Text(context.verificationText('uploadDocument.check.title'),
                                 style: text.label.copyWith(color: ink)),
                             for (final line in lines) ...[
-                              const SizedBox(height: MyazaSpacing.xs),
+                              const SizedBox(height: UiSpacing.xs),
                               Text(line,
                                   style: text.bodySmall.copyWith(color: ink)),
                             ],

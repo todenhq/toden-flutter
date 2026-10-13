@@ -2,9 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/resumed_application.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_provider.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_state.dart'
-    show KYCStep, ServerConfigStatus, ServerSdkConfig;
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_provider.dart';
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart'
+    show VerificationStep, ServerConfigStatus, ServerSdkConfig;
 import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
 
 // ─── A committed KYB application resumed before its applicant verified ───────
@@ -16,7 +16,7 @@ import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
 // business verification session before submitting". The resume now replays the
 // parent's request id and starts the applicant at their own capture leg.
 
-class _Api extends KYCApiService {
+class _Api extends VerificationApiService {
   _Api({this.resume = true}) : super(baseUrl: 'http://stub', apiKey: 'pk_test_stub');
 
   final bool resume;
@@ -63,7 +63,7 @@ class _Api extends KYCApiService {
 (ProviderContainer, _Api) _container({bool resume = true}) {
   final api = _Api(resume: resume);
   final c = ProviderContainer(overrides: [
-    kycConfigProvider.overrideWithValue(MyazaKYCConfig(
+    verificationConfigProvider.overrideWithValue(VerificationConfig(
       apiKey: 'pk_test_stub',
       workflowId: 'wf_kyb',
       userId: 'user_1',
@@ -73,7 +73,7 @@ class _Api extends KYCApiService {
         'applicant': {'verification': true},
       }),
     )),
-    kycApiServiceProvider.overrideWithValue(api),
+    verificationApiServiceProvider.overrideWithValue(api),
     preloadedServerConfigProvider.overrideWithValue(
       const ServerSdkConfig(status: ServerConfigStatus.ready),
     ),
@@ -103,10 +103,10 @@ void main() {
     });
 
     test('the leg starts after the applicant-role step, never on submission', () {
-      expect(applicantLegStart([KYCStep.businessDetails, KYCStep.applicantRole, KYCStep.idType,
-        KYCStep.liveness, KYCStep.submitted]), KYCStep.idType);
-      expect(applicantLegStart([KYCStep.applicantRole, KYCStep.submitted]), isNull);
-      expect(applicantLegStart([KYCStep.businessDetails, KYCStep.submitted]), isNull);
+      expect(applicantLegStart([VerificationStep.businessDetails, VerificationStep.applicantRole, VerificationStep.idType,
+        VerificationStep.liveness, VerificationStep.submitted]), VerificationStep.idType);
+      expect(applicantLegStart([VerificationStep.applicantRole, VerificationStep.submitted]), isNull);
+      expect(applicantLegStart([VerificationStep.businessDetails, VerificationStep.submitted]), isNull);
     });
   });
 
@@ -119,7 +119,7 @@ void main() {
     final state = c.read(kYCNotifierProvider);
     expect(state.resumedApplication?.requestId, 'req_parent');
     // Not consent, not the business form: the applicant's own leg.
-    expect(state.currentStep, KYCStep.idType);
+    expect(state.currentStep, VerificationStep.idType);
 
     await notifier.submitAsync();
     await _settle();

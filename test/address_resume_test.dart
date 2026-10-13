@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/address_flow.dart';
 import 'package:myaza_kyc_sdk_flutter/src/providers/address_step_order.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/kyc_state.dart';
+import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
 import 'package:myaza_kyc_sdk_flutter/src/providers/session_restore.dart';
 import 'package:myaza_kyc_sdk_flutter/src/providers/step_order.dart';
 
@@ -15,13 +15,13 @@ import 'package:myaza_kyc_sdk_flutter/src/providers/step_order.dart';
 // once its photo slot is off. Split from address_wiring_test.dart (200-line
 // rule), which keeps the step-order seams.
 
-MyazaKYCConfig _individual({String? photo}) => MyazaKYCConfig(
+VerificationConfig _individual({String? photo}) => VerificationConfig(
       apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       country: 'NG',
       addressCollection: AddressCollectionConfig(enabled: true, photo: photo),
     );
 
-KYCState _withSearch() => const KYCState(
+VerificationState _withSearch() => const VerificationState(
       serverConfig: ServerSdkConfig(
         status: ServerConfigStatus.ready,
         addressSearch: true,
@@ -33,8 +33,8 @@ void main() {
   group('resuming onto an address step', () {
     test('a step the flow still offers is left alone', () {
       expect(
-        resumeAddressStep(KYCStep.addressEntrance, kAddressFlowOrder),
-        KYCStep.addressEntrance,
+        resumeAddressStep(VerificationStep.addressEntrance, kAddressFlowOrder),
+        VerificationStep.addressEntrance,
       );
     });
 
@@ -45,22 +45,22 @@ void main() {
       // than being sent back to re-confirm a pin they already placed. The RN
       // port decided this rule first; the two mirrors must agree.
       final offered = addressStepsFor(_individual(photo: 'off'), _withSearch());
-      expect(offered.contains(KYCStep.addressEntrance), isFalse);
-      expect(resumeAddressStep(KYCStep.addressEntrance, offered),
-          KYCStep.addressReview);
+      expect(offered.contains(VerificationStep.addressEntrance), isFalse);
+      expect(resumeAddressStep(VerificationStep.addressEntrance, offered),
+          VerificationStep.addressReview);
     });
 
     test('a dropped FIRST step falls forward to the pin', () {
       // Nothing sits before the search, and the pin is where its own "place a
       // pin on the map instead" was taking them anyway.
-      final offered = addressStepsFor(_individual(), const KYCState());
-      expect(offered.contains(KYCStep.addressSearch), isFalse);
-      expect(resumeAddressStep(KYCStep.addressSearch, offered),
-          KYCStep.addressCollection);
+      final offered = addressStepsFor(_individual(), const VerificationState());
+      expect(offered.contains(VerificationStep.addressSearch), isFalse);
+      expect(resumeAddressStep(VerificationStep.addressSearch, offered),
+          VerificationStep.addressCollection);
     });
 
     test('a flow with no address steps at all reports nothing', () {
-      expect(resumeAddressStep(KYCStep.addressReview, const []), isNull);
+      expect(resumeAddressStep(VerificationStep.addressReview, const []), isNull);
     });
 
     test('a step outside the address flow is never clamped onto one', () {
@@ -68,8 +68,8 @@ void main() {
       // is not in it ranks nowhere, and answering "the pin" would teleport an
       // applicant out of whatever screen they were actually on.
       expect(
-        resumeAddressStep(KYCStep.consent, const [KYCStep.addressCollection]),
-        KYCStep.consent,
+        resumeAddressStep(VerificationStep.consent, const [VerificationStep.addressCollection]),
+        VerificationStep.consent,
       );
     });
 
@@ -79,7 +79,7 @@ void main() {
       // a dead back arrow and no progress bar.
       final config = _individual(photo: 'off');
       final state = restoredState(
-        const KYCState(),
+        const VerificationState(),
         {
           'step': 'address-entrance',
           'mediaIds': const {},
@@ -87,12 +87,12 @@ void main() {
             'address': {'lat': 6.4281, 'lng': 3.4219},
           },
         },
-        offeredAddressSteps: addressStepsFor(config, const KYCState()),
+        offeredAddressSteps: addressStepsFor(config, const VerificationState()),
       );
 
       // Forward rule: the dropped entrance resumes onto the review, and the
       // review is a step the real order contains.
-      expect(state.currentStep, KYCStep.addressReview);
+      expect(state.currentStep, VerificationStep.addressReview);
       expect(buildStepOrder(config, state).indexOf(state.currentStep),
           greaterThan(-1));
       expect(state.address?.lat, 6.4281,
@@ -102,23 +102,23 @@ void main() {
     test('a caller that cannot say what is offered changes nothing', () {
       // An empty list means "unknown", not "none". Treating the two alike
       // would move an applicant off a perfectly good step.
-      final state = restoredState(const KYCState(), {
+      final state = restoredState(const VerificationState(), {
         'step': 'address-review',
         'mediaIds': const {},
         'data': {
           'address': {'lat': 6.4281, 'lng': 3.4219},
         },
       });
-      expect(state.currentStep, KYCStep.addressReview);
+      expect(state.currentStep, VerificationStep.addressReview);
     });
 
     test('non-address steps are untouched by the clamp', () {
       final state = restoredState(
-        const KYCState(),
+        const VerificationState(),
         {'step': 'consent', 'mediaIds': const {}, 'data': const {}},
-        offeredAddressSteps: const [KYCStep.addressCollection],
+        offeredAddressSteps: const [VerificationStep.addressCollection],
       );
-      expect(state.currentStep, KYCStep.consent);
+      expect(state.currentStep, VerificationStep.consent);
     });
   });
 }

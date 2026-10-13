@@ -91,7 +91,7 @@ class _NfcSuccessPanelState extends State<NfcSuccessPanel> {
     // rather than a leading child: a spacer inside StaggeredReveal would take a
     // stagger slot and delay everything below it by one step for no motion.
     return Padding(
-      padding: const EdgeInsets.only(top: MyazaSpacing.xl),
+      padding: const EdgeInsets.only(top: UiSpacing.xl),
       child: StaggeredReveal(
         children: [
           // The SAME mark the submission screen ends on — one success signal
@@ -104,13 +104,13 @@ class _NfcSuccessPanelState extends State<NfcSuccessPanel> {
                 ? const CheckBadge(size: 88)
                 : _ChipPortrait(bytes: _portrait!),
           ),
-          const SizedBox(height: MyazaSpacing.lg),
+          const SizedBox(height: UiSpacing.lg),
           Text(
             'Chip read successfully',
             style: text.heading2,
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: MyazaSpacing.xs),
+          const SizedBox(height: UiSpacing.xs),
           Text(
             name.isEmpty
                 ? 'The secure chip in your document was read and verified.'
@@ -119,11 +119,11 @@ class _NfcSuccessPanelState extends State<NfcSuccessPanel> {
             textAlign: TextAlign.center,
           ),
           if (scan != null) ...[
-            const SizedBox(height: MyazaSpacing.lg),
+            const SizedBox(height: UiSpacing.lg),
             NfcScannedSummary(scan: scan),
           ],
           if (widget.missingSod) ...[
-            const SizedBox(height: MyazaSpacing.md),
+            const SizedBox(height: UiSpacing.md),
             _MissingSodNotice(onRetry: widget.onRetry),
           ],
         ],
@@ -196,11 +196,11 @@ class _MissingSodNotice extends StatelessWidget {
     final text = context.myazaText;
 
     return Container(
-      padding: const EdgeInsets.all(MyazaSpacing.md),
+      padding: const EdgeInsets.all(UiSpacing.md),
       decoration: BoxDecoration(
-        color: MyazaColors.warning.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(MyazaRadius.md),
-        border: Border.all(color: MyazaColors.warning.withValues(alpha: 0.35)),
+        color: UiColors.warning.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(UiRadius.md),
+        border: Border.all(color: UiColors.warning.withValues(alpha: 0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,7 +211,7 @@ class _MissingSodNotice extends StatelessWidget {
             style: text.bodySmall,
           ),
           if (onRetry != null) ...[
-            const SizedBox(height: MyazaSpacing.sm),
+            const SizedBox(height: UiSpacing.sm),
             GestureDetector(
               onTap: onRetry,
               child: Text(

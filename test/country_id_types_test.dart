@@ -17,7 +17,7 @@ import 'package:myaza_kyc_sdk_flutter/src/config/country_id_types.dart';
 void main() {
   group('pinnedIdTypesFor', () {
     // The published shape of the reported workflow (wf__uT_Z0JWpANb v3).
-    const singleCountry = MyazaKYCConfig(
+    const singleCountry = VerificationConfig(
       apiKey: 'pk_test_x',
       country: 'NG',
       countries: [
@@ -36,7 +36,7 @@ void main() {
     });
 
     test('a multi-region flow narrows to the PICKED country', () {
-      const multi = MyazaKYCConfig(
+      const multi = VerificationConfig(
         apiKey: 'pk_test_x',
         country: 'NG',
         countries: [
@@ -53,7 +53,7 @@ void main() {
     });
 
     test('an EMPTY per-country list means all granted, not none', () {
-      const emptyPin = MyazaKYCConfig(
+      const emptyPin = VerificationConfig(
         apiKey: 'pk_test_x',
         country: 'NG',
         countries: [WorkflowCountryOption(country: 'NG', idTypes: [])],
@@ -62,7 +62,7 @@ void main() {
     });
 
     test('an empty per-country list falls through to the top-level list', () {
-      const emptyPinWithTop = MyazaKYCConfig(
+      const emptyPinWithTop = VerificationConfig(
         apiKey: 'pk_test_x',
         country: 'NG',
         idTypes: ['bvn'],
@@ -72,7 +72,7 @@ void main() {
     });
 
     test('a country absent from the list falls back to the top level', () {
-      const withTop = MyazaKYCConfig(
+      const withTop = VerificationConfig(
         apiKey: 'pk_test_x',
         country: 'NG',
         idTypes: ['bvn'],
@@ -82,12 +82,12 @@ void main() {
     });
 
     test('nothing pinned anywhere means every granted ID', () {
-      const bare = MyazaKYCConfig(apiKey: 'pk_test_x', country: 'NG');
+      const bare = VerificationConfig(apiKey: 'pk_test_x', country: 'NG');
       expect(pinnedIdTypesFor(bare, 'NG'), isNull);
     });
 
     test('a prop-configured mount keeps its top-level idTypes', () {
-      const propOnly = MyazaKYCConfig(
+      const propOnly = VerificationConfig(
         apiKey: 'pk_test_x',
         country: 'NG',
         idTypes: ['bvn', 'nin'],

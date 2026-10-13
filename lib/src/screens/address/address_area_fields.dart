@@ -22,7 +22,7 @@ Widget addressFieldPair(Widget? left, Widget? right) {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Expanded(child: left),
-      const SizedBox(width: MyazaSpacing.sm),
+      const SizedBox(width: UiSpacing.sm),
       Expanded(child: right),
     ],
   );
@@ -61,17 +61,17 @@ class AddressAreaFields extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: MyazaSpacing.md),
+        const SizedBox(height: UiSpacing.md),
         const AddressSectionHeading('Area and region'),
         if (_on('neighbourhood')) ...[
           AddressEditField(label: 'Neighbourhood', hint: 'e.g. Idim Ita', maxLength: 80, required: _req('neighbourhood'), controller: neighbourhood, onChanged: (v) => onChanged(AddressDetailsPatch(neighbourhood: v))),
-          const SizedBox(height: MyazaSpacing.sm),
+          const SizedBox(height: UiSpacing.sm),
         ],
         addressFieldPair(
           _on('city') ? AddressEditField(label: 'City', hint: 'e.g. Calabar', maxLength: 80, required: _req('city'), controller: city, onChanged: (v) => onChanged(AddressDetailsPatch(city: v))) : null,
           _on('state') ? AddressEditField(label: 'State', hint: 'e.g. Cross River', maxLength: 80, required: _req('state'), controller: state, onChanged: (v) => onChanged(AddressDetailsPatch(state: v))) : null,
         ),
-        if (_on('city') || _on('state')) const SizedBox(height: MyazaSpacing.sm),
+        if (_on('city') || _on('state')) const SizedBox(height: UiSpacing.sm),
         addressFieldPair(
           _on('postcode') ? AddressEditField(label: 'Area code', hint: 'e.g. 540281', maxLength: 12, required: _req('postcode'), controller: postcode, onChanged: (v) => onChanged(AddressDetailsPatch(postcode: v))) : null,
           AddressCountryRow(country: country),

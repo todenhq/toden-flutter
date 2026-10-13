@@ -10,13 +10,13 @@ import 'package:flutter_test/flutter_test.dart';
 // the photo. Read across the monorepo, the way the RN foldVectors test reads
 // this package's fixture. The second group pins this SDK's own wiring.
 //
-// The public mirror (myazahq/kyc-sdk-flutter) carries this package alone, so
+// The public mirror (todenhq/kyc-sdk-flutter) carries this package alone, so
 // the two sibling reads SKIP there rather than fail: the 2.7.0 publish was
 // refused by exactly these two tests. The monorepo's own CI still runs them.
 
 const _mirrors = {
-  'web': '../kyc-sdk-react/src/lib/map-frame.ts',
-  'rn': '../kyc-sdk-react-native/src/lib/map-frame.ts',
+  'web': '../sdk-react/src/lib/map-frame.ts',
+  'rn': '../sdk-react-native/src/lib/map-frame.ts',
   'flutter': 'lib/src/config/street_view_frame.dart',
 };
 
@@ -60,8 +60,8 @@ void main() {
 
     test('the entrance step fills the viewport so its actions can stick', () {
       final shell =
-          File('lib/src/widgets/myaza_kyc_widget.dart').readAsStringSync();
-      expect(shell, contains('step == KYCStep.addressEntrance'));
+          File('lib/src/widgets/verification_widget.dart').readAsStringSync();
+      expect(shell, contains('step == VerificationStep.addressEntrance'));
     });
   });
 }

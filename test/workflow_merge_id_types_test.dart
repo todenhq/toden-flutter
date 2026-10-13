@@ -11,7 +11,7 @@ import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
 // none of its own, so a hardcoded list silently narrows every country the flow
 // offers.
 void main() {
-  const base = MyazaKYCConfig(
+  const base = VerificationConfig(
     apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     country: 'NG',
     idTypes: ['bvn', 'nin', 'passport'],

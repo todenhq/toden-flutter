@@ -1,6 +1,8 @@
 # myaza_kyc_sdk_flutter
 
-Flutter SDK for Myaza KYC — identity verification (ID capture, document scan, and on-device liveness) that talks to the Myaza KYC API.
+Flutter SDK for Toden — identity verification (ID capture, document scan, and on-device liveness) that talks to the Toden API.
+
+> **New names.** The entry points were renamed in 3.7.0 (`Verification.show()`, `VerificationConfig`, `VerificationError`). The earlier names (`MyazaKYC.show()`, `MyazaKYCConfig`, `KYCError` and the rest) still work, so existing code needs no change. The package name is unchanged.
 
 ## Installation
 
@@ -8,7 +10,7 @@ Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  myaza_kyc_sdk_flutter: ^2.2.0
+  myaza_kyc_sdk_flutter: ^3.7.0
 ```
 
 Then run `flutter pub get`.
@@ -131,12 +133,12 @@ sends no attestation.
   Xcode, which writes
   `com.apple.developer.devicecheck.appattest-environment` to your entitlements
   (`development` while testing, `production` for release builds). Then register
-  your iOS App ID (Team ID + bundle id) with Myaza. Simulators and iOS 13 report
+  your iOS App ID (Team ID + bundle id) with Toden. Simulators and iOS 13 report
   App Attest as unsupported and send nothing.
-- **Android (Play Integrity, Standard API).** Myaza serves the Google Cloud
+- **Android (Play Integrity, Standard API).** Toden serves the Google Cloud
   project number the tokens are requested for. In Play Console, open
   **App integrity → Play Integrity API** and link your app to that Cloud
-  project, then register your package name with Myaza. Tokens are only issued
+  project, then register your package name with Toden. Tokens are only issued
   to builds distributed through Play (internal testing tracks included);
   devices without Google Play services send nothing. The SDK adds the
   `com.google.android.play:integrity` dependency itself.
@@ -146,11 +148,11 @@ Root checks on Android look only at packages Android lets an app see without a
 
 ## Usage
 
-`MyazaKYC.show()` opens the full modal flow as a bottom sheet.
+`Verification.show()` opens the full modal flow as a bottom sheet.
 
 ### Recommended — mount a workflow
 
-Build the flow once in the Myaza dashboard as a **workflow**, then mount it by
+Build the flow once in the Toden dashboard as a **workflow**, then mount it by
 id. The country, ID types, capture steps, add-ons, branding and copy all come
 from the workflow, so changing the flow is a re-publish in the dashboard rather
 than an app release and an app-store review.
@@ -159,10 +161,10 @@ than an app release and an app-store review.
 import 'package:flutter/material.dart';
 import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
 
-void startKYC(BuildContext context) {
-  MyazaKYC.show(
+void startVerification(BuildContext context) {
+  Verification.show(
     context: context,
-    config: const MyazaKYCConfig(
+    config: const VerificationConfig(
       apiKey: 'pk_live_xxx',
       workflowId: 'wf_AbC123dEf456',
       // Runtime data — a workflow is a shared template and cannot carry any of it.
@@ -186,7 +188,7 @@ everything else moves to the dashboard.
 
 ### Or configure everything in code
 
-Skip the workflow and pass the flow's shape in `MyazaKYCConfig`. Useful for a
+Skip the workflow and pass the flow's shape in `VerificationConfig`. Useful for a
 quick start or a single fixed flow; anything you'd change later means an app
 release. `country` is any ISO-2 string and `idTypes` are the same kebab-case
 keys as the React SDKs — there is no enum.
@@ -195,10 +197,10 @@ keys as the React SDKs — there is no enum.
 import 'package:flutter/material.dart';
 import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
 
-void startKYC(BuildContext context) {
-  MyazaKYC.show(
+void startVerification(BuildContext context) {
+  Verification.show(
     context: context,
-    config: MyazaKYCConfig(
+    config: VerificationConfig(
       apiKey: 'pk_live_xxx',
       country: 'NG',
       idTypes: const ['passport', 'bvn', 'nin', 'pvc'],
@@ -206,17 +208,17 @@ void startKYC(BuildContext context) {
       enableSelfie: true,
       enableDocumentCapture: true,
       enableLiveness: true,
-      appearance: const MyazaKYCAppearance(
+      appearance: const VerificationAppearance(
         primaryColor: Color(0xFF5645F5),
-        companyName: 'Myaza',
+        companyName: 'Toden',
         logo: 'default',
-        theme: MyazaThemeMode.dark,
+        theme: VerificationThemeMode.dark,
       ),
-      consent: const KYCConsentContent(
+      consent: const VerificationConsentContent(
         title: 'Welcome, {firstName}',
         description: "A quick check to confirm it's really you.",
       ),
-      success: const KYCSuccessContent(
+      success: const VerificationSuccessContent(
         title: "You're all set, {firstName}!",
         description: "We'll email you once your verification is reviewed.",
       ),
@@ -226,7 +228,7 @@ void startKYC(BuildContext context) {
     onSubmit: (submission) {
       // Fires as soon as the server accepts the request.
       // submission.status is always 'pending' — the result arrives later via
-      // webhook to your backend (or poll GET /api/kyc/status/:id).
+      // webhook to your backend (or poll GET /api/v1/status/:id).
       debugPrint('Submitted: ${submission.verificationId}');
     },
     onError: (error) {
@@ -238,7 +240,7 @@ void startKYC(BuildContext context) {
 }
 ```
 
-## Config (`MyazaKYCConfig`)
+## Config (`VerificationConfig`)
 
 | Field                   | Type                    | Default               | Description                                                                                                     |
 | ----------------------- | ----------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------- |
@@ -254,9 +256,9 @@ void startKYC(BuildContext context) {
 | `enableLiveness`        | `bool`                  | `true`                | Run the liveness challenge step. Server can disable it per ID type.                                             |
 | `selfieReview`         | `bool?`                 | `false`               | Show the selfie with Retake and Continue after the liveness capture. Off by default: the capture hands straight on to the next step. |
 | `voiceGuidance`         | `VoiceGuidanceConfig`   | enabled (`en-US`)     | Spoken liveness instructions (accessibility, TTS **output** — no microphone). `VoiceGuidanceConfig.off` mutes it; `VoiceGuidanceConfig(language: 'fr-FR')` sets the voice. See [Robustness & error handling](#robustness--error-handling). |
-| `appearance`            | `MyazaKYCAppearance?`   | brand defaults        | Brand & theme the flow — colors, logo, light/dark. See [Appearance & theming](#appearance--theming).            |
-| `consent`               | `KYCConsentContent?`    | built-in copy         | Override the consent/welcome screen `title` and `description`. See [Consent screen copy](#consent-screen-copy). |
-| `success`               | `KYCSuccessContent?`    | built-in copy         | Override the success/submitted screen `title` and `description`. See [Success screen copy](#success-screen-copy). |
+| `appearance`            | `VerificationAppearance?`   | brand defaults        | Brand & theme the flow — colors, logo, light/dark. See [Appearance & theming](#appearance--theming).            |
+| `consent`               | `VerificationConsentContent?`    | built-in copy         | Override the consent/welcome screen `title` and `description`. See [Consent screen copy](#consent-screen-copy). |
+| `success`               | `VerificationSuccessContent?`    | built-in copy         | Override the success/submitted screen `title` and `description`. See [Success screen copy](#success-screen-copy). |
 | `metadata`              | `Map<String, dynamic>?` | —                     | Forwarded with every verify request.                                                                            |
 | `livenessConfig`        | `LivenessConfig?`       | 2 challenges, 8s each | Tune challenge count, pool, timeout, avatar.                                                                    |
 | `userData`              | `UserData?`             | —                     | Pre-fills the user's details.                                                                                   |
@@ -271,22 +273,22 @@ base URL) from the API key prefix, the single source of truth:
 | `pk_test_…` / `sk_test_…` | sandbox | `https://trust.myaza.app` |
 | `pk_live_…` / `sk_live_…` | production | `https://trust.myaza.app` |
 
-An unrecognized or malformed key throws an `ArgumentError` from `MyazaKYC.show()`
+An unrecognized or malformed key throws an `ArgumentError` from `Verification.show()`
 (it never silently defaults).
 
 ## Callbacks
 
-Passed to `MyazaKYC.show()` alongside `config`:
+Passed to `Verification.show()` alongside `config`:
 
 | Callback   | Type                           | Description                                                                                                          |
 | ---------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| `onSubmit` | `void Function(KYCSubmission)` | Called when the server accepts the verification. `status` is always `'pending'`.                                     |
-| `onError`  | `void Function(KYCError)`      | Called for **technical** errors only — receives a typed [`KYCError`](#robustness--error-handling) (`code` + `message`). Verification outcomes don't come through here. |
+| `onSubmit` | `void Function(VerificationSubmission)` | Called when the server accepts the verification. `status` is always `'pending'`.                                     |
+| `onError`  | `void Function(VerificationError)`      | Called for **technical** errors only — receives a typed [`VerificationError`](#robustness--error-handling) (`code` + `message`). Verification outcomes don't come through here. |
 | `onClose`  | `void Function()`              | Called when the user closes the flow.                                                                                |
 
 ## Appearance & theming
 
-Pass a `MyazaKYCAppearance` to brand the flow. Each override maps onto the SDK's
+Pass a `VerificationAppearance` to brand the flow. Each override maps onto the SDK's
 internal color scheme; unset colors keep the built-in defaults (which differ between
 light and dark). Setting `primaryColor` also recolors its derived tints, so the whole
 brand family follows.
@@ -300,10 +302,10 @@ brand family follows.
 | `surfaceColor`     | `Color?`         | Cards & panels.                                                                             |
 | `borderColor`      | `Color?`         | Borders and input outlines.                                                                 |
 | `textColor`        | `Color?`         | Primary text color.                                                                         |
-| `companyName`      | `String`         | Shown beside the header logo. Defaults to `'Myaza'`.                                        |
+| `companyName`      | `String`         | Shown beside the header logo. Defaults to `'Toden'`.                                        |
 | `logoAsset`        | `String?`        | Local asset path for the logo (`Image.asset`).                                              |
 | `logo`             | `String?`        | Network logo URL, or `'default'` to use your org's logo. Takes precedence over `logoAsset`. |
-| `theme`            | `MyazaThemeMode` | Initial light/dark mode (defaults to `light`).                                              |
+| `theme`            | `VerificationThemeMode` | Initial light/dark mode (defaults to `light`).                                              |
 
 ### Logo
 
@@ -311,18 +313,18 @@ The org logo renders as a small circular avatar at the top-left of the sheet,
 persistent on every step, alongside `companyName`.
 
 - `logo: 'https://…/logo.png'` — uses that image directly (`Image.network`).
-- `logo: 'default'` — pulls your organization's logo configured in the **Myaza dashboard**
+- `logo: 'default'` — pulls your organization's logo configured in the **Toden dashboard**
   (returned by the server on mount). A broken/absent image simply hides the avatar.
 - `logoAsset: 'assets/logo.png'` — uses a bundled asset when no `logo` is given.
 
 ```dart
-appearance: const MyazaKYCAppearance(
+appearance: const VerificationAppearance(
   primaryColor: Color(0xFF0F7B6C),
   primaryTextColor: Color(0xFFFFFFFF),
   surfaceColor: Color(0xFFF4F7F6),
   borderColor: Color(0xFFD7E3E0),
   logo: 'default',
-  theme: MyazaThemeMode.light,
+  theme: VerificationThemeMode.light,
 ),
 ```
 
@@ -338,7 +340,7 @@ The welcome/consent step shows a heading and a short description. Override eithe
 Both fields support `{firstName}` and `{lastName}` tokens, replaced with the values from `userData` (empty string when absent), so a custom title can still greet the user by name.
 
 ```dart
-consent: const KYCConsentContent(
+consent: const VerificationConsentContent(
   title: 'Welcome, {firstName}',
   description: "We just need to confirm it's really you. This takes about a minute.",
 ),
@@ -356,7 +358,7 @@ After the user submits, the final screen shows a confirmation heading and descri
 Both fields support the same `{firstName}` / `{lastName}` tokens as `consent`, replaced with the values from `userData` (empty string when absent).
 
 ```dart
-success: const KYCSuccessContent(
+success: const VerificationSuccessContent(
   title: "You're all set, {firstName}!",
   description: "We'll email you once your verification is reviewed.",
 ),
@@ -367,14 +369,14 @@ success: const KYCSuccessContent(
 The SDK can verify a **business** instead of a person — a company-registry
 lookup, with no document capture and no liveness.
 
-This is **workflow-driven**: build and publish a business workflow in the Myaza
+This is **workflow-driven**: build and publish a business workflow in the Toden
 dashboard, then pass its id as `workflowId`. There is no prop to turn it on — the
 SDK reads the subject type from the resolved workflow.
 
 ```dart
-MyazaKYC.show(
+Verification.show(
   context: context,
-  config: const MyazaKYCConfig(
+  config: const VerificationConfig(
     apiKey: 'pk_test_xxxxxxxx',
     workflowId: 'wf_xxxxxxxx',    // a PUBLISHED business workflow
     userId: 'usr_123',
@@ -417,11 +419,11 @@ conditions, and reports technical failures through `onError` with a typed `code`
 
 ### Typed errors (`onError`)
 
-`onError` receives a `KYCError` with a `code`, a human-readable `message`, and
+`onError` receives a `VerificationError` with a `code`, a human-readable `message`, and
 optional `details`. The codes are **identical to the React SDK**:
 
 ```dart
-onError: (KYCError error) {
+onError: (VerificationError error) {
   switch (error.code) {
     case 'camera_permission_denied': /* ask the user to allow the camera */ break;
     case 'insufficient_credits':     /* error.details = { required, balance, currency } */ break;
@@ -540,7 +542,7 @@ the SDK stores the confirmed pin on-device at capture. Call the reporter from yo
 app on a natural moment (app open works well):
 
 ```dart
-final result = await MyazaAddressPresence.report(
+final result = await AddressPresence.report(
   apiKey: 'pk_live_…',
   externalUserId: 'user_42', // the same userId the KYC flow ran with
 );
@@ -572,7 +574,7 @@ natively (Kotlin on Android, Swift on iOS) and flush them. As with the
 foreground tier, only the derived day records ever leave the phone.
 
 ```dart
-final result = await MyazaBackgroundPresence.enable(
+final result = await BackgroundPresence.enable(
   apiKey: 'pk_live_…',
   externalUserId: 'user_42',
 );
@@ -587,7 +589,7 @@ opens the app's location settings page, where the person picks "Allow all the
 time", and shows nothing after two refusals. After a refusal `enable()`
 answers `backgroundDenied` without a prompt, and `openLocationSettings()` is
 the way back. Versions up to 3.5.0 never reached the second step on either
-platform. `MyazaBackgroundPresence.disable()` disarms and forgets the
+platform. `BackgroundPresence.disable()` disarms and forgets the
 config. On Android the fence survives reboots (a boot receiver re-arms it);
 on iOS, region monitoring relaunches the app for crossings by itself.
 
@@ -619,7 +621,7 @@ stay while the person is still there: the first time 35 minutes after they
 arrive, then once every three hours. Until one of those moments (or until they
 leave) nothing is sent, so the server's day count does not move:
 
-- **On app open**, automatically: an inside `MyazaAddressPresence.report()`
+- **On app open**, automatically: an inside `AddressPresence.report()`
   reading also records the running stay. On iOS every launch or relaunch
   asks Core Location whether the phone is inside, too.
 - **Android, periodically**, automatically: a WorkManager job takes one
@@ -683,7 +685,7 @@ yourself — a location foreground service changes your Play review posture:
 Then, after the flow stored a pin:
 
 ```dart
-final result = await MyazaPresenceService.enable(
+final result = await PresenceService.enable(
   apiKey: 'pk_live_…',
   externalUserId: 'user_42',
   notification: const PresenceNotification(
@@ -703,7 +705,7 @@ on the same stored state, so the two never double-count a stay; the queue
 flushes while the process is alive; a fence the OS dropped (a location toggle
 clears every registered fence) is re-armed; and a reboot restarts it. The
 notification uses its own channel, so yours are never touched. Word it
-honestly: it is on screen for days. `MyazaPresenceService.disable()` stops it.
+honestly: it is on screen for days. `PresenceService.disable()` stops it.
 
 ### Which tier is running?
 
@@ -728,7 +730,7 @@ if (!status.locationServicesEnabled) {
 
 Somebody kept from a feature until their address is verified should be able
 to see the progress in your app, without a webhook relayed through your
-backend. `GET /api/kyc/address/presence/:externalUserId` with the publishable
+backend. `GET /api/v1/address/presence/:externalUserId` with the publishable
 key answers `{ status, progress, tier, … }` — `status` is one of
 `not_started | in_progress | verified | failed | inconclusive | expired |
 revoked`, `progress.score` is 0..1 on WEIGHTED evidence, and an unknown user

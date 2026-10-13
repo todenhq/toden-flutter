@@ -1,4 +1,4 @@
-import '../providers/kyc_state.dart' show KYCStep;
+import '../providers/verification_state.dart' show VerificationStep;
 
 // ─── Going back from a refused submission ────────────────────────────────────
 //
@@ -9,25 +9,25 @@ import '../providers/kyc_state.dart' show KYCStep;
 // and the flow resubmits when they return to the end.
 
 /// The step that owns each refusal the server names. Add-only.
-const Map<String, KYCStep> _stepForCode = {
-  'missing_documents': KYCStep.businessDocuments,
-  'missing_company_info': KYCStep.businessDetails,
-  'key_people_required': KYCStep.businessKeyPeople,
-  'missing_supporting_documents': KYCStep.supportingDocuments,
-  'questionnaire_invalid': KYCStep.questionnaire,
-  'proof_of_address_required': KYCStep.proofOfAddress,
-  'address_collection_required': KYCStep.addressCollection,
-  'missing_address_fields': KYCStep.addressCollection,
+const Map<String, VerificationStep> _stepForCode = {
+  'missing_documents': VerificationStep.businessDocuments,
+  'missing_company_info': VerificationStep.businessDetails,
+  'key_people_required': VerificationStep.businessKeyPeople,
+  'missing_supporting_documents': VerificationStep.supportingDocuments,
+  'questionnaire_invalid': VerificationStep.questionnaire,
+  'proof_of_address_required': VerificationStep.proofOfAddress,
+  'address_collection_required': VerificationStep.addressCollection,
+  'missing_address_fields': VerificationStep.addressCollection,
 };
 
 /// A capture the server could not accept, by the key it names.
-const Map<String, KYCStep> _stepForMediaKey = {
-  'documentFront': KYCStep.documentCapture,
-  'documentBack': KYCStep.documentCapture,
-  'selfie': KYCStep.liveness,
-  'livenessVideo': KYCStep.liveness,
-  'proofOfAddress': KYCStep.proofOfAddress,
-  'addressPhoto': KYCStep.addressEntrance,
+const Map<String, VerificationStep> _stepForMediaKey = {
+  'documentFront': VerificationStep.documentCapture,
+  'documentBack': VerificationStep.documentCapture,
+  'selfie': VerificationStep.liveness,
+  'livenessVideo': VerificationStep.liveness,
+  'proofOfAddress': VerificationStep.proofOfAddress,
+  'addressPhoto': VerificationStep.addressEntrance,
 };
 
 /// Refusals going back cannot fix: nothing the applicant entered is wrong.
@@ -45,16 +45,16 @@ const Set<String> _notRecoverable = {
 /// help. A named step is used only when this flow contains it; anything else
 /// lands on the last step before submission, so the applicant can still walk
 /// back through what they entered.
-KYCStep? recoveryStepFor(
+VerificationStep? recoveryStepFor(
   String serverCode,
-  List<KYCStep> order, {
+  List<VerificationStep> order, {
   String? mediaKey,
 }) {
   if (_notRecoverable.contains(serverCode)) return null;
   final named = _stepForCode[serverCode] ??
       (serverCode == 'invalid_media' && mediaKey != null ? _stepForMediaKey[mediaKey] : null);
   if (named != null && order.contains(named)) return named;
-  final end = order.indexOf(KYCStep.submitted);
+  final end = order.indexOf(VerificationStep.submitted);
   if (end > 0) return order[end - 1];
   return null;
 }

@@ -14,7 +14,7 @@ import 'icons/icons.dart';
 // Use this for every option list in the flow — questionnaire selects, currency
 // pickers, document types.
 
-class MyazaSelectOption<T> {
+class UiSelectOption<T> {
   final T value;
   final String label;
 
@@ -26,7 +26,7 @@ class MyazaSelectOption<T> {
   /// "GMD" are one letter apart and mean different money.
   final String? description;
 
-  const MyazaSelectOption({
+  const UiSelectOption({
     required this.value,
     required this.label,
     this.leading,
@@ -34,9 +34,9 @@ class MyazaSelectOption<T> {
   });
 }
 
-class MyazaSelect<T> extends StatelessWidget {
+class UiSelect<T> extends StatelessWidget {
   final T? value;
-  final List<MyazaSelectOption<T>> options;
+  final List<UiSelectOption<T>> options;
   final ValueChanged<T> onChanged;
 
   /// Shown when nothing is selected yet.
@@ -56,7 +56,7 @@ class MyazaSelect<T> extends StatelessWidget {
   /// RN SDK's `searchable`.
   final bool searchable;
 
-  const MyazaSelect({
+  const UiSelect({
     super.key,
     required this.value,
     required this.options,
@@ -68,7 +68,7 @@ class MyazaSelect<T> extends StatelessWidget {
     this.searchable = false,
   });
 
-  MyazaSelectOption<T>? get _selected {
+  UiSelectOption<T>? get _selected {
     for (final o in options) {
       if (o.value == value) return o;
     }
@@ -77,7 +77,7 @@ class MyazaSelect<T> extends StatelessWidget {
 
   Future<void> _open(BuildContext context) async {
     if (!enabled || options.isEmpty) return;
-    final picked = await showMyazaSheet<T>(
+    final picked = await showUiSheet<T>(
       context,
       isScrollControlled: true,
       builder: (sheetContext) => _OptionsSheet<T>(
@@ -99,20 +99,20 @@ class MyazaSelect<T> extends StatelessWidget {
 
     final field = Container(
       padding: EdgeInsets.symmetric(
-        horizontal: MyazaSpacing.md,
-        vertical: compact ? 12 : MyazaSpacing.md,
+        horizontal: UiSpacing.md,
+        vertical: compact ? 12 : UiSpacing.md,
       ),
       decoration: BoxDecoration(
         color: enabled ? colors.background : colors.backgroundSecondary,
         border: Border.all(color: colors.border),
-        borderRadius: BorderRadius.circular(MyazaRadius.sm),
+        borderRadius: BorderRadius.circular(UiRadius.sm),
       ),
       child: Row(
         mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
         children: [
           if (selected?.leading != null) ...[
             selected!.leading!,
-            const SizedBox(width: MyazaSpacing.sm),
+            const SizedBox(width: UiSpacing.sm),
           ],
           compact
               ? Text(label ?? hint, style: text.label)
@@ -125,8 +125,8 @@ class MyazaSelect<T> extends StatelessWidget {
                         : text.label,
                   ),
                 ),
-          const SizedBox(width: MyazaSpacing.sm),
-          MyazaIcon(MyazaIcons.chevronDown, size: 18, color: colors.textSecondary),
+          const SizedBox(width: UiSpacing.sm),
+          UiIcon(UiIcons.chevronDown, size: 18, color: colors.textSecondary),
         ],
       ),
     );
@@ -135,7 +135,7 @@ class MyazaSelect<T> extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: enabled ? () => _open(context) : null,
-        borderRadius: BorderRadius.circular(MyazaRadius.sm),
+        borderRadius: BorderRadius.circular(UiRadius.sm),
         child: field,
       ),
     );
@@ -144,7 +144,7 @@ class MyazaSelect<T> extends StatelessWidget {
 
 class _OptionsSheet<T> extends StatefulWidget {
   final String title;
-  final List<MyazaSelectOption<T>> options;
+  final List<UiSelectOption<T>> options;
   final T? selected;
   final bool searchable;
 
@@ -191,10 +191,10 @@ class _OptionsSheetState<T> extends State<_OptionsSheet<T>> {
               // The `lg` that was here stood in for a header that did not
               // exist; with one above it, it reads as a gap.
               padding: const EdgeInsets.fromLTRB(
-                MyazaSpacing.md,
+                UiSpacing.md,
                 0,
-                MyazaSpacing.md,
-                MyazaSpacing.sm,
+                UiSpacing.md,
+                UiSpacing.sm,
               ),
               child: Text(
                 widget.title,
@@ -205,10 +205,10 @@ class _OptionsSheetState<T> extends State<_OptionsSheet<T>> {
               // Pinned above the list, so it stays put while results scroll.
               Padding(
                 padding: const EdgeInsets.fromLTRB(
-                  MyazaSpacing.md,
+                  UiSpacing.md,
                   0,
-                  MyazaSpacing.md,
-                  MyazaSpacing.sm,
+                  UiSpacing.md,
+                  UiSpacing.sm,
                 ),
                 child: TextField(
                   autofocus: false,
@@ -218,21 +218,21 @@ class _OptionsSheetState<T> extends State<_OptionsSheet<T>> {
                   decoration: InputDecoration(
                     hintText: 'Search',
                     hintStyle: text.label.copyWith(color: colors.textMuted),
-                    prefixIcon: MyazaIcon(MyazaIcons.search,
+                    prefixIcon: UiIcon(UiIcons.search,
                         size: 16, color: colors.textMuted),
                     isDense: true,
                     filled: true,
                     fillColor: colors.backgroundSecondary,
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: MyazaSpacing.sm,
+                      horizontal: UiSpacing.sm,
                       vertical: 10,
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(MyazaRadius.sm),
+                      borderRadius: BorderRadius.circular(UiRadius.sm),
                       borderSide: BorderSide(color: colors.border),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(MyazaRadius.sm),
+                      borderRadius: BorderRadius.circular(UiRadius.sm),
                       borderSide: BorderSide(color: colors.primary),
                     ),
                   ),
@@ -240,7 +240,7 @@ class _OptionsSheetState<T> extends State<_OptionsSheet<T>> {
               ),
             if (visible.isEmpty)
               Padding(
-                padding: const EdgeInsets.all(MyazaSpacing.md),
+                padding: const EdgeInsets.all(UiSpacing.md),
                 child: Text(
                   'No matches',
                   textAlign: TextAlign.center,
@@ -250,7 +250,7 @@ class _OptionsSheetState<T> extends State<_OptionsSheet<T>> {
             Flexible(
               child: ListView.builder(
                 shrinkWrap: true,
-                padding: const EdgeInsets.only(bottom: MyazaSpacing.sm),
+                padding: const EdgeInsets.only(bottom: UiSpacing.sm),
                 itemCount: visible.length,
                 itemBuilder: (context, i) {
                   final option = visible[i];
@@ -259,14 +259,14 @@ class _OptionsSheetState<T> extends State<_OptionsSheet<T>> {
                     onTap: () => Navigator.of(context).pop(option.value),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: MyazaSpacing.md,
-                        vertical: MyazaSpacing.md,
+                        horizontal: UiSpacing.md,
+                        vertical: UiSpacing.md,
                       ),
                       child: Row(
                         children: [
                           if (option.leading != null) ...[
                             option.leading!,
-                            const SizedBox(width: MyazaSpacing.sm),
+                            const SizedBox(width: UiSpacing.sm),
                           ],
                           Expanded(
                             child: Column(
@@ -295,7 +295,7 @@ class _OptionsSheetState<T> extends State<_OptionsSheet<T>> {
                             ),
                           ),
                           if (isSelected)
-                            MyazaIcon(MyazaIcons.check,
+                            UiIcon(UiIcons.check,
                                 size: 18, color: colors.primary),
                         ],
                       ),

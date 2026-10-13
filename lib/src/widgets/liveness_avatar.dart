@@ -129,8 +129,8 @@ class _AvatarContent extends StatelessWidget {
   }
 
   Widget _fallbackIcon(BuildContext context) => Center(
-        child: MyazaIcon(
-          MyazaIcons.scanFace,
+        child: UiIcon(
+          UiIcons.scanFace,
           size: iconSize,
           color: context.myazaColors.primary,
         ),

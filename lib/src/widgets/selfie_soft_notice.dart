@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
 import '../utils/selfie_sharpness.dart';
-import 'myaza_alert.dart';
+import 'ui_alert.dart';
 
 // ─── "This photo looks blurry", on the selfie review ─────────────────────────
 //
@@ -78,9 +78,9 @@ class _SelfieSoftNoticeState extends State<SelfieSoftNotice> {
       child: _soft
           ? const Padding(
               key: ValueKey('selfie-soft'),
-              padding: EdgeInsets.only(top: MyazaSpacing.lg),
-              child: MyazaAlert(
-                variant: MyazaAlertVariant.warning,
+              padding: EdgeInsets.only(top: UiSpacing.lg),
+              child: UiAlert(
+                variant: UiAlertVariant.warning,
                 title: kSelfieSoftTitle,
                 message: kSelfieSoftMessage,
               ),

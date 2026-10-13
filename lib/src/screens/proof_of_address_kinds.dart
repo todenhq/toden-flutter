@@ -16,12 +16,12 @@ import '../widgets/icons/icons.dart';
 // uploaded. Mirrors the web SDK's steps/PoaDocumentTypeList and the RN twin.
 
 /// One glyph per kind — the SAME Lucide names the web and RN maps carry.
-MyazaIconData poaTypeIcon(PoaDocumentType type) => switch (type) {
-      PoaDocumentType.utilityBill => MyazaIcons.zap,
-      PoaDocumentType.bankStatement => MyazaIcons.landmark,
-      PoaDocumentType.tenancyAgreement => MyazaIcons.house,
-      PoaDocumentType.governmentDocument => MyazaIcons.stamp,
-      PoaDocumentType.other => MyazaIcons.fileText,
+UiIconData poaTypeIcon(PoaDocumentType type) => switch (type) {
+      PoaDocumentType.utilityBill => UiIcons.zap,
+      PoaDocumentType.bankStatement => UiIcons.landmark,
+      PoaDocumentType.tenancyAgreement => UiIcons.house,
+      PoaDocumentType.governmentDocument => UiIcons.stamp,
+      PoaDocumentType.other => UiIcons.fileText,
     };
 
 class PoaDocumentTypeList extends StatelessWidget {
@@ -46,14 +46,14 @@ class PoaDocumentTypeList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final t in options) ...[
-          MyazaCheckCard(
+          UiCheckCard(
             label: labelFor(t),
             checked: t == value,
             icon: poaTypeIcon(t),
             enabled: enabled,
             onTap: () => onChanged(t),
           ),
-          if (t != options.last) const SizedBox(height: MyazaSpacing.sm),
+          if (t != options.last) const SizedBox(height: UiSpacing.sm),
         ],
       ],
     );

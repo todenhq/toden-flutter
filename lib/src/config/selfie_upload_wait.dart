@@ -6,7 +6,7 @@ import 'dart:async';
 // step hands over the moment the capture ring has closed rather than when the
 // upload lands, so the person sees ONE loading screen from the shutter to the
 // verdict instead of three. The upload keeps running in the background and
-// reports to the provider (`KYCState.selfieUpload`, written by the liveness
+// reports to the provider (`VerificationState.selfieUpload`, written by the liveness
 // screen); the submitted screen waits on that record before it submits. Pure
 // and injectable, like the result wait: the screen owns nothing but the
 // rendering. Mirrors the web and RN SDKs' selfie-upload-wait; keep in lockstep.
@@ -68,6 +68,17 @@ SelfieUploadWait? selfieUploadSettled(SelfieUploadSnapshot snapshot) {
   final restored = status == SelfieUploadStatus.idle && snapshot.selfieMediaId != null;
   if (status == SelfieUploadStatus.done || restored) return const SelfieUploadOk();
   return null;
+}
+
+/// Whether this flow has a selfie upload to wait for at all. A flow with no
+/// liveness step (address, questionnaire, contact, a business application
+/// without the applicant's own check) never uploads one, so its record stays
+/// `idle` with no media id for good: waiting on it would run the whole
+/// deadline and then report a selfie nobody was asked for. An upload that has
+/// already started counts whatever the step order says now. MIRRORED across
+/// the web, React Native and Flutter SDKs.
+bool selfieUploadExpected(SelfieUploadSnapshot snapshot, {required bool hasLivenessStep}) {
+  return hasLivenessStep || snapshot.selfieUpload.status != SelfieUploadStatus.idle;
 }
 
 /// Resolve once the upload has settled, or with a failure at the deadline.

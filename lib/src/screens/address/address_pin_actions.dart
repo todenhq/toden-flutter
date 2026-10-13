@@ -22,7 +22,7 @@ import 'address_pin_move.dart';
 mixin AddressPinActions on ChangeNotifier, AddressPinLabelling {
   // ── Provided by the controller ─────────────────────────────────────────────
   @override
-  KYCApiService get api;
+  VerificationApiService get api;
   @override
   AddressState? get address;
   @override

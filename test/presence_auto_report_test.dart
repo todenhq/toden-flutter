@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myaza_kyc_sdk_flutter/src/config/address_collection.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/kyc_config.dart';
+import 'package:myaza_kyc_sdk_flutter/src/config/verification_config.dart';
 import 'package:myaza_kyc_sdk_flutter/src/presence/background_presence.dart';
 import 'package:myaza_kyc_sdk_flutter/src/presence/presence_auto_report.dart';
 import 'package:myaza_kyc_sdk_flutter/src/presence/presence_reporter.dart';
@@ -13,8 +13,8 @@ import 'package:myaza_kyc_sdk_flutter/src/presence/presence_reporter.dart';
 // and makes the first report on submit. A port of the RN SDK's
 // presenceAutoReport.test.ts — keep them in lockstep.
 
-MyazaKYCConfig _config({String? userId, bool presence = true, bool background = true, String? devUrl}) =>
-    MyazaKYCConfig(
+VerificationConfig _config({String? userId, bool presence = true, bool background = true, String? devUrl}) =>
+    VerificationConfig(
       apiKey: 'pk_dev_x',
       devUrl: devUrl,
       userId: userId,
@@ -32,7 +32,7 @@ void main() {
 
     test('stays quiet when presence is off or absent', () {
       expect(shouldAutoReportPresence(_config(userId: 'user_42', presence: false)), isFalse);
-      expect(shouldAutoReportPresence(const MyazaKYCConfig(apiKey: 'pk_dev_x', userId: 'user_42')), isFalse);
+      expect(shouldAutoReportPresence(const VerificationConfig(apiKey: 'pk_dev_x', userId: 'user_42')), isFalse);
     });
 
     test('stays quiet without a user reference (no pin was stored under one)', () {
