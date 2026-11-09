@@ -17,6 +17,9 @@ class UiButton extends StatelessWidget {
   final bool fullWidth;
   final Widget? leadingIcon;
 
+  /// Overrides the variant's label colour, for a quieter secondary action.
+  final Color? labelColor;
+
   const UiButton({
     super.key,
     required this.label,
@@ -25,6 +28,7 @@ class UiButton extends StatelessWidget {
     this.isLoading = false,
     this.fullWidth = true,
     this.leadingIcon,
+    this.labelColor,
   });
 
   // ── Convenience constructors ───────────────────────────────────────────────
@@ -36,6 +40,7 @@ class UiButton extends StatelessWidget {
     this.isLoading = false,
     this.fullWidth = true,
     this.leadingIcon,
+    this.labelColor,
   }) : variant = UiButtonVariant.outline;
 
   const UiButton.ghost({
@@ -45,6 +50,7 @@ class UiButton extends StatelessWidget {
     this.isLoading = false,
     this.fullWidth = true,
     this.leadingIcon,
+    this.labelColor,
   }) : variant = UiButtonVariant.ghost;
 
   const UiButton.destructive({
@@ -54,6 +60,7 @@ class UiButton extends StatelessWidget {
     this.isLoading = false,
     this.fullWidth = true,
     this.leadingIcon,
+    this.labelColor,
   }) : variant = UiButtonVariant.destructive;
 
   // ── Style helpers (context-aware) ──────────────────────────────────────────
@@ -102,7 +109,7 @@ class UiButton extends StatelessWidget {
     final text   = context.myazaText;
 
     final isDisabled = onPressed == null || isLoading;
-    final fg = _fg(colors);
+    final fg = labelColor ?? _fg(colors);
     final effectiveFg = isDisabled ? fg.withValues(alpha: 0.5) : fg;
     final bg = _bg(colors);
 

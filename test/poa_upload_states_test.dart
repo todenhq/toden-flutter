@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/upload_limits.dart';
-import 'package:myaza_kyc_sdk_flutter/src/screens/proof_of_address_parts.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/ui_spinner.dart';
+import 'package:toden_flutter/toden_flutter.dart';
+import 'package:toden_flutter/src/config/theme.dart';
+import 'package:toden_flutter/src/screens/proof_of_address_parts.dart';
+import 'package:toden_flutter/src/widgets/ui_spinner.dart';
 
-// The proof-of-address step used to say "Tap to upload an image or PDF" — which
-// never told the user WHICH of the offered document kinds to supply, and after
-// upload gave no way to remove a wrong file. These pin the two things that fix:
-// the drop zone names the document, and the uploaded row is removable.
+// How the proof of address comes in: the capture tiles the workflow asks for,
+// a progress row while it uploads, then the uploaded card with Replace and
+// Remove. Mirrors the web SDK's PoaUploadActions and PoaUploadedCard.
 
 Widget host(Widget child) => MaterialApp(
       theme: ThemeData(extensions: const [UiColorScheme.light]),
@@ -17,76 +15,89 @@ Widget host(Widget child) => MaterialApp(
     );
 
 void main() {
-  group('drop zone', () {
-    testWidgets('names the document kind being asked for', (tester) async {
-      await tester.pumpWidget(host(const PoaDropzone(
-        uploading: false,
-        typeLabel: 'Utility bill',
-      )));
+  group('capture tiles', () {
+    Widget actions(PoaCapture capture, {bool uploading = false, void Function()? camera, void Function()? file}) =>
+        host(PoaUploadActions(
+          capture: capture,
+          uploading: uploading,
+          onCamera: camera ?? () {},
+          onFile: file ?? () {},
+        ));
 
-      expect(find.text('Upload your utility bill'), findsOneWidget);
-      expect(find.text(kUploadHint), findsOneWidget);
+    testWidgets('both by default: a photo and a file, side by side', (tester) async {
+      var cameras = 0, files = 0;
+      await tester.pumpWidget(actions(PoaCapture.both, camera: () => cameras++, file: () => files++));
+      expect(find.text('Take a photo'), findsOneWidget);
+      expect(find.text('Use your camera'), findsOneWidget);
+      expect(find.text('Upload a file'), findsOneWidget);
+      expect(find.text('PDF or image'), findsOneWidget);
+      await tester.tap(find.text('Take a photo'));
+      await tester.tap(find.text('Upload a file'));
+      expect((cameras, files), (1, 1));
     });
 
-    testWidgets('a renamed "other" kind flows through to the call to action',
-        (tester) async {
-      // An org can rename `other` in the workflow builder; the drop zone has to
-      // ask for THAT, not "other document".
-      await tester.pumpWidget(host(const PoaDropzone(
-        uploading: false,
-        typeLabel: 'Council tax letter',
-      )));
-      expect(find.text('Upload your council tax letter'), findsOneWidget);
+    testWidgets('the workflow can ask for one way only', (tester) async {
+      await tester.pumpWidget(actions(PoaCapture.camera));
+      expect(find.text('Take a photo'), findsOneWidget);
+      expect(find.text('Upload a file'), findsNothing);
+      await tester.pumpWidget(actions(PoaCapture.file));
+      expect(find.text('Take a photo'), findsNothing);
+      expect(find.text('Upload a file'), findsOneWidget);
     });
 
-    testWidgets('shows progress and blocks taps while uploading',
-        (tester) async {
-      var taps = 0;
-      await tester.pumpWidget(host(PoaDropzone(
-        uploading: true,
-        typeLabel: 'Utility bill',
-        onTap: () => taps++,
-      )));
-
+    testWidgets('give way to one progress row while uploading', (tester) async {
+      await tester.pumpWidget(actions(PoaCapture.both, uploading: true));
       expect(find.text('Uploading…'), findsOneWidget);
       expect(find.byType(UiSpinner), findsOneWidget);
-
-      await tester.tap(find.byType(PoaDropzone), warnIfMissed: false);
-      await tester.pump();
-      expect(taps, 0, reason: 'a second pick mid-upload would race the first');
+      expect(find.text('Take a photo'), findsNothing);
     });
   });
 
-  group('uploaded row', () {
-    testWidgets('shows the file name, its kind, and a working remove',
-        (tester) async {
-      var removed = 0;
-      await tester.pumpWidget(host(PoaUploadedRow(
+  group('uploaded card', () {
+    testWidgets('shows the file, its kind, and working Replace and Remove', (tester) async {
+      var replaced = 0, removed = 0;
+      await tester.pumpWidget(host(PoaUploadedCard(
         fileName: 'Screenshot 2026-07-22 at 04.02.49.png',
         typeLabel: 'Utility bill',
         previewBytes: null,
         isPdf: true,
+        country: 'NG',
+        onReplace: () => replaced++,
         onRemove: () => removed++,
       )));
 
+      expect(find.text('Document uploaded'), findsOneWidget);
       expect(find.text('Screenshot 2026-07-22 at 04.02.49.png'), findsOneWidget);
       expect(find.text('Utility bill'), findsOneWidget);
-
-      await tester.tap(find.byTooltip('Remove document'));
-      await tester.pump();
-      expect(removed, 1);
+      await tester.tap(find.text('Replace'));
+      await tester.tap(find.text('Remove'));
+      expect((replaced, removed), (1, 1));
     });
 
-    testWidgets('a PDF renders the document tile, not a broken image',
-        (tester) async {
-      await tester.pumpWidget(host(const PoaUploadedRow(
+    testWidgets('a PDF renders a document page, not a broken image', (tester) async {
+      await tester.pumpWidget(host(PoaUploadedCard(
         fileName: 'statement.pdf',
         typeLabel: 'Bank statement',
         previewBytes: null,
         isPdf: true,
+        onReplace: () {},
+        onRemove: () {},
       )));
-      expect(find.byType(PoaThumb), findsOneWidget);
+      expect(find.byType(PoaPage), findsOneWidget);
+      expect(find.text('PDF'), findsOneWidget);
       expect(find.byType(Image), findsNothing);
+    });
+
+    testWidgets('a restored upload with no name names its kind', (tester) async {
+      await tester.pumpWidget(host(PoaUploadedCard(
+        fileName: null,
+        typeLabel: 'Bank statement',
+        previewBytes: null,
+        isPdf: false,
+        onReplace: () {},
+        onRemove: () {},
+      )));
+      expect(find.text('Bank statement'), findsNWidgets(2));
     });
   });
 

@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 // the photo. Read across the monorepo, the way the RN foldVectors test reads
 // this package's fixture. The second group pins this SDK's own wiring.
 //
-// The public mirror (todenhq/kyc-sdk-flutter) carries this package alone, so
+// The public mirror (todenhq/toden-flutter) carries this package alone, so
 // the two sibling reads SKIP there rather than fail: the 2.7.0 publish was
 // refused by exactly these two tests. The monorepo's own CI still runs them.
 

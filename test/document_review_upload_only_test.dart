@@ -2,8 +2,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/document_capture_methods.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/document_review.dart';
+import 'package:toden_flutter/src/config/document_capture_methods.dart';
+import 'package:toden_flutter/src/widgets/document_review.dart';
 
 // ─── Review wording follows the capture mode ─────────────────────────────────
 //

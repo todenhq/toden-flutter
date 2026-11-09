@@ -15,6 +15,7 @@ import '../../widgets/sticky_actions.dart';
 import 'street_view_chrome.dart';
 import '../../i18n/text_scope.dart';
 import '../../widgets/ui_spinner.dart';
+import '../../widgets/fill_remaining.dart';
 
 // ─── Framed Street View ──────────────────────────────────────────────────────
 //
@@ -62,6 +63,10 @@ class _FramedStreetViewState extends State<FramedStreetView> {
   bool _ready = false;
   Timer? _readyTimer;
   StreetViewPov? _latestPov;
+
+  /// The panorama's laid-out size: the captured fov is the frame's slice of
+  /// THIS view, and the view now fills the step's spare height.
+  Size? _viewport;
 
   @override
   void initState() {
@@ -120,9 +125,10 @@ class _FramedStreetViewState extends State<FramedStreetView> {
     widget.onUnavailable();
   }
 
-  void _capture(Size viewport) {
+  void _capture() {
     final pov = _latestPov;
-    if (pov == null) return;
+    final viewport = _viewport;
+    if (pov == null || viewport == null) return;
     // The promise on screen is the FRAME: the captured fov is the slice it
     // subtends of the reported view, same maths and geometry as the web framer.
     final frame = streetViewFrameRect(viewport);
@@ -141,15 +147,15 @@ class _FramedStreetViewState extends State<FramedStreetView> {
     final text = context.myazaText;
     final height = mapSurfaceHeight(MediaQuery.sizeOf(context));
     final controller = _controller;
-    return LayoutBuilder(builder: (context, constraints) {
-      final viewport = Size(constraints.maxWidth, height);
-      return StickyActions(
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return StickyActions(
+        // The panorama takes the height the rest leaves (fill_remaining.dart).
+        body: FillRemainingColumn(
+          flexIndex: 0,
+          minFlexHeight: height,
           children: [
-            SizedBox(
-              height: height,
-              child: ClipRRect(
+            LayoutBuilder(builder: (context, box) {
+              _viewport = box.biggest;
+              return ClipRRect(
                 borderRadius: BorderRadius.circular(UiRadius.md),
                 child: Stack(children: [
                   Positioned.fill(
@@ -187,8 +193,8 @@ class _FramedStreetViewState extends State<FramedStreetView> {
                     ),
                   if (_ready) const Positioned.fill(child: StreetViewChrome()),
                 ]),
-              ),
-            ),
+              );
+            }),
             if (_ready) ...[
               const SizedBox(height: UiSpacing.sm),
               Text(
@@ -210,11 +216,10 @@ class _FramedStreetViewState extends State<FramedStreetView> {
           Expanded(
             child: UiButton(
               label: context.verificationText('address.entrance.useView'),
-              onPressed: _ready ? () => _capture(viewport) : null,
+              onPressed: _ready ? _capture : null,
             ),
           ),
         ]),
       );
-    });
   }
 }

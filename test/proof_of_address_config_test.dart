@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/inferred_country.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/proof_of_address.dart';
+import 'package:toden_flutter/src/config/inferred_country.dart';
+import 'package:toden_flutter/src/config/proof_of_address.dart';
 
 // The offered document kinds follow the COUNTRY (an org may accept different
 // papers per market), and the accepted-country list is what the address

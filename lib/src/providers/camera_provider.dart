@@ -109,6 +109,7 @@ class CameraNotifier extends _$CameraNotifier {
   Future<void> initialize({
     CameraLensDirection direction = CameraLensDirection.front,
     ResolutionPreset resolution = ResolutionPreset.medium,
+    bool enableAudio = false,
   }) async {
     if (state.isLoading) return; // already initialising
 
@@ -137,7 +138,7 @@ class CameraNotifier extends _$CameraNotifier {
       final controller = CameraController(
         description,
         resolution,
-        enableAudio: false,
+        enableAudio: enableAudio,
         // ML Kit requires nv21 on Android and bgra8888 on iOS.
         imageFormatGroup: Platform.isAndroid
             ? ImageFormatGroup.nv21

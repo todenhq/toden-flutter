@@ -1,8 +1,8 @@
 import 'dart:ui' show Offset, Size;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/signature.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/supporting_documents.dart';
+import 'package:toden_flutter/src/config/signature.dart';
+import 'package:toden_flutter/src/config/supporting_documents.dart';
 
 SignatureDrawing pad(List<List<Offset>> strokes) =>
     SignatureDrawing(strokes: strokes, width: 320, height: 160);
@@ -74,6 +74,9 @@ void main() {
       expect(resolveSupportingDocuments(config('draw'), const []).first.capture, SupportingDocumentCapture.draw);
       expect(resolveSupportingDocuments(config('draw_or_upload'), const []).first.capture,
           SupportingDocumentCapture.drawOrUpload);
+      // A photo taken there and then: the screen opens the camera, no sheet.
+      expect(resolveSupportingDocuments(config('camera'), const []).first.capture, SupportingDocumentCapture.camera);
+      expect(resolveSupportingDocuments(config('file'), const []).first.capture, SupportingDocumentCapture.file);
       expect(resolveSupportingDocuments(config('typed'), const []).first.capture, SupportingDocumentCapture.upload);
     });
 

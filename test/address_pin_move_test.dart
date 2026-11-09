@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/address_collection.dart';
-import 'package:myaza_kyc_sdk_flutter/src/screens/address/address_pin_move.dart';
-import 'package:myaza_kyc_sdk_flutter/src/utils/map_tiles.dart';
+import 'package:toden_flutter/src/config/address_collection.dart';
+import 'package:toden_flutter/src/screens/address/address_pin_move.dart';
+import 'package:toden_flutter/src/utils/map_tiles.dart';
 
 // ─── What a pin move, or a pick, means ───────────────────────────────────────
 //

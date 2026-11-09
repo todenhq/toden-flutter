@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/address_collection.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/address_field_modes.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart'
+import 'package:toden_flutter/src/config/address_collection.dart';
+import 'package:toden_flutter/src/config/address_field_modes.dart';
+import 'package:toden_flutter/src/services/api_service.dart'
     show AddressParts;
 
 // ─── Per-field address modes, replayed from the SHARED vector file ───────────

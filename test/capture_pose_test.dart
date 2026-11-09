@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/liveness/capture_pose.dart';
-import 'package:myaza_kyc_sdk_flutter/src/liveness/face_detection.dart';
+import 'package:toden_flutter/src/liveness/capture_pose.dart';
+import 'package:toden_flutter/src/liveness/face_detection.dart';
 
 LivenessFaceData face({double yaw = 0, double pitch = 0, double roll = 0}) =>
     LivenessFaceData(

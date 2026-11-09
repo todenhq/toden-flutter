@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/address_collection.dart';
-import 'package:myaza_kyc_sdk_flutter/src/screens/address/address_pin_move.dart';
-import 'package:myaza_kyc_sdk_flutter/src/screens/address/address_pin_summary.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/config/address_collection.dart';
+import 'package:toden_flutter/src/screens/address/address_pin_move.dart';
+import 'package:toden_flutter/src/screens/address/address_pin_summary.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
 
 // ─── Adopting a searched address, and counting what was typed ────────────────
 //

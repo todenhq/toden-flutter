@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/liveness/sharpest_still.dart';
-import 'package:myaza_kyc_sdk_flutter/src/utils/selfie_sharpness.dart';
+import 'package:toden_flutter/src/liveness/sharpest_still.dart';
+import 'package:toden_flutter/src/utils/selfie_sharpness.dart';
 
 ScoredStill still(int id, double? score) =>
     ScoredStill(Uint8List.fromList([id]), score);

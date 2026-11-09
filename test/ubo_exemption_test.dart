@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
 
 // The FATF fallback, attested. Some companies genuinely have no natural person
 // who qualifies as a UBO; without a way to say so the applicant's only moves

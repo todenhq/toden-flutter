@@ -25,6 +25,25 @@ Future<bool> requestCameraPermission() async {
   return status.isGranted;
 }
 
+/// Asks for the microphone for a document clip with sound. Only ever called on
+/// a flow that asked for audio. False means the clip stays silent, nothing more.
+///
+/// iOS kills an app that requests the microphone with no
+/// `NSMicrophoneUsageDescription`, so the native side checks the declaration
+/// first. Android reports an undeclared permission as refused.
+Future<bool> requestDocumentMicrophone() async {
+  try {
+    if (Platform.isIOS) {
+      return await _channel.invokeMethod<bool>('requestMicrophone') ?? false;
+    }
+    return (await Permission.microphone.request()).isGranted;
+  } on PlatformException {
+    return false;
+  } on MissingPluginException {
+    return false;
+  }
+}
+
 /// Whether the camera is already usable — i.e. the OS will NOT prompt.
 ///
 /// Fails CLOSED: anything unexpected reports "not granted", which at worst

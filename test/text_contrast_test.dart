@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
+import 'package:toden_flutter/src/config/theme.dart';
 
 // Every text colour must be readable on the surface it sits on.
 //

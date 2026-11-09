@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/verification_provider.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart'
+import 'package:toden_flutter/toden_flutter.dart';
+import 'package:toden_flutter/src/config/theme.dart';
+import 'package:toden_flutter/src/providers/verification_provider.dart';
+import 'package:toden_flutter/src/providers/verification_state.dart'
     show ServerConfigStatus, ServerSdkConfig;
-import 'package:myaza_kyc_sdk_flutter/src/screens/consent_screen.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/screens/consent_screen.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
 
 // ─── The consent screen: custom texts and the Myaza line ─────────────────────
 //
@@ -72,7 +72,7 @@ void main() {
     await tester.pumpWidget(_host(_config()));
     await tester.pump();
     expect(find.text('Identity Verification'), findsOneWidget);
-    expect(find.text('DURING THIS PROCESS WE WILL'), findsOneWidget);
+    expect(find.text('During this process we will'), findsOneWidget);
     expect(find.text('Continue'), findsOneWidget);
     expect(
       _notice(tester),
@@ -91,7 +91,7 @@ void main() {
     await tester.pump();
     expect(find.text('Welcome aboard'), findsOneWidget);
     expect(find.text('Continuer'), findsOneWidget);
-    expect(find.text('ÉTAPES'), findsOneWidget);
+    expect(find.text('Étapes'), findsOneWidget);
   });
 
   testWidgets('the older consent.title still wins over English copy', (tester) async {

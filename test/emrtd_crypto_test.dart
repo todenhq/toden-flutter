@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_cipher.dart';
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_crypto.dart';
+import 'package:toden_flutter/src/nfc/emrtd_cipher.dart';
+import 'package:toden_flutter/src/nfc/emrtd_crypto.dart';
 
 // ─── ICAO 9303 Part 11, Appendix D — the official BAC worked example ──────────
 //

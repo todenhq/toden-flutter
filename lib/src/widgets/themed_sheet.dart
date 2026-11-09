@@ -19,18 +19,24 @@ import '../i18n/text_scope.dart';
 // Always open SDK sheets through this helper rather than showModalBottomSheet.
 //
 // The panel FLOATS: detached from the screen edges by a tight 8px on the
-// left, right and bottom (the bottom clearing the home indicator when that is
-// larger), with all four corners rounded — a card presented over the flow,
-// not a drawer welded to the edge. Mirrors the RN SDK's FloatingSheet; the
-// gap is deliberately small so the float reads as intent rather than margin.
+// left, right and bottom (the bottom above the home indicator), with all four
+// corners rounded, a faint brand-tinted edge and a slim handle, over a black
+// scrim at half strength. A card presented over the flow, not a drawer welded
+// to the edge. Mirrors the web SDK's drawer and the RN FloatingSheet; the gap
+// is deliberately small so the float reads as intent rather than margin.
+// Closing slides it down (the modal route's own exit).
 
 /// The tight gap that detaches the floating card from the screen edges.
 /// Public so one-off sheets that cannot route through [showUiSheet]
 /// (the Android NFC reading sheet) still share the exact geometry.
 const double kUiSheetInset = 8;
 
-/// The square-cornered-screen fallback for [myazaSheetRadius].
-const double kUiSheetRadius = 38;
+/// The least room a sheet keeps between its top and the status bar, as RN's.
+const double kUiSheetTopGap = 16;
+
+/// The square-cornered-screen fallback for [myazaSheetRadius]: the web SDK's
+/// `--sdk-sheet-radius` default.
+const double kUiSheetRadius = 28;
 
 /// The grab handle, so its position can be asserted rather than eyeballed.
 const Key kUiSheetHandleKey = Key('myaza-sheet-handle');
@@ -49,79 +55,126 @@ double myazaSheetRadius(BuildContext context) {
       : kUiSheetRadius;
 }
 
-/// The grab handle and close button every sheet wears.
+/// The house sheet header: the grab handle at the lip and the round close
+/// button, with the sheet's title (and a line under it) when it has one. One
+/// header for every sheet, so the close button looks and sits the same
+/// wherever a sheet opens. Mirrors the web SDK's `SheetHeader`
+/// (components/ui/drawer.tsx) and the RN FloatingSheet.
 ///
 /// Flutter's sheet is drag-dismissible by default, but nothing on screen SAID
-/// so: the panel arrived with no handle and no close, so the only way out was
-/// a backdrop tap nobody had been told about. The RN SDK's FloatingSheet has
-/// carried this header for a while and the two are the same product.
-///
-/// Deliberately handle + close ONLY, no title: a sheet's own heading belongs to
-/// its body, sitting tight under the handle the way the system sheets do it.
-///
-/// The header is also the drag surface, which comes free here for the reason it
-/// does not in RN: it is the one part of the panel that never scrolls, so a
+/// so: the handle and the close are what tell people. The header is also the
+/// drag surface: it is the one part of the panel that never scrolls, so a
 /// downward swipe on it reaches the sheet instead of the list.
 class _UiSheetHeader extends StatelessWidget {
-  const _UiSheetHeader();
+  const _UiSheetHeader({this.title, this.description});
+
+  final String? title;
+  final String? description;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
-    // Concentric corners put the panel's edge further in, so the button follows
-    // the curve rather than sitting on it. Weighted to sit INSIDE the arc: at
-    // the top right the corner is still turning, so a control set by the flat
-    // edge reads as crowding it.
-    final inset = (myazaSheetRadius(context) * 0.42).clamp(16.0, 26.0);
+    final text = context.myazaText;
+    final handle = Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Container(
+        // Keyed so a test can measure where it sits. The layout that put it
+        // halfway down the panel read as correct in review.
+        key: kUiSheetHandleKey,
+        width: 36,
+        height: 5,
+        decoration: BoxDecoration(
+          color: myazaHandleColor(colors, light: colors.border),
+          borderRadius: BorderRadius.circular(UiRadius.full),
+        ),
+      ),
+    );
+    final title = this.title;
 
-    // A STACK, not a row. In a row the handle is centred against the tallest
-    // child, so the close button's 44pt touch box was setting how far down the
-    // panel the handle sat: 8 of padding plus half of 44 put it ~30 from the
-    // lip. Overlapping them lets the button keep its full target while the
-    // handle rides where a grabber belongs, just under the edge.
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: inset),
-      child: Stack(
-        alignment: Alignment.topCenter,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Container(
-              // Keyed so a test can measure where it sits. The layout that put
-              // it halfway down the panel read as correct in review.
-              key: kUiSheetHandleKey,
-              width: 36,
-              height: 5,
-              decoration: BoxDecoration(
-                color: myazaHandleColor(colors, light: colors.border),
-                borderRadius: BorderRadius.circular(UiRadius.full),
+    if (title == null) {
+      // Concentric corners put the panel's edge further in, so the button
+      // follows the curve rather than sitting on it.
+      final inset = (myazaSheetRadius(context) * 0.42).clamp(16.0, 26.0);
+      // A STACK, not a row: in a row the handle centres against the close
+      // button's 44pt touch box and rides halfway down the panel.
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: inset - 6),
+        child: Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            handle,
+            Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: EdgeInsets.only(top: (inset - 12).clamp(2.0, 12.0)),
+                child: const UiSheetCloseButton(),
               ),
             ),
-          ),
-          Align(
-            alignment: Alignment.topRight,
-            // Pushed down as well as in. The button's own 44pt box already
-            // holds the icon 22 off its edges, so on the right the icon sits
-            // inset+22 from the panel while on the top it sat at 22 flat: the
-            // control hung off the corner instead of tucking into it. This
-            // brings the two closer without paying the full inset in header
-            // height.
-            child: Padding(
-              padding: EdgeInsets.only(top: (inset - 6).clamp(6.0, 16.0)),
-              child: IconButton(
-                onPressed: () => Navigator.of(context).pop(),
-                visualDensity: VisualDensity.compact,
-                tooltip: 'Close',
-                // Kept at the 44pt minimum. The box may overlap the handle's
-                // line because a touch target is allowed to reach past what it
-                // draws; shrinking it to tidy the layout would not be.
-                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-                icon:
-                    UiIcon(UiIcons.x, size: 18, color: colors.textSecondary),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Center(child: handle),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 6, 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Semantics(
+                        header: true,
+                        child: Text(title, style: text.heading3.copyWith(height: 1.5)),
+                      ),
+                      if (description != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          description!,
+                          style: text.bodySmall.copyWith(color: colors.textSecondary),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ),
-            ),
+              const UiSheetCloseButton(),
+            ],
           ),
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+/// The sheet's close: a 32px round muted button with the X, inside a 44pt
+/// touch target. The select sheet's, on every sheet.
+class UiSheetCloseButton extends StatelessWidget {
+  const UiSheetCloseButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.myazaColors;
+    return IconButton(
+      onPressed: () => Navigator.of(context).maybePop(),
+      tooltip: 'Close',
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+      icon: Container(
+        width: 32,
+        height: 32,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(color: colors.backgroundSecondary, shape: BoxShape.circle),
+        child: UiIcon(UiIcons.x, size: 16, color: colors.textSecondary),
       ),
     );
   }
@@ -135,6 +188,11 @@ Future<T?> showUiSheet<T>(
   /// Off for a sheet that draws its own dismiss affordance, so the two do not
   /// stack into a panel with two close buttons.
   bool showHeader = true,
+
+  /// The sheet's heading in the house header (what is being picked or
+  /// edited), and an optional line under it.
+  String? title,
+  String? description,
 }) {
   final theme = Theme.of(context);
   final colors = context.myazaColors;
@@ -143,8 +201,14 @@ Future<T?> showUiSheet<T>(
   // notched phone ran its header under the Dynamic Island). The same 8 that
   // detaches the card at the sides and bottom detaches it at the top. The
   // flow's scope rides along so the sheet reads the flow's texts.
+  //
+  // The top inset is the DEVICE's, read off the view: inside the flow the
+  // status bar is often already consumed (a SafeArea or a padding-free route
+  // above this context), so MediaQuery here said 0 and a long form grew under
+  // the Dynamic Island. Never closer than 16 below it; the body scrolls.
   final media = MediaQuery.of(context);
-  final maxHeight = media.size.height - media.padding.top - kUiSheetInset;
+  final statusBar = MediaQueryData.fromView(View.of(context)).padding.top;
+  final maxHeight = media.size.height - statusBar - kUiSheetTopGap;
   final scope = flowScopeOf(context);
 
   return showModalBottomSheet<T>(
@@ -152,13 +216,15 @@ Future<T?> showUiSheet<T>(
     backgroundColor: Colors.transparent,
     elevation: 0,
     isScrollControlled: isScrollControlled,
+    // The web SDK's overlay: black at half strength.
+    barrierColor: Colors.black.withValues(alpha: 0.5),
     constraints: BoxConstraints(maxHeight: math.max(maxHeight, 120)),
     builder: (sheetContext) {
-      // The CARD sits low, like the system share sheet: a tight 8px off the
-      // screen edge, with the home indicator riding ON the card. No inner
-      // foot either, deliberately — a scrolling body runs all the way to the
-      // lip and is CLIPPED by the curve, content sliding under the rounded
-      // edge the way the system does it.
+      // The CARD floats: a tight 8px off the screen's sides AND bottom, with
+      // the home indicator riding on the card, as the RN sheet sits (system
+      // share sheet style). Reserving the safe area under it as well left the
+      // card hovering high with a wide foot. No inner foot either: a scrolling
+      // body runs all the way to the lip and is CLIPPED by the curve.
       return Padding(
         padding: const EdgeInsets.fromLTRB(
           kUiSheetInset,
@@ -169,13 +235,14 @@ Future<T?> showUiSheet<T>(
         child: Material(
           color: colors.background,
           clipBehavior: Clip.antiAlias,
-          // A hairline edge, so the panel separates from the flow behind it
-          // instead of blending into it on a dark theme. `shape` rather than
+          // A hairline edge in the brand's tint, so the panel separates from
+          // the flow behind it on either theme. `shape` rather than
           // `borderRadius`: Material takes one or the other, and only shape
           // carries a side.
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(myazaSheetRadius(sheetContext)),
-            side: BorderSide(color: colors.border.withValues(alpha: 0.6)),
+            // A faint brand-tinted edge, as the web and RN sheets draw it.
+            side: BorderSide(color: colors.primary.withValues(alpha: 0.2)),
           ),
           // The card floats clear of the home indicator, so a body's own
           // SafeArea must not pad for it a second time.
@@ -189,7 +256,7 @@ Future<T?> showUiSheet<T>(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const _UiSheetHeader(),
+                        _UiSheetHeader(title: title, description: description),
                         Flexible(child: Builder(builder: builder)),
                       ],
                     )
@@ -202,39 +269,55 @@ Future<T?> showUiSheet<T>(
   );
 }
 
-/// Date picker carrying the SDK palette. `showDatePicker` builds a Material
-/// dialog off `ColorScheme`, not our extension, so without this it renders in
-/// the host app's colours — a light dialog over a dark flow.
+/// A date, picked from a calendar in the house sheet (what is being picked as
+/// its header title), as the web SDK's DateField opens on a phone. The
+/// calendar carries the SDK palette: `CalendarDatePicker` builds off
+/// `ColorScheme`, not our extension, so without this it took the host app's
+/// colours (a light calendar over a dark flow). Picking a day closes it.
 Future<DateTime?> showUiDatePicker(
   BuildContext context, {
   required DateTime initialDate,
   required DateTime firstDate,
   required DateTime lastDate,
+  String? title,
 }) {
-  final theme = Theme.of(context);
   final colors = context.myazaColors;
   // The flow's theme is derived from the consumer's appearance overrides, so
   // `theme.brightness` tracks the HOST app, not the flow. Read the flow's own
   // background instead.
   final isDark = colors.background.computeLuminance() < 0.5;
-
   final base = isDark ? const ColorScheme.dark() : const ColorScheme.light();
+  final initial = initialDate.isBefore(firstDate)
+      ? firstDate
+      : initialDate.isAfter(lastDate)
+          ? lastDate
+          : initialDate;
 
-  return showDatePicker(
-    context: context,
-    initialDate: initialDate,
-    firstDate: firstDate,
-    lastDate: lastDate,
-    builder: (dialogContext, child) => Theme(
-      data: theme.copyWith(
+  return showUiSheet<DateTime>(
+    context,
+    isScrollControlled: true,
+    title: title ?? 'Pick a date',
+    builder: (sheetContext) => Theme(
+      data: Theme.of(sheetContext).copyWith(
         colorScheme: base.copyWith(
           primary: colors.primary,
-          onPrimary: colors.background,
+          onPrimary: colors.onPrimary,
           surface: colors.background,
           onSurface: colors.textDark,
         ),
       ),
-      child: child ?? const SizedBox.shrink(),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          child: CalendarDatePicker(
+            initialDate: initial,
+            firstDate: firstDate,
+            lastDate: lastDate,
+            onDateChanged: (date) => Navigator.of(sheetContext).pop(date),
+          ),
+        ),
+      ),
     ),
   );
 }

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
+import '../widgets/country_summary_select.dart';
 import '../widgets/ui_input.dart';
 import '../i18n/text_scope.dart';
 
 // ─── Business-details field parts ─────────────────────────────────────────────
 //
-// The shared field label and the key-people contact email, split out of
+// The shared field label, the country of registration row and the key-people
+// contact email, split out of
 // business_details_screen.dart to keep that screen readable. The company
 // profile section lives in business_company_info_fields.dart.
 
@@ -78,6 +80,50 @@ class BusinessContactEmailField extends StatelessWidget {
           onChanged: onChanged,
         ),
       ],
+    );
+  }
+}
+
+/// The country of registration, in the summary row the Proof of Address and
+/// ID steps use (CountrySummarySelect). Mirrors the web SDK's
+/// BusinessDetailsStep.
+class BusinessCountryRow extends StatelessWidget {
+  final List<String> countries;
+
+  /// The current pick (empty shows the placeholder).
+  final String country;
+
+  /// The visitor's own country, pinned in the list as "Your location".
+  final String? geoCountry;
+
+  final ValueChanged<String> onPick;
+
+  const BusinessCountryRow({
+    super.key,
+    required this.countries,
+    required this.country,
+    required this.onPick,
+    this.geoCountry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.verificationText;
+    return CountrySummarySelect(
+      countries: countries,
+      value: country.isEmpty ? null : country,
+      label: t('business.details.countryCaption'),
+      geoCountry: geoCountry,
+      onPick: onPick,
+      copy: CountrySummaryCopy(
+        placeholder: t('business.country.placeholder'),
+        change: t('business.country.change'),
+        choose: t('business.country.choose'),
+        search: t('business.country.searchPlaceholder'),
+        noMatches: t('business.country.noMatch'),
+        selected: t('business.country.selected'),
+        yourLocation: t('business.details.countryPinnedLocation'),
+      ),
     );
   }
 }

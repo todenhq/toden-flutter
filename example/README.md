@@ -1,9 +1,9 @@
-# myaza_kyc_sdk_flutter example
+# toden_flutter example
 
 A minimal example showing how to launch the Toden flow.
 
 ```dart
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
+import 'package:toden_flutter/toden_flutter.dart';
 
 Verification.show(
   context: context,

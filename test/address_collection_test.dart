@@ -1,14 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/address_collection.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/address_flow.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/workflow_merge.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart'
+import 'package:toden_flutter/toden_flutter.dart';
+import 'package:toden_flutter/src/config/address_collection.dart';
+import 'package:toden_flutter/src/config/address_flow.dart';
+import 'package:toden_flutter/src/config/workflow_merge.dart';
+import 'package:toden_flutter/src/providers/verification_state.dart'
     show ServerConfigStatus, ServerSdkConfig;
-import 'package:myaza_kyc_sdk_flutter/src/providers/step_order.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart'
+import 'package:toden_flutter/src/providers/step_order.dart';
+import 'package:toden_flutter/src/services/api_service.dart'
     show WorkflowFlowConfig;
-import 'package:myaza_kyc_sdk_flutter/src/utils/step_log.dart';
+import 'package:toden_flutter/src/utils/step_log.dart';
 
 // ─── Address Intelligence (smart-address capture) ────────────────────────────
 //
@@ -98,7 +98,7 @@ void main() {
       expect(order.contains(VerificationStep.addressReview), isTrue);
     });
 
-    test('KYB collapses to the single premises step', () {
+    test('KYB runs the same address steps as a person', () {
       final config = VerificationConfig(
         apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         subjectType: 'business',
@@ -106,15 +106,19 @@ void main() {
         addressCollection: const AddressCollectionConfig(enabled: true),
       );
       final order = buildStepOrder(config, const VerificationState());
-      // The premises pin and its directions ARE the capture on KYB, and the
-      // business flow has its own section rhythm.
+      // A premises is checked on its entrance photo and Street View frame too
+      // (2026-10-18), so it gets the entrance and review steps.
       expect(
         order.where(kAddressFlowOrder.contains).toList(),
-        [VerificationStep.addressCollection],
+        [
+          VerificationStep.addressCollection,
+          VerificationStep.addressEntrance,
+          VerificationStep.addressReview,
+        ],
       );
     });
 
-    test('joins the KYB flow as the premises step, after business details',
+    test('joins the KYB flow as the premises steps, after business details',
         () {
       final config = VerificationConfig(
         apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',

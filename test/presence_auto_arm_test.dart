@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/presence/presence_auto_arm.dart';
-import 'package:myaza_kyc_sdk_flutter/src/presence/presence_store.dart';
-import 'package:myaza_kyc_sdk_flutter/src/presence/presence_watch_wait.dart';
+import 'package:toden_flutter/src/presence/presence_auto_arm.dart';
+import 'package:toden_flutter/src/presence/presence_store.dart';
+import 'package:toden_flutter/src/presence/presence_watch_wait.dart';
 
 // ─── The reporter arms background monitoring for a running check ─────────────
 //

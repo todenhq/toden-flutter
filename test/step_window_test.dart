@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/step_window.dart';
+import 'package:toden_flutter/src/widgets/step_window.dart';
 
 /// Readable rendering of a slot row, for assertions that read like the UI.
 String render(int total, int active, int max) => windowedSteps(

@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/address_flow.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/address_step_order.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/step_order.dart';
-import 'package:myaza_kyc_sdk_flutter/src/utils/step_log.dart';
+import 'package:toden_flutter/toden_flutter.dart';
+import 'package:toden_flutter/src/config/address_flow.dart';
+import 'package:toden_flutter/src/providers/address_step_order.dart';
+import 'package:toden_flutter/src/providers/verification_state.dart';
+import 'package:toden_flutter/src/providers/step_order.dart';
+import 'package:toden_flutter/src/utils/step_log.dart';
 
 // ─── The address flow, wired into the step machine ───────────────────────────
 //
@@ -135,15 +135,16 @@ void main() {
     });
   });
 
-  group('KYB collapses to the premises step', () {
-    test('offers the pin and nothing else', () {
-      expect(addressStepsFor(_business(), const VerificationState()),
-          [VerificationStep.addressCollection]);
+  group('KYB runs the same address steps as a person', () {
+    test('offers the pin, the entrance and the review', () {
+      expect(addressStepsFor(_business(), const VerificationState()), [
+        VerificationStep.addressCollection,
+        VerificationStep.addressEntrance,
+        VerificationStep.addressReview,
+      ]);
     });
 
-    test('the collapse survives a search backend and a photo slot', () {
-      // Both would add a step to an individual flow. A KYB premises capture is
-      // the pin and its directions, whatever else is switched on.
+    test('adds search when a backend is on, and keeps the photo slot', () {
       final config = VerificationConfig(
         apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         subjectType: 'business',
@@ -154,15 +155,15 @@ void main() {
       expect(buildStepOrder(config, _withSearch())
           .where(kAddressFlowOrder.contains)
           .toList(),
-          [VerificationStep.addressCollection]);
+          kAddressFlowOrder);
     });
 
-    test('the pin step is therefore the one that COMMITS', () {
-      // The screen asks the flow, not the subject type: nothing follows the
-      // pin here, so its Continue takes the attest fix and stores the presence
-      // pin rather than advancing.
+    test('the review is therefore the step that COMMITS', () {
+      // The screen asks the flow, not the subject type: the pin now advances,
+      // and the review takes the attest fix and stores the presence pin.
       final offered = addressStepsFor(_business(), const VerificationState());
-      expect(nextAddressStep(offered, VerificationStep.addressCollection), isNull);
+      expect(nextAddressStep(offered, VerificationStep.addressCollection), isNotNull);
+      expect(nextAddressStep(offered, VerificationStep.addressReview), isNull);
     });
 
     test('on an individual flow the review commits instead', () {

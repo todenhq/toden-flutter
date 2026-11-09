@@ -3,6 +3,8 @@ import 'dart:io' show Platform;
 import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
 
+import 'document_corners.dart';
+
 // ─── Document detection (auto-capture) ────────────────────────────────────────
 //
 // Bridge to the native document-edge detector. iOS uses Apple Vision; there is
@@ -78,10 +80,50 @@ class DocumentBox {
 class DocumentDetection {
   final DocumentBox? box;
 
+  /// The document's four corners in the upright frame, when found.
+  final DocumentQuad? quad;
+
+  /// True when the platform reports corners at all, so a null [quad] means
+  /// "no document" rather than "cannot tell".
+  final bool quadSupported;
+
+  /// Upright pixel size of the analysed frame (the quad's frame).
+  final Size frameSize;
+
   /// Mean luma of the frame, 0..1.
   final double brightness;
 
-  const DocumentDetection({required this.box, required this.brightness});
+  const DocumentDetection({
+    required this.box,
+    required this.brightness,
+    this.quad,
+    this.quadSupported = false,
+    this.frameSize = Size.zero,
+  });
+}
+
+/// Upright pixel size of a camera frame of [width] x [height], the frame the
+/// detector's box and quad are measured in. The native side reports it
+/// ([reportedWidth], [reportedHeight]); an older build that does not is read
+/// by the same rule it uses: a landscape (sensor) frame is turned upright, a
+/// portrait one is upright already. The Flutter camera plugin on iOS delivers
+/// portrait frames, and always swapping the sides measured the corners against
+/// a landscape frame the preview never shows.
+Size uprightFrameSize(
+  int width,
+  int height, {
+  double? reportedWidth,
+  double? reportedHeight,
+}) {
+  if (reportedWidth != null &&
+      reportedHeight != null &&
+      reportedWidth > 0 &&
+      reportedHeight > 0) {
+    return Size(reportedWidth, reportedHeight);
+  }
+  return width > height
+      ? Size(height.toDouble(), width.toDouble())
+      : Size(width.toDouble(), height.toDouble());
 }
 
 class DocumentDetectionService {
@@ -128,6 +170,14 @@ class DocumentDetectionService {
         // Mid-grey when the platform didn't report one, so a missing value
         // never triggers a spurious "add light".
         brightness: (result['brightness'] as num?)?.toDouble() ?? 0.5,
+        quad: DocumentQuad.fromList(result['quad']),
+        quadSupported: result['quadSupported'] == true,
+        frameSize: uprightFrameSize(
+          image.width,
+          image.height,
+          reportedWidth: (result['frameWidth'] as num?)?.toDouble(),
+          reportedHeight: (result['frameHeight'] as num?)?.toDouble(),
+        ),
       );
     } on MissingPluginException {
       _unsupported = true; // Android — no detector shipped.

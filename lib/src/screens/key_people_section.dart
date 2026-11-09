@@ -30,6 +30,7 @@ class KeyPeopleSectionView extends StatelessWidget {
     required this.onRemove,
     required this.onQuickAdd,
     this.footer,
+    this.notice,
   });
 
   final KeyPeopleSection section;
@@ -47,6 +48,9 @@ class KeyPeopleSectionView extends StatelessWidget {
   final void Function(int index) onQuickAdd;
   final Widget? footer;
 
+  /// A note shown under the definition (shareholders still on their way).
+  final Widget? notice;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
@@ -59,6 +63,7 @@ class KeyPeopleSectionView extends StatelessWidget {
         const SizedBox(height: 2),
         Text(description,
             style: text.bodyMedium.copyWith(color: colors.textSecondary)),
+        if (notice != null) notice!,
 
         if (members.isNotEmpty) ...[
           const SizedBox(height: UiSpacing.sm + 4),

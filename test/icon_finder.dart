@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/icons/icons.dart';
+import 'package:toden_flutter/src/widgets/icons/icons.dart';
 
 /// Find a rendered [UiIcon] by the icon it draws.
 ///

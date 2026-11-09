@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
 import 'country_flag.dart';
-import 'geo_badge.dart';
 
 // ─── One country in the dial-code sheet ──────────────────────────────────────
 //
@@ -10,6 +9,9 @@ import 'geo_badge.dart';
 // pinned geo row and the alphabetical ones, so the two cannot drift apart:
 // they are the same control in two positions, and the pinned one only differs
 // by carrying a tag and a hairline beneath it. Mirrors the RN DialCodeRow.
+//
+// Drawn as the web sheet draws its options (CountrySummarySelect): a 44px
+// rounded row, a 20px flag, the current answer filled rather than ticked.
 
 class DialCodeRow extends StatelessWidget {
   final String iso;
@@ -19,7 +21,7 @@ class DialCodeRow extends StatelessWidget {
   final String dial;
   final bool isSelected;
 
-  /// Tags the pinned geo row ("Your location").
+  /// Tags a pinned row ("Selected", "Your location").
   final String? badge;
   final VoidCallback onTap;
 
@@ -37,32 +39,51 @@ class DialCodeRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
     final text = context.myazaText;
+    final radius = BorderRadius.circular(UiRadius.xs);
     return Material(
-      color: isSelected ? colors.primary50 : Colors.transparent,
+      color: isSelected ? colors.backgroundSecondary : Colors.transparent,
+      borderRadius: radius,
       child: InkWell(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: UiSpacing.md,
-            vertical: 12,
-          ),
-          child: Row(
-            children: [
-              UiCountryFlag(country: iso, size: 28),
-              const SizedBox(width: UiSpacing.md),
-              Expanded(
-                // Full body size in the foreground colour: the name IS the
-                // row, not its caption.
-                child: Text(name, style: text.body.copyWith(color: colors.textDark)),
-              ),
-              if (badge != null) ...[
-                GeoBadge(label: badge!),
-                const SizedBox(width: UiSpacing.sm),
+        borderRadius: radius,
+        highlightColor: colors.backgroundSecondary,
+        splashColor: Colors.transparent,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              children: [
+                UiCountryFlag(country: iso, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: text.body.copyWith(
+                            color: colors.textDark,
+                            fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                      if (badge != null) ...[
+                        const SizedBox(width: 10),
+                        _RowTag(label: badge!, onFill: isSelected),
+                      ],
+                    ],
+                  ),
+                ),
+                if (dial.isNotEmpty) ...[
+                  const SizedBox(width: 10),
+                  Text('+$dial',
+                      style: text.bodyMedium.copyWith(color: colors.textSecondary)),
+                ],
               ],
-              if (dial.isNotEmpty)
-                Text('+$dial',
-                    style: text.bodyMedium.copyWith(color: colors.textSecondary)),
-            ],
+            ),
           ),
         ),
       ),
@@ -70,8 +91,39 @@ class DialCodeRow extends StatelessWidget {
   }
 }
 
-/// A region label between grouped rows — the country-select step's header
-/// (uppercase, tracked out), so the two pickers read as one control.
+/// The web's small uppercase tag. Its fill is the muted surface on a plain row
+/// and the sheet's own colour on the filled one, so it stands off either.
+class _RowTag extends StatelessWidget {
+  final String label;
+  final bool onFill;
+  const _RowTag({required this.label, required this.onFill});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.myazaColors;
+    final text = context.myazaText;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: onFill ? colors.background : colors.backgroundSecondary,
+        borderRadius: BorderRadius.circular(UiRadius.full),
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: text.bodySmall.copyWith(
+          fontSize: 10,
+          height: 1.4,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.25,
+          color: colors.textSecondary,
+        ),
+      ),
+    );
+  }
+}
+
+/// A region label between grouped rows — the web sheet's header (11px,
+/// uppercase, tracked wide), so the pickers read as one control.
 class DialCodeRegionHeader extends StatelessWidget {
   final String region;
   const DialCodeRegionHeader({super.key, required this.region});
@@ -81,19 +133,16 @@ class DialCodeRegionHeader extends StatelessWidget {
     final colors = context.myazaColors;
     final text = context.myazaText;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        UiSpacing.md,
-        UiSpacing.md,
-        UiSpacing.md,
-        UiSpacing.xs,
-      ),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
       child: Semantics(
         header: true,
         child: Text(
           region.toUpperCase(),
           style: text.bodySmall.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.6,
+            fontSize: 11,
+            height: 16 / 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.1,
             color: colors.textSecondary,
           ),
         ),
@@ -102,18 +151,19 @@ class DialCodeRegionHeader extends StatelessWidget {
   }
 }
 
-/// The hairline under the pinned row, separating it from the alphabet.
+/// The hairline under the pinned rows, separating them from the regions.
 class DialCodeDivider extends StatelessWidget {
   const DialCodeDivider({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Divider(
-      height: UiSpacing.sm,
-      thickness: 0.5,
-      indent: UiSpacing.md,
-      endIndent: UiSpacing.md,
-      color: context.myazaColors.border,
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, bottom: 4),
+      child: Divider(
+        height: 0.5,
+        thickness: 0.5,
+        color: context.myazaColors.border,
+      ),
     );
   }
 }

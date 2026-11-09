@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/liveness/flash_ready_gate.dart';
+import 'package:toden_flutter/src/liveness/flash_ready_gate.dart';
 
 void main() {
   // A fixed epoch — the gate takes an injected clock, so time is deterministic.

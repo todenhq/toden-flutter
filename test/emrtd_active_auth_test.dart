@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_active_auth.dart';
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_session.dart';
+import 'package:toden_flutter/src/nfc/emrtd_active_auth.dart';
+import 'package:toden_flutter/src/nfc/emrtd_session.dart';
 
 // Active Authentication — the chip proving it is the original, not a copy.
 //

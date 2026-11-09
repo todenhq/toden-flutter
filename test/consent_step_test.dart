@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/workflow_merge.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/session_progress.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/step_order.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/toden_flutter.dart';
+import 'package:toden_flutter/src/config/workflow_merge.dart';
+import 'package:toden_flutter/src/providers/session_progress.dart';
+import 'package:toden_flutter/src/providers/step_order.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
 
 // ─── The consent screen switched off (`consentStep: false`) ──────────────────
 //
@@ -18,6 +18,7 @@ VerificationConfig _config({
   String subjectType = 'individual',
   List<WorkflowCountryOption>? countries,
   EmailVerificationConfig? email,
+  IdSelectionLayout? idSelectionLayout,
 }) =>
     VerificationConfig(
       apiKey: 'pk_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
@@ -26,6 +27,7 @@ VerificationConfig _config({
       scope: scope,
       subjectType: subjectType,
       countries: countries,
+      idSelectionLayout: idSelectionLayout,
       emailVerification: email,
       addressCollection: scope == 'address'
           ? const AddressCollectionConfig(enabled: true)
@@ -40,11 +42,14 @@ void main() {
 
   test('opens the individual flow on the ID list, the country picker, or the contact codes', () {
     expect(openingStep(_config()), VerificationStep.idType);
+    const two = [
+      WorkflowCountryOption(country: 'NG'),
+      WorkflowCountryOption(country: 'GH'),
+    ];
+    // The combined layout (the default) picks the country on the ID list.
+    expect(openingStep(_config(countries: two)), VerificationStep.idType);
     expect(
-      openingStep(_config(countries: const [
-        WorkflowCountryOption(country: 'NG'),
-        WorkflowCountryOption(country: 'GH'),
-      ])),
+      openingStep(_config(countries: two, idSelectionLayout: IdSelectionLayout.separate)),
       VerificationStep.countrySelect,
     );
     expect(

@@ -80,8 +80,9 @@ class UiSelect<T> extends StatelessWidget {
     final picked = await showUiSheet<T>(
       context,
       isScrollControlled: true,
+      // What is being picked, in the house sheet header.
+      title: sheetTitle ?? hint,
       builder: (sheetContext) => _OptionsSheet<T>(
-        title: sheetTitle ?? hint,
         options: options,
         selected: value,
         searchable: searchable,
@@ -143,13 +144,11 @@ class UiSelect<T> extends StatelessWidget {
 }
 
 class _OptionsSheet<T> extends StatefulWidget {
-  final String title;
   final List<UiSelectOption<T>> options;
   final T? selected;
   final bool searchable;
 
   const _OptionsSheet({
-    required this.title,
     required this.options,
     required this.selected,
     this.searchable = false,
@@ -186,21 +185,6 @@ class _OptionsSheetState<T> extends State<_OptionsSheet<T>> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              // Tight under the handle, the way the system sheets set a title.
-              // The `lg` that was here stood in for a header that did not
-              // exist; with one above it, it reads as a gap.
-              padding: const EdgeInsets.fromLTRB(
-                UiSpacing.md,
-                0,
-                UiSpacing.md,
-                UiSpacing.sm,
-              ),
-              child: Text(
-                widget.title,
-                style: text.label.copyWith(fontWeight: FontWeight.w700),
-              ),
-            ),
             if (widget.searchable)
               // Pinned above the list, so it stays put while results scroll.
               Padding(

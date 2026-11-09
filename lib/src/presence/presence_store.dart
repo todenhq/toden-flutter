@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import 'package:path_provider/path_provider.dart';
 
@@ -14,6 +15,11 @@ import 'package:path_provider/path_provider.dart';
 // "no presence tier", never a crash. Mirrors the RN SDK's presence/store.ts.
 
 const _kFileName = 'myaza-kyc-presence.json';
+
+/// The server refuses a body with a longer token, which would lose the report.
+const _kMaxPresenceTokenLength = 128;
+
+const MethodChannel _channel = MethodChannel('kyc_sdk_flutter/presence');
 
 class StoredPin {
   final double lat;
@@ -30,6 +36,15 @@ class StoredPin {
   /// The reporter has asked for "allow all the time" for this pin once
   /// (presence_auto_arm.dart). It never asks again; a new pin starts clean.
   final bool backgroundAsked;
+
+  /// The Google Cloud project Play Integrity proofs are made for, copied from
+  /// the server's config so a background report can prove itself.
+  final String? playIntegrityProject;
+
+  /// From the 202 of the verification that captured this pin. It is what
+  /// makes this phone's reports count as the watch's own device; without one
+  /// they count at the foreground tier. Rolling chains keep the same token.
+  final String? presenceToken;
   const StoredPin({
     required this.lat,
     required this.lng,
@@ -37,6 +52,8 @@ class StoredPin {
     this.alwaysOn = false,
     this.background = true,
     this.backgroundAsked = false,
+    this.playIntegrityProject,
+    this.presenceToken,
   });
 }
 
@@ -78,6 +95,7 @@ Future<void> savePresencePin(
   double lng, {
   bool alwaysOn = false,
   bool background = true,
+  String? playIntegrityProject,
 }) async {
   if (externalUserId.isEmpty) return;
   final pins = await _readAll();
@@ -87,8 +105,30 @@ Future<void> savePresencePin(
     'savedAt': DateTime.now().toUtc().toIso8601String(),
     if (alwaysOn) 'alwaysOn': true,
     if (!background) 'background': false,
+    if (playIntegrityProject != null) 'playIntegrityProject': playIntegrityProject,
   };
   await _writeAll(pins);
+}
+
+/// Keeps the 202's token beside the pin it belongs to, and hands it to the
+/// native tier, which reports with no Dart running. Saving a new pin drops it,
+/// so a token can only ever sit beside the capture that earned it. Never throws.
+Future<void> savePresenceToken(String externalUserId, String? token) async {
+  final value = token?.trim() ?? '';
+  if (value.isEmpty || value.length > _kMaxPresenceTokenLength) return;
+  final pins = await _readAll();
+  final raw = pins[externalUserId];
+  if (raw is! Map) return;
+  pins[externalUserId] = {...raw, 'presenceToken': value};
+  await _writeAll(pins);
+  try {
+    await _channel.invokeMethod<void>('setPresenceToken', {
+      'externalUserId': externalUserId,
+      'presenceToken': value,
+    });
+  } catch (_) {
+    // No native side, or nothing armed: the next enable carries the token.
+  }
 }
 
 /// Records that the reporter asked for "allow all the time" for this pin.
@@ -146,6 +186,8 @@ Future<StoredPin?> loadPresencePin(String externalUserId) async {
     alwaysOn: alwaysOn,
     background: raw['background'] != false,
     backgroundAsked: raw['backgroundAsked'] == true,
+    playIntegrityProject: raw['playIntegrityProject'] as String?,
+    presenceToken: raw['presenceToken'] is String ? raw['presenceToken'] as String : null,
   );
 }
 

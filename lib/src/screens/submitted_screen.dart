@@ -1,5 +1,3 @@
-import 'dart:async' show unawaited;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,13 +26,17 @@ import '../widgets/keep_links_sheet.dart';
 import '../widgets/key_people_await_list.dart';
 import '../widgets/presence_blocks.dart';
 import '../providers/awaiting_people.dart';
-import '../presence/presence_auto_report.dart';
+import '../presence/background_ask_controller.dart';
+import 'background_ask_screen.dart';
+import '../presence/presence_background_primer.dart';
 import '../widgets/ui_button.dart';
 import '../i18n/text_scope.dart';
+import '../widgets/key_people_ownership_note.dart';
 
 // ─── Submission status (local UI state) ──────────────────────────────────────
 
-enum _SubmitStatus { submitting, success, error }
+// background: the "allow all the time" screen (presence_background_primer.dart).
+enum _SubmitStatus { submitting, background, success, error }
 
 /// The default description depends on WHAT was submitted. A KYB applicant told
 /// "your identity verification has been submitted" is being told about the
@@ -103,11 +105,19 @@ class _SubmittedScreenState extends ConsumerState<SubmittedScreen> {
   VerificationStep? _recoverTo;
 
   bool _kicked = false;
+  late final BackgroundAskController _background =
+      BackgroundAskController(ref.read(verificationConfigProvider));
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _submit());
+  }
+
+  @override
+  void dispose() {
+    _background.dispose();
+    super.dispose();
   }
 
   Future<void> _submit() async {
@@ -171,16 +181,16 @@ class _SubmittedScreenState extends ConsumerState<SubmittedScreen> {
         submittedAt: DateTime.now(),
       );
 
+      widget.onSubmitted?.call(submission);
+      // The SDK's own presence calls (presence_auto_report.dart), and the
+      // background ask when there is one to make.
+      final ask = await _background.begin(resumed: false);
+      if (!mounted) return;
       setState(() {
-        _status = _SubmitStatus.success;
+        _status = ask ? _SubmitStatus.background : _SubmitStatus.success;
         _submission = submission;
         _retryInfo = null;
       });
-
-      widget.onSubmitted?.call(submission);
-      // The SDK's own first presence report (presence_auto_report.dart):
-      // fire-and-forget, so presence never waits on the host app's code.
-      unawaited(autoReportPresence(config));
     } on VerificationApiException catch (e) {
       if (!mounted) return;
       // An organisation cancelled this verification: no Try again, no Go back.
@@ -189,6 +199,13 @@ class _SubmittedScreenState extends ConsumerState<SubmittedScreen> {
       final cancelled = sessionCancelledMessageFor(e);
       if (cancelled != null) {
         ref.read(kYCNotifierProvider.notifier).markSessionCancelled(cancelled);
+        return;
+      }
+      // The saved address could not be used (grant spent or expired, or its
+      // presence verdict too old): the offer comes back over the address step
+      // rather than ending on an error.
+      if (kAddressBookReuseRefusals.contains(e.error)) {
+        ref.read(kYCNotifierProvider.notifier).addressBookReuseRefused();
         return;
       }
       // A refusal over stale contact proofs is recoverable in-flow: clear the
@@ -279,9 +296,13 @@ class _SubmittedScreenState extends ConsumerState<SubmittedScreen> {
     final t = textFnFor(config);
     final successTitle = t('result.success.title', legacy: config.success?.title);
     final scoped = _kScopeDescriptions[configScope(config.scope)];
+    // A scoped business workflow names the business in its scope's line.
+    final scopedBusiness = isScopedBusiness(config.subjectType, config.scope);
     final successDescription = t(
         scoped != null
-            ? 'result.success.description.scope'
+            ? scopedBusiness
+                ? 'result.success.description.${configScope(config.scope)}.business'
+                : 'result.success.description.scope'
             : config.subjectType == 'business'
                 ? 'result.success.description.business'
                 : 'result.success.description.individual',
@@ -342,7 +363,14 @@ class _SubmittedScreenState extends ConsumerState<SubmittedScreen> {
                           retrying: _retryInfo != null,
                         );
                       })
+                    : _status == _SubmitStatus.background
+                    ? BackgroundAskScreen(
+                        config: config,
+                        controller: _background,
+                        onDone: () => setState(() => _status = _SubmitStatus.success),
+                      )
                     : _SuccessView(
+                        background: _background,
                         submission: _submission!,
                         title: successTitle,
                         description: successDescription,
@@ -365,6 +393,8 @@ class _SubmittedScreenState extends ConsumerState<SubmittedScreen> {
 // ─── Success view ─────────────────────────────────────────────────────────────
 
 class _SuccessView extends ConsumerStatefulWidget {
+  /// The "allow all the time" answer, for the presence card.
+  final BackgroundAskController background;
   final VerificationSubmission submission;
   final String title;
   final String description;
@@ -375,6 +405,7 @@ class _SuccessView extends ConsumerStatefulWidget {
   final void Function(bool hasOutstanding) onDone;
 
   const _SuccessView({
+    required this.background,
     required this.submission,
     required this.title,
     required this.description,
@@ -399,8 +430,8 @@ class _SuccessViewState extends ConsumerState<_SuccessView> {
     // account of the people that is actually complete.
     final sessionId = ref.read(kYCNotifierProvider).sessionId;
     // KYB only: an individual verification has no key people to wait on.
-    if (sessionId == null ||
-        ref.read(verificationConfigProvider).subjectType != 'business') {
+    final cfg = ref.read(verificationConfigProvider);
+    if (sessionId == null || !isBusinessApplication(cfg.subjectType, cfg.scope)) {
       return;
     }
     _awaiting = AwaitingPeopleController(
@@ -474,11 +505,29 @@ class _SuccessViewState extends ConsumerState<_SuccessView> {
             // nothing readable, which is better than a list that may be wrong.
             if (ref.read(verificationConfigProvider).addressCollection?.presenceEnabled == true &&
                 ref.read(kYCNotifierProvider).address != null)
-              const PresenceExpectations().animate(delay: 400.ms).fadeIn(duration: 350.ms),
+              ListenableBuilder(
+                listenable: widget.background,
+                builder: (context, _) {
+                  final config = ref.read(verificationConfigProvider);
+                  final business = config.subjectType == 'business';
+                  return PresenceExpectations(
+                    background: widget.background.outcome,
+                    finishLine: finishSentence(
+                      effortWithoutBackground(presencePolicyOf(config), isBusiness: business),
+                      isBusiness: business,
+                    ),
+                    onTurnOn: widget.background.openSettings,
+                  );
+                },
+              ).animate(delay: 400.ms).fadeIn(duration: 350.ms),
             if (awaiting != null)
               KeyPeopleAwaitList(people: awaiting)
                   .animate(delay: 450.ms)
                   .fadeIn(duration: 350.ms),
+            // Shareholders a slow register sends late join the list above,
+            // with their links, when they arrive.
+            if (awaiting != null && _awaiting!.ownershipPending)
+              const KeyPeopleOwnershipNote(submitted: true),
             const SizedBox(height: UiSpacing.xl),
           ],
         ),
@@ -487,7 +536,9 @@ class _SuccessViewState extends ConsumerState<_SuccessView> {
             label: context.verificationText('common.done'),
             onPressed: () => widget.onDone(
               awaiting != null
-                  ? awaiting.any((p) => p.stillOwes)
+                  // Shareholders still on their way bring links of their own.
+                  ? _awaiting!.ownershipPending ||
+                      awaiting.any((p) => p.stillOwes)
                   : invites.isNotEmpty,
             ),
           )

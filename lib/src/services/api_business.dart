@@ -5,6 +5,8 @@
 // re-exported by it, so existing imports keep working. The server is the
 // source of truth; these are declarations, never validation.
 
+import '../config/ownership_pending.dart' show selectOwnershipPending;
+
 /// One officer as the register names them — the key-people prefill's input.
 ///
 /// Everything past name and designation was simply not read before, so the
@@ -123,12 +125,17 @@ class BusinessSelectResponse {
   final BusinessCompanyRecord? business;
   final List<RegistryOfficer> officers;
 
+  /// The register has not sent the shareholders yet, so [officers] has no
+  /// owners; the server adds them later. False when absent (an older server).
+  final bool ownershipPending;
+
   const BusinessSelectResponse({
     required this.checked,
     this.reason,
     required this.found,
     this.business,
     this.officers = const [],
+    this.ownershipPending = false,
   });
 
   factory BusinessSelectResponse.fromJson(Map<String, dynamic> json) {
@@ -147,6 +154,7 @@ class BusinessSelectResponse {
               .map((e) => RegistryOfficer.fromJson(e.cast<String, dynamic>()))
               .toList()
           : const [],
+      ownershipPending: selectOwnershipPending(business),
     );
   }
 }
@@ -179,7 +187,14 @@ class BusinessSearchResponse {
   /// Which source answered; a degraded fallback names itself here.
   final String source;
 
-  const BusinessSearchResponse({required this.results, this.source = ''});
+  /// USD decimal string the org was charged, or null. Not for the applicant.
+  final String? charged;
+
+  const BusinessSearchResponse({
+    required this.results,
+    this.source = '',
+    this.charged,
+  });
 
   factory BusinessSearchResponse.fromJson(Map<String, dynamic> json) {
     final raw = json['results'];
@@ -191,6 +206,7 @@ class BusinessSearchResponse {
               .toList(growable: false)
           : const [],
       source: (json['source'] ?? '').toString(),
+      charged: json['charged']?.toString(),
     );
   }
 }

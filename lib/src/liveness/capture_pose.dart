@@ -34,7 +34,14 @@ const Duration kStraightTimeout = Duration(milliseconds: 2500);
 /// themselves, and the words should not flash up for those.
 const Duration kStraightPromptAfter = Duration(milliseconds: 700);
 
-const String kLookStraightInstruction = 'Look straight at the camera';
+/// The web SDK's `presence.position.lookStraight` (liveness_types.dart keys it).
+const String kLookStraightInstruction = 'Kindly look straight at the camera';
+
+/// The web SDK's `presence.position.moveCloser`.
+const String kMoveCloserInstruction = 'Kindly move closer';
+
+/// The web SDK's `presence.position.holdStill`.
+const String kHoldStillInstruction = 'Kindly hold still';
 
 /// Watches the frames before the photo. Feed each frame once; true once the
 /// face has faced the camera, at rest, for [kStraightHold].

@@ -1,3 +1,70 @@
+## 4.0.0
+
+The first release as `toden_flutter`, and the first release since `myaza_kyc_sdk_flutter` 3.7.0. 3.8.0 was never published; its changes are here too.
+
+**This version needs a native rebuild** (new native code on iOS and Android).
+
+### Upgrading from `myaza_kyc_sdk_flutter`
+
+- The package is renamed from `myaza_kyc_sdk_flutter` to `toden_flutter`. Change the dependency in `pubspec.yaml` and your imports to `package:toden_flutter/toden_flutter.dart`; the API is unchanged. `myaza_kyc_sdk_flutter` receives no further releases.
+- The Android package moves from `co.myazahq.kyc` to `co.toden.flutter`. If your `AndroidManifest.xml` declares the presence foreground service, change it to `co.toden.flutter.PresenceForegroundService`. The geofence and boot receivers are declared by the SDK and need no change.
+- The iOS background task id (`co.myazahq.kyc.presence.checkin`) and the Keychain service holding the stable device id are unchanged, so your `Info.plist` stays as it is and devices keep their id.
+
+### Toden names for the bundled ML Kit flag and the iOS check-in task
+
+- Bundle the ML Kit models with `todenBundledMlKit=true` (in `android/gradle.properties`, or the root `ext`/`extra`). The old name, `myazaKycBundledMlKit`, still works when the new one is not set.
+- The iOS background check-in id is now `co.toden.presence.checkin`. An `Info.plist` that lists the old `co.myazahq.kyc.presence.checkin` keeps working; if it lists both, the SDK schedules with the new one.
+
+### API hosts
+
+- Each environment now has its own host, as the docs list them: `pk_test_` keys go to `https://sandbox-api.toden.co` and `pk_live_` keys to `https://api.toden.co`. Both used to go to `https://trust.myaza.app`.
+
+### Presence token and OTP settings from the session
+
+- Presence: the `presenceToken` from `POST /verify` is stored beside the on-device pin and in the native background stores, and sent on every report, so reports from the phone that captured the address keep their full weight. Pins saved before this have no token and report at the foreground tier until the person verifies again.
+- The contact step sends `sessionId` on `/contact/send` and sizes the code field from the `codeLength` the server returns.
+
+### Document review and audio
+
+- `documentReview` (default off): `true` shows the review screen after a document scan. Uploaded photos always get the review, and so does a scan that failed to upload or that the capture check could not read.
+- `livenessAudio` (default off): records sound in the liveness video, and the consent screen says so. It needs the same microphone setup as `documentAudio`.
+- `documentAudio` (default off): records sound in the document video, and the consent screen says so. Add `NSMicrophoneUsageDescription` on iOS and `RECORD_AUDIO` on Android to allow it. Without them, or if the person refuses, the video is silent and nothing fails.
+
+### The Toden address book
+
+- When the organisation has it on, the address flow opens with a choice: use an address the person saved with Toden (an email, a six-digit code, then a pick) or enter one. A picked address skips the map, the entrance photo and the review, and is sent as `addressBookReuse` instead of a pin.
+- A flow with a presence check lists only saved addresses whose presence was confirmed in the last six months, and says why others are missing.
+- If the server refuses the picked address (the code expired or the address can no longer be used), the flow returns to the address book step instead of ending on an error.
+- The review step offers an unticked box to save the confirmed address to the person's own Toden address book, with the directions and the entrance photo each included only if they choose.
+- Never offered on business verifications.
+
+### Scoped business workflows
+
+- A business workflow with the address, questionnaire or contact scope now runs that scope's own steps. It never opens the business application (company search, registry lookup, key people, documents or the applicant's own check).
+- Those screens name the business: the welcome screen and its list of steps, the email and phone code steps, proof of address, the address screens, the questionnaire and the success screen. A workflow's own wording for the person's version of a text still applies to the business version. Presence checks for a business count days at the premises only.
+- A business workflow with a face check scope shows "Unable to start verification" and never opens the camera. `onError` receives `invalid_workflow`.
+- A submission the server refuses with `entity_type_mismatch` (the reference names a person on a business workflow, or the reverse) is reported as `invalid_workflow` with a clear message, not as something to retry.
+
+### Business documents, one group at a time
+
+- The business documents step groups what the organisation asks for (legal presence, company details, ownership structure, authority to represent the business, address, financial, tax, licences and permits). The applicant uploads one document per group, one group at a time, instead of facing a slot for every document.
+- The applicant never says which document they uploaded: the group lists the documents it accepts, and the server recognises which one it is from its text. Uploads are sent as `{ group, mediaId }`. An upload saved in an earlier session before this change still fills its group and is sent by its type.
+- Each accepted document shows how recent it must be ("From the last 3 months") when the workflow sets a validity window (`maxAgeMonths`). The date is checked after submission.
+- A new screen: the groups are a vertical carousel. The open group's card is in front, the next group's card is tucked behind it at the top (showing its title and what it will ask for) and the previous group's card behind it at the bottom (its file, or Skipped, with Change to reopen it); a thin edge beyond each shows there are more groups that way. The open card shows its position ("2 of 5"), the documents the group accepts with how recent each must be on its own line, and a tall upload area that is itself the control: tap it to choose a photo, take one, or pick a file (there is no separate Choose or Take a photo button, so the button under the card is the only primary button). Once uploaded, a card shows the file with Replace and Remove. A new upload replaces the group's earlier one.
+- Moving on brings the next card down into the middle; Back brings the previous one up. The tucked cards fade in, and when the system asks for less motion nothing slides. Screen readers hear which group has opened ("2 of 5: Ownership structure").
+- The button reads Next on every group but the last and Continue on the last; an optional group with nothing uploaded reads Skip.
+- A finished group keeps its number, with a small tick on it, so the count stays visible. A file name that is a random id (as phone cameras often give) shows as Uploaded instead.
+- An optional group can be skipped with Skip. The back arrow walks back through the groups before leaving the step.
+- A refused submission (`missing_documents`) names the missing groups when the server sends `missingGroups`, else the missing documents.
+- Needs the matching server release, which accepts one document per group.
+
+### The whole document, corners included
+
+- A document is photographed only when all four of its corners are in view, with a little space past each one. Passports were captured with the bottom edge, where the machine-readable zone is, cut off. The hint says what to change: "Fit all four corners of your ID inside the frame" or "Move back a little so there is space around your ID".
+- The shutter waits for the corners too, and the photo is cropped to the document plus that space rather than to the guide.
+- Android now finds the document's corners itself. A device that cannot (the camera-plugin fallback) captures as before.
+- Fixed: after a ready frame that was not used (the camera still settling, or the wrong document), auto-capture could fire on the next frame whatever was in view.
+
 ## 3.7.0
 
 The entry point is now `Verification`, the flow carries the Toden brand, and Bricolage Grotesque ships inside the package. The package name is unchanged.

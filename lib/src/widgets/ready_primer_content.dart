@@ -56,7 +56,7 @@ const readyLiveness = ReadyContent(
     ReadyChecklistItem(UiIcons.userRound, 'primer.selfie.checklist1'),
     ReadyChecklistItem(UiIcons.glasses, 'primer.selfie.checklist2'),
     ReadyChecklistItem(UiIcons.sun, 'primer.selfie.checklist4'),
-    ReadyChecklistItem(UiIcons.sparkles, 'primer.selfie.checklist5'),
+    ReadyChecklistItem(UiIcons.zapOff, 'primer.selfie.checklist5'),
   ],
 );
 
@@ -69,7 +69,7 @@ const readyLivenessPassive = ReadyContent(
     ReadyChecklistItem(UiIcons.userRound, 'primer.selfie.checklist1'),
     ReadyChecklistItem(UiIcons.glasses, 'primer.selfie.checklist2'),
     ReadyChecklistItem(UiIcons.sun, 'primer.selfie.checklist4'),
-    ReadyChecklistItem(UiIcons.sparkles, 'primer.selfie.checklist5'),
+    ReadyChecklistItem(UiIcons.zapOff, 'primer.selfie.checklist5'),
   ],
 );
 

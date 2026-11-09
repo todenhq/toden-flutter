@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/liveness/challenge_manager.dart';
-import 'package:myaza_kyc_sdk_flutter/src/liveness/liveness_types.dart';
+import 'package:toden_flutter/src/liveness/challenge_manager.dart';
+import 'package:toden_flutter/src/liveness/liveness_types.dart';
 
 // Selection mirrors the web SDK's liveness/challenge-manager.ts. A head TURN is
 // always one of the gestures, because the server's shape-from-movement test

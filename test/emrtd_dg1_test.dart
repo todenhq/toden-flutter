@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_dg1.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/mrz_parser.dart';
+import 'package:toden_flutter/src/nfc/emrtd_dg1.dart';
+import 'package:toden_flutter/src/services/mrz_parser.dart';
 
 // The real document this was found on: a Nigerian passport read over PACE.
 //

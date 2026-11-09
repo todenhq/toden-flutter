@@ -1,8 +1,10 @@
-# myaza_kyc_sdk_flutter
+# toden_flutter
 
 Flutter SDK for Toden — identity verification (ID capture, document scan, and on-device liveness) that talks to the Toden API.
 
-> **New names.** The entry points were renamed in 3.7.0 (`Verification.show()`, `VerificationConfig`, `VerificationError`). The earlier names (`MyazaKYC.show()`, `MyazaKYCConfig`, `KYCError` and the rest) still work, so existing code needs no change. The package name is unchanged.
+> **Package.** The SDK is published as `toden_flutter`. Import `package:toden_flutter/toden_flutter.dart`.
+>
+> **Entry points.** Use `Verification.show()`, `VerificationConfig` and `VerificationError`. The names from before 3.7.0 still work, so existing code needs no change.
 
 ## Installation
 
@@ -10,7 +12,7 @@ Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  myaza_kyc_sdk_flutter: ^3.7.0
+  toden_flutter: ^4.0.0
 ```
 
 Then run `flutter pub get`.
@@ -35,8 +37,9 @@ CocoaPods. There is nothing extra to configure for either.
 
 ### Platform setup
 
-The SDK needs **camera** permission on both platforms (there is **no** microphone
-permission — voice guidance is text-to-speech output only).
+The SDK needs **camera** permission on both platforms. It needs no microphone
+unless a workflow turns on document audio (see below): voice guidance is
+text-to-speech output only.
 
 - **iOS** — add to `ios/Runner/Info.plist`:
   ```xml
@@ -53,6 +56,17 @@ permission — voice guidance is text-to-speech output only).
   <uses-permission android:name="android.permission.INTERNET" />
   ```
   Ensure `minSdkVersion` is **21** or higher in `android/app/build.gradle`.
+
+#### Microphone (only if your workflow records audio)
+
+A workflow with `documentAudio` on records sound in the document video, and one
+with `livenessAudio` on records sound in the liveness video. Declare
+the microphone in your app to allow it. The SDK checks first, so if you don't,
+the video is simply silent, and the same goes for a person who refuses:
+
+- **iOS** — add `NSMicrophoneUsageDescription` to `ios/Runner/Info.plist`.
+- **Android** — add `<uses-permission android:name="android.permission.RECORD_AUDIO" />`
+  to `AndroidManifest.xml`.
 
 #### Location (only if your workflow uses Address Intelligence)
 
@@ -123,8 +137,8 @@ the submission: an id that survives a reinstall (a Keychain item on iOS,
 platform supports it, an attestation that the app and device are genuine. None
 of these prompts the user or needs a permission, and none can block or slow a
 submission by more than about 5 seconds: whatever cannot be read is left out.
-The upload requests also carry the same per-install id in an
-`X-Myaza-Device-Id` header.
+The upload requests also carry the same per-install id in a device ID
+header.
 
 The attestation needs a little setup on your side; without it the SDK simply
 sends no attestation.
@@ -159,7 +173,7 @@ than an app release and an app-store review.
 
 ```dart
 import 'package:flutter/material.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
+import 'package:toden_flutter/toden_flutter.dart';
 
 void startVerification(BuildContext context) {
   Verification.show(
@@ -195,7 +209,7 @@ keys as the React SDKs — there is no enum.
 
 ```dart
 import 'package:flutter/material.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
+import 'package:toden_flutter/toden_flutter.dart';
 
 void startVerification(BuildContext context) {
   Verification.show(
@@ -253,7 +267,10 @@ void startVerification(BuildContext context) {
 | `enableDocumentCapture` | `bool`                  | `true`                | Enable the document-scan step for document IDs.                                                                 |
 | `allowDocumentUpload`   | `bool`                  | `true`                | Allow picking a document photo from the device gallery as an alternative to the camera. `false` hides the "upload instead" option (still offered on the camera-permission-denied screen as an escape hatch). |
 | `allowDocumentScan`     | `bool`                  | `true`                | Use the live camera (viewfinder with auto-capture) for document capture. `false` never opens the camera on the document step: the user picks a photo of each side (front, then back) from their device instead, and no camera permission is requested there. At least one of `allowDocumentScan` and `allowDocumentUpload` must stay on; if both are `false`, the camera is used. |
+| `documentReview`        | `bool`                  | `false`               | Show the captured document with Retake and Continue. Off, a scan moves straight on; an uploaded photo, a failed upload or a photo the capture check could not read still shows it. Normally set by a workflow. |
+| `documentAudio`         | `bool`                  | `false`               | Record sound in the document video. Needs the microphone declared (see Platform setup); a clip without it is silent. Normally set by a workflow. |
 | `enableLiveness`        | `bool`                  | `true`                | Run the liveness challenge step. Server can disable it per ID type.                                             |
+| `livenessAudio`         | `bool`                  | `false`               | Record sound in the liveness video. Needs the microphone declared (see Platform setup); a clip without it is silent. |
 | `selfieReview`         | `bool?`                 | `false`               | Show the selfie with Retake and Continue after the liveness capture. Off by default: the capture hands straight on to the next step. |
 | `voiceGuidance`         | `VoiceGuidanceConfig`   | enabled (`en-US`)     | Spoken liveness instructions (accessibility, TTS **output** — no microphone). `VoiceGuidanceConfig.off` mutes it; `VoiceGuidanceConfig(language: 'fr-FR')` sets the voice. See [Robustness & error handling](#robustness--error-handling). |
 | `appearance`            | `VerificationAppearance?`   | brand defaults        | Brand & theme the flow — colors, logo, light/dark. See [Appearance & theming](#appearance--theming).            |
@@ -270,8 +287,8 @@ base URL) from the API key prefix, the single source of truth:
 
 | Key prefix | Environment | Base URL |
 |---|---|---|
-| `pk_test_…` / `sk_test_…` | sandbox | `https://trust.myaza.app` |
-| `pk_live_…` / `sk_live_…` | production | `https://trust.myaza.app` |
+| `pk_test_…` / `sk_test_…` | sandbox | `https://sandbox-api.toden.co` |
+| `pk_live_…` / `sk_live_…` | production | `https://api.toden.co` |
 
 An unrecognized or malformed key throws an `ArgumentError` from `Verification.show()`
 (it never silently defaults).
@@ -444,8 +461,9 @@ onError: (VerificationError error) {
 | `invalid_workflow`         | The `workflowId` is unknown, unpublished, or misconfigured for this submission. See [Business verification (KYB)](#business-verification-kyb). |
 | `unknown`                  | Anything else.                                                      |
 
-> Voice guidance is TTS **output** — it never records audio, so there is **no
-> microphone permission** and no microphone error code.
+> Voice guidance is TTS **output** and never records audio. A refused microphone
+> for document audio only silences the clip, so there is **no microphone error
+> code**.
 
 ### Network resilience
 
@@ -500,7 +518,7 @@ do not work on Huawei or bare AOSP devices. If you ship to those, add this to
 device:
 
 ```properties
-myazaKycBundledMlKit=true
+todenBundledMlKit=true
 ```
 
 **Ship an App Bundle, or split per architecture.** `flutter build apk
@@ -533,7 +551,7 @@ This changes only which Android APIs a plugin compiles against. Your app's
 
 ## Documentation
 
-Full documentation, configuration options, and webhook setup: **[trust.myaza.co/documentation/sdks](https://trust.myaza.co/documentation/sdks)**.
+Full documentation, configuration options, and webhook setup: **[docs.toden.co/integrate/sdks/flutter](https://docs.toden.co/integrate/sdks/flutter)**.
 
 ## Presence reporting (Address Intelligence)
 
@@ -634,7 +652,7 @@ leave) nothing is sent, so the server's day count does not move:
   ```xml
   <key>BGTaskSchedulerPermittedIdentifiers</key>
   <array>
-    <string>co.myazahq.kyc.presence.checkin</string>
+    <string>co.toden.presence.checkin</string>
   </array>
   <key>UIBackgroundModes</key>
   <array>
@@ -676,7 +694,7 @@ yourself — a location foreground service changes your Play review posture:
 
 <application>
   <service
-      android:name="co.myazahq.kyc.PresenceForegroundService"
+      android:name="co.toden.flutter.PresenceForegroundService"
       android:exported="false"
       android:foregroundServiceType="location" />
 </application>

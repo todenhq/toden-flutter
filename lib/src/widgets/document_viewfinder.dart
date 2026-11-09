@@ -3,26 +3,37 @@ import 'package:flutter/material.dart';
 
 import '../config/capture_hints.dart';
 import '../config/theme.dart';
-import '../config/id_types.dart' show IdTypeConfig;
+import '../config/document_guide.dart';
+import '../config/document_specimen.dart';
+import '../config/id_types.dart' show IdTypeConfig, countryLabel;
+import '../config/immersive_layout.dart';
 import '../services/document_framing_gate.dart';
 import 'document_ghost.dart';
 import 'document_info_pill.dart';
 import 'document_plugin_preview.dart';
 import 'document_scan_overlay.dart';
 import 'native_camera_preview.dart';
-import 'icons/icons.dart';
+import 'immersive_controls.dart';
+import 'immersive_glass.dart';
 import '../i18n/text_scope.dart';
-import 'ui_spinner.dart';
 
-/// Keys for the two controls whose overlap is a real (and once-shipped) bug:
-/// the hint sat behind the shutter. Layout tests target these.
-const kDocumentHintKey = ValueKey('kyc.document.hint');
-const kDocumentShutterKey = ValueKey('kyc.document.shutter');
-const kDocumentTorchKey = ValueKey('kyc.document.torch');
-
-/// Width of the slots either side of the shutter. Equal on both sides so the
-/// shutter stays centred on the screen, not merely centred in what's left.
-const double _kSideSlot = 72;
+// The controls (top bar, hint pill, bottom row) are shared with photo mode
+// and live in immersive_controls.dart; their keys and captions are exported
+// from here too, so the scan's callers and tests read them where they always
+// have.
+export 'immersive_controls.dart'
+    show
+        kDocumentHintKey,
+        kDocumentShutterKey,
+        kDocumentTorchKey,
+        kDocumentUploadKey,
+        kDocumentTopBarKey,
+        kDocumentBackKey,
+        kDocumentSideBadgeKey,
+        kUploadCaption,
+        kTorchCaptionOff,
+        kTorchCaptionOn,
+        kViewfinderSpinnerSize;
 
 /// The document camera viewfinder: live feed + guide overlay + shutter.
 ///
@@ -45,7 +56,16 @@ class DocumentViewfinder extends StatelessWidget {
   final bool isBack;
   final bool isProcessing;
   final double guideAspect;
+
+  /// The free band between the top controls and the bottom bar, which an
+  /// upright guide (a turned NIN slip) fills. Shared with the crop, so it is
+  /// worked out once by the screen and handed down.
+  final DocumentGuideBand? guideBand;
   final VoidCallback? onCapture;
+
+  /// Why the shutter is disabled, read out by screen readers (the corners
+  /// rule's hint). Null when there is nothing to explain.
+  final String? shutterDisabledReason;
 
   /// Torch controls. Null [onToggleTorch] hides the button (no flash unit).
   final bool torchOn;
@@ -64,16 +84,16 @@ class DocumentViewfinder extends StatelessWidget {
   final IdTypeConfig? idType;
   final String? country;
 
-  /// Draw the machine-readable band in the layout ghost (passport pages have
-  /// one, and auto-capture requires it in frame).
-  final bool showMrzBand;
+  /// Off once the turn-over prompt has already shown this side.
+  final bool showSpecimen;
 
   /// Stands in for the sheet's back control, which the full-screen camera
   /// hides.
   final VoidCallback? onBack;
 
-  /// "Upload a photo instead" — the escape hatch, which must survive losing the
-  /// chrome that used to host it.
+  /// "Upload a photo instead": the escape hatch, which must survive losing the
+  /// chrome that used to host it. The bottom row's left button; null leaves
+  /// that slot empty.
   final VoidCallback? onUpload;
 
   const DocumentViewfinder({
@@ -84,7 +104,9 @@ class DocumentViewfinder extends StatelessWidget {
     required this.isBack,
     required this.isProcessing,
     required this.guideAspect,
+    this.guideBand,
     required this.onCapture,
+    this.shutterDisabledReason,
     this.torchOn = false,
     this.onToggleTorch,
     this.nativeTextureId,
@@ -96,7 +118,7 @@ class DocumentViewfinder extends StatelessWidget {
     this.hintLabel = 'document',
     this.idType,
     this.country,
-    this.showMrzBand = false,
+    this.showSpecimen = true,
     this.onBack,
     this.onUpload,
   });
@@ -113,170 +135,160 @@ class DocumentViewfinder extends StatelessWidget {
     // button and side badge end up underneath the status bar. Going to the
     // view gives the physical inset whatever any ancestor has done to the
     // inherited MediaQuery — which is what a full-bleed overlay actually needs.
+    //
+    // The screen's guide band (documentGuideBand) reads the same insets, so the
+    // controls drawn here and the space the band keeps clear are one layout
+    // (config/immersive_layout.dart).
     final insets = MediaQueryData.fromView(View.of(context)).viewPadding;
-    final topInset = insets.top + 8;
-    final bottomInset = insets.bottom + 12;
+
+    // An upright guide is a turned document (config/document_turn.dart).
+    final turned = guideAspect < 1;
+    final tone = immersiveHintTone(
+      hint: hint,
+      framing: framing,
+      blocked: shutterDisabledReason != null,
+    );
 
     final stack = Stack(
-          fit: StackFit.expand,
-          children: [
-            _buildFeed(),
+      fit: StackFit.expand,
+      children: [
+        _buildFeed(),
 
-            // Layout ghost — where the portrait, the details and (on a
-            // passport) the MRZ band belong. Shown for a few seconds when the
-            // camera opens, then out of the way.
-            Positioned.fill(
-              child: DocumentGhost(
-                aspect: guideAspect,
-                showMrzBand: showMrzBand,
-                documentFound: framing != DocumentFraming.none &&
-                    framing != DocumentFraming.wrongShape,
+        // The sample document, under the guide so the corners sit on its
+        // edges. Keyed by side so turning over shows the other face.
+        if (showSpecimen)
+          Positioned.fill(
+            child: DocumentGhost(
+              key: ValueKey(isBack),
+              aspect: guideAspect,
+              band: guideBand,
+              accent: context.myazaColors.primary,
+              subject: DocumentSpecimenSubject(
+                idType: idType?.key,
+                title: specimenTitle(idType?.key, hintLabel),
+                country: country == null || country!.isEmpty
+                    ? null
+                    : countryLabel(country!),
+                side: isBack ? SpecimenSide.back : SpecimenSide.front,
               ),
+              documentFound: framing != DocumentFraming.none &&
+                  framing != DocumentFraming.wrongShape,
             ),
+          ),
 
-            // The ONLY guide. It draws the scrim, outline, corners and all the
-            // auto-capture feedback from one rect (config/document_guide.dart),
-            // which the post-shutter crop shares. An earlier second painter drew
-            // its own geometry — two misaligned rectangles, and the user aimed
-            // at the wrong one.
-            Positioned.fill(
-              child: DocumentScanOverlay(
-                framing: framing,
-                progress: scanProgress,
-                aspect: guideAspect,
-              ),
-            ),
+        // The ONLY guide. It draws the scrim, outline, corners and all the
+        // auto-capture feedback from one rect (config/document_guide.dart),
+        // which the post-shutter crop shares. An earlier second painter drew
+        // its own geometry — two misaligned rectangles, and the user aimed
+        // at the wrong one.
+        Positioned.fill(
+          child: DocumentScanOverlay(
+            framing: framing,
+            progress: scanProgress,
+            aspect: guideAspect,
+            band: guideBand,
+          ),
+        ),
 
-            Positioned(
-              top: topInset,
-              right: 10,
-              child: _SideBadge(isBack: isBack),
-            ),
+        // Back, document and side on one row. Back stands in for the
+        // sheet's own control, which is gone in fill mode: a camera with no
+        // way out is a trap.
+        Positioned(
+          key: kDocumentTopBarKey,
+          top: immersiveTopBarTop(insets.top),
+          left: 0,
+          right: 0,
+          height: kImmersiveTopBarHeight,
+          child: ImmersiveTopBar(
+            onBack: onBack,
+            country: country,
+            documentLabel: shortDocumentLabel(idType, hintLabel),
+            isBack: isBack,
+          ),
+        ),
 
-            // Back — the sheet's own control is gone in fill mode, and a camera
-            // with no way out is a trap.
-            if (onBack != null)
-              Positioned(
-                top: topInset,
-                left: 10,
-                child: _CircleButton(
-                  icon: UiIcons.arrowLeft,
-                  onTap: onBack!,
-                ),
-              ),
-
-            // Below the top row rather than in it: the back button and the
-            // side badge hold both corners, and this needs the full width.
-            if (idType != null)
-              Positioned(
-                top: topInset + 46,
-                left: UiSpacing.lg,
-                right: UiSpacing.lg,
-                child: Center(
-                  child: DocumentInfoPill(idType: idType!, country: country),
-                ),
-              ),
-
-            // Everything along the bottom edge lives in ONE column: hint, then
-            // the upload link, then the shutter row. The hint used to be
-            // positioned separately at a fixed offset above the shutter, which
-            // worked until the upload link joined the cluster and made it
-            // taller — the hint then sat behind the button. Stacking them means
-            // the layout cannot disagree with itself whatever is or isn't shown.
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: bottomInset,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Live instruction from the framing gate — which way to move,
-                  // whether it is the wrong document, or to add light.
-                  Padding(
+        // The live instruction from the framing gate, under the top bar.
+        if (!turned)
+          Positioned(
+            top: immersiveHintTop(insets.top),
+            left: 0,
+            right: 0,
+            child: LayoutBuilder(
+              builder: (context, constraints) => Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                      maxWidth:
+                          constraints.maxWidth * kDocumentGuideWidthFraction),
+                  child: ImmersiveHintPill(
                     key: kDocumentHintKey,
-                    // Side padding so a long hint ("Include the code strip
-                    // along the bottom of the page") wraps inside the screen
-                    // instead of running to the edges.
-                    padding: const EdgeInsets.fromLTRB(
-                        UiSpacing.lg, 0, UiSpacing.lg, UiSpacing.md),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(UiRadius.full),
-                      ),
-                      child: Text(
-                        documentHintText(hint, label: hintLabel),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: documentHintIsAction(hint)
-                              ? FontWeight.w700
-                              : FontWeight.w500,
-                        ),
-                      ),
-                    ),
+                    text: documentHintText(hint, label: hintLabel),
+                    tone: tone,
                   ),
-                  // Secondary action ABOVE the primary one, so the shutter
-                  // stays the lowest thing on screen — where the thumb rests
-                  // and where every camera app puts it. Kept in frame at all
-                  // because losing the chrome would otherwise lose the only
-                  // route out for a document the camera can't read.
-                  if (onUpload != null && !isProcessing) ...[
-                    TextButton.icon(
-                      onPressed: onUpload,
-                      icon: const UiIcon(UiIcons.upload,
-                          size: 15, color: Colors.white),
-                      label: Text(
-                        context.verificationText('uploadDocument.camera.uploadInstead'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: UiSpacing.sm),
-                  ],
-                  // Shutter row: the torch sits beside the shutter rather than
-                  // up in the corner — it is a capture control, and this is
-                  // where the thumb already is. The fixed-width slots either
-                  // side keep the shutter centred whether or not the device
-                  // has a flash unit to show.
-                  Row(
-                    children: [
-                      const SizedBox(width: _kSideSlot),
-                      Expanded(
-                        child: Center(
-                          child: isProcessing
-                              ? const _ProcessingPill()
-                              : _ShutterButton(
-                                  key: kDocumentShutterKey,
-                                  onCapture: onCapture,
-                                ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: _kSideSlot,
-                        child: onToggleTorch == null
-                            ? null
-                            : Center(
-                                child: _TorchButton(
-                                  key: kDocumentTorchKey,
-                                  on: torchOn,
-                                  onTap: onToggleTorch!,
-                                ),
-                              ),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ),
-          ],
-        );
+          ),
+
+        // A turned guide (a NIN slip on a phone held upright) is framed by
+        // turning the phone a quarter anticlockwise, so the hint turns with
+        // the sample document and reads upright in that hold: along the
+        // guide's left edge, which is then its bottom edge. The bottom row
+        // stays where the thumb is.
+        if (turned)
+          Positioned.fill(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final guide = documentGuideRect(
+                    constraints.biggest, guideAspect,
+                    band: guideBand);
+                return Stack(
+                  children: [
+                    Positioned(
+                      left: 0,
+                      width: guide.left,
+                      top: guide.top,
+                      height: guide.height,
+                      child: Center(
+                        child: RotatedBox(
+                          key: kDocumentHintKey,
+                          quarterTurns: kTurnedHintQuarterTurns,
+                          child: ImmersiveHintPill(
+                            text: documentHintText(hint, label: hintLabel),
+                            tone: tone,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+
+        // Upload, shutter and torch in three equal slots, so the shutter
+        // stays centred whether or not the side buttons are shown.
+        Positioned(
+          left: kImmersiveSideMargin,
+          right: kImmersiveSideMargin,
+          bottom: insets.bottom + kImmersiveBottomOffset,
+          height: kImmersiveBottomRowHeight,
+          child: ImmersiveBottomRow(
+            onUpload: onUpload,
+            uploadLabel:
+                context.verificationText('uploadDocument.camera.uploadInstead'),
+            // Visible through a capture, as the shutter is; a pick mid-capture
+            // would race the still.
+            uploadEnabled: !isProcessing,
+            onCapture: onCapture,
+            busy: isProcessing,
+            progress: scanProgress,
+            disabledReason: shutterDisabledReason,
+            torchOn: torchOn,
+            onToggleTorch: onToggleTorch,
+          ),
+        ),
+      ],
+    );
 
     // Fill whatever room there is — but survive being handed none.
     //
@@ -312,202 +324,10 @@ class DocumentViewfinder extends StatelessWidget {
     if (ctrl != null && ctrl.value.isInitialized) {
       return DocumentPluginPreview(ctrl, isCapturing: isProcessing);
     }
-    return _ViewfinderPlaceholder(isLoading: isLoading, error: error);
+    return ImmersiveViewfinderPlaceholder(isLoading: isLoading, error: error);
   }
 }
 
-class _ViewfinderPlaceholder extends StatelessWidget {
-  final bool isLoading;
-  final String? error;
-
-  const _ViewfinderPlaceholder({required this.isLoading, this.error});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFF111111),
-      child: Center(
-        child: error != null
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const UiIcon(UiIcons.videoOff,
-                      color: Colors.white54, size: 36),
-                  const SizedBox(height: UiSpacing.sm),
-                  Text('Camera unavailable',
-                      style: context.myazaText.bodySmall
-                          .copyWith(color: Colors.white70)),
-                ],
-              )
-            : UiSpinner(
-                color: context.myazaColors.primary, strokeWidth: 2),
-      ),
-    );
-  }
-}
-
-class _SideBadge extends StatelessWidget {
-  final bool isBack;
-
-  const _SideBadge({required this.isBack});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: isBack ? UiColors.success : context.myazaColors.primary,
-        borderRadius: BorderRadius.circular(UiRadius.full),
-      ),
-      child: Text(
-        isBack ? 'BACK' : 'FRONT',
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.8,
-        ),
-      ),
-    );
-  }
-}
-
-class _ShutterButton extends StatelessWidget {
-  final VoidCallback? onCapture;
-
-  const _ShutterButton({super.key, required this.onCapture});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.myazaColors;
-    final isEnabled = onCapture != null;
-    // The classic shutter: a ring with a disc inside it. No glyph — a camera
-    // icon inside a camera is telling the user what they can already see, and
-    // this is the shape every phone camera has trained them on, so it reads as
-    // "take the photo" without being read at all.
-    return GestureDetector(
-      onTap: onCapture,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: 68,
-        height: 68,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: isEnabled ? Colors.white : Colors.white38,
-            width: 3.5,
-          ),
-          boxShadow: isEnabled
-              ? [
-                  // Lifts the ring off a bright document, where a plain white
-                  // outline would disappear.
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.35),
-                    blurRadius: 10,
-                  ),
-                ]
-              : null,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isEnabled ? colors.primary : colors.gray400,
-            ),
-            // A scan glyph rather than a camera one: this shutter reads a
-            // document, and the corner-bracket shape echoes the guide the user
-            // is lining the document up inside.
-            child: UiIcon(
-              UiIcons.scanLine,
-              size: 24,
-              color: isEnabled ? Colors.white : Colors.white54,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ProcessingPill extends StatelessWidget {
-  const _ProcessingPill();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(UiRadius.full),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(
-            width: 14,
-            height: 14,
-            child: UiSpinner(color: Colors.white, strokeWidth: 2),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'Capturing…',
-            style: context.myazaText.bodySmall.copyWith(color: Colors.white),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TorchButton extends StatelessWidget {
-  final bool on;
-  final VoidCallback onTap;
-
-  const _TorchButton({super.key, required this.on, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: on ? Colors.white : Colors.black.withValues(alpha: 0.45),
-        ),
-        child: UiIcon(
-          on ? UiIcons.zap : UiIcons.zapOff,
-          size: 18,
-          color: on ? context.myazaColors.primary : Colors.white,
-        ),
-      ),
-    );
-  }
-}
-
-/// A round translucent control for the in-frame top row (back, and anything
-/// else the hidden chrome used to carry).
-class _CircleButton extends StatelessWidget {
-  final UiIconData icon;
-  final VoidCallback onTap;
-
-  const _CircleButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.black.withValues(alpha: 0.45),
-        ),
-        child: UiIcon(icon, size: 18, color: Colors.white),
-      ),
-    );
-  }
-}
+/// Clockwise quarter turns of the hint beside a turned guide: one, as the
+/// sample document is drawn (its top edge facing the right of the screen).
+const int kTurnedHintQuarterTurns = 1;

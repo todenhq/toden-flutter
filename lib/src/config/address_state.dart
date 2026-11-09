@@ -1,4 +1,5 @@
 import '../services/api_service.dart' show AddressParts;
+import 'address_book.dart' show AddressBookSaveChoice;
 
 // ─── The smart address the flow collects ─────────────────────────────────────
 //
@@ -101,7 +102,14 @@ class AddressState {
   final double? deviceLat;
   final double? deviceLng;
   final double? deviceAccuracy;
+
+  /// The phone's own report that the fix was faked; null when it gave none.
+  final bool? deviceMocked;
   final String? capturedAt;
+
+  /// "Save this address to my Toden address book" (the review step's box,
+  /// unticked by default). Rides the submission as `address.book`.
+  final AddressBookSaveChoice? book;
 
   const AddressState({
     required this.lat,
@@ -124,7 +132,9 @@ class AddressState {
     this.deviceLat,
     this.deviceLng,
     this.deviceAccuracy,
+    this.deviceMocked,
     this.capturedAt,
+    this.book,
   });
 
   /// The base shape after a pick or a bootstrap locate: the pin lands on the
@@ -153,6 +163,8 @@ class AddressState {
       city: prev?.city,
       state: prev?.state,
       postcode: prev?.postcode,
+      // The person's own choice, not a fact about the old pin.
+      book: prev?.book,
     );
   }
 
@@ -177,7 +189,9 @@ class AddressState {
     double? deviceLat,
     double? deviceLng,
     double? deviceAccuracy,
+    bool? deviceMocked,
     String? capturedAt,
+    AddressBookSaveChoice? book,
     // Adopting the pin's own address drops the human-confirmed pick whole:
     // the line, its breakdown, the anchor and the answered "keep" are one
     // decision, so they are cleared together rather than four flags deep.
@@ -212,6 +226,8 @@ class AddressState {
         deviceLat: deviceLat ?? this.deviceLat,
         deviceLng: deviceLng ?? this.deviceLng,
         deviceAccuracy: deviceAccuracy ?? this.deviceAccuracy,
+        deviceMocked: deviceMocked ?? this.deviceMocked,
         capturedAt: capturedAt ?? this.capturedAt,
+        book: book ?? this.book,
       );
 }

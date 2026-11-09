@@ -8,6 +8,7 @@
 // Mirrors the web SDK's `lib/business-application.ts`.
 
 import 'business.dart';
+import 'key_person_stake.dart';
 
 /// UI cap on applicant-entered key-people rows (the server accepts ≤20).
 const int kMaxKeyPeopleRows = 10;
@@ -43,10 +44,14 @@ class ResolvedBusinessDocumentType {
   final String label;
   final bool required;
 
+  /// How recent it must be, in months; null = any date.
+  final int? maxAgeMonths;
+
   const ResolvedBusinessDocumentType({
     required this.key,
     required this.label,
     required this.required,
+    this.maxAgeMonths,
   });
 }
 
@@ -71,6 +76,7 @@ List<ResolvedBusinessDocumentType> resolveBusinessDocumentTypes(
             key: t.key,
             label: t.displayLabel,
             required: t.required,
+            maxAgeMonths: t.maxAgeMonths,
           ))
       .toList(growable: false);
 }
@@ -121,6 +127,17 @@ class KeyPersonEntry {
   /// which is what a row restored from an older session carries.
   final List<KeyPersonRole> roles;
 
+  /// The company documents that put this person in the list (mediaIds), and
+  /// the row as it was when added, so removing the documents removes the
+  /// person unless the applicant changed them
+  /// (config/document_people_sources.dart). Empty and null on rows the
+  /// applicant or the register added. Never sent ([toJson] lists its fields).
+  final List<String> sourceDocuments;
+  final String? documentSnapshot;
+
+  /// Its documents were removed after the applicant changed it: asked to check it.
+  final bool documentRemoved;
+
   const KeyPersonEntry({
     this.name = '',
     this.role = KeyPersonRole.director,
@@ -132,6 +149,9 @@ class KeyPersonEntry {
     this.isCorporate = false,
     this.registrationNumber = '',
     this.owners = const [],
+    this.sourceDocuments = const [],
+    this.documentSnapshot,
+    this.documentRemoved = false,
   });
 
   KeyPersonEntry copyWith({
@@ -145,6 +165,10 @@ class KeyPersonEntry {
     bool? isCorporate,
     String? registrationNumber,
     List<KeyPersonOwnerEntry>? owners,
+    List<String>? sourceDocuments,
+    String? documentSnapshot,
+    bool clearDocumentSnapshot = false,
+    bool? documentRemoved,
   }) =>
       KeyPersonEntry(
         name: name ?? this.name,
@@ -157,6 +181,11 @@ class KeyPersonEntry {
         isCorporate: isCorporate ?? this.isCorporate,
         registrationNumber: registrationNumber ?? this.registrationNumber,
         owners: owners ?? this.owners,
+        sourceDocuments: sourceDocuments ?? this.sourceDocuments,
+        documentSnapshot: clearDocumentSnapshot
+            ? null
+            : (documentSnapshot ?? this.documentSnapshot),
+        documentRemoved: documentRemoved ?? this.documentRemoved,
       );
 
   /// The typed percentage, or null when blank/unparseable.
@@ -184,8 +213,12 @@ class KeyPersonEntry {
   /// The server enforces the required email too, but only at SUBMIT — several
   /// steps later, as a generic failure, with no way back to the row that is
   /// missing one. Blocking here is where the person can still fix it.
-  bool isValidWith(Set<KeyPersonRole> emailRequiredFor) {
+  ///
+  /// With [stakeRequired], a shareholder or beneficial owner must give a
+  /// percentage (see key_person_stake.dart).
+  bool isValidWith(Set<KeyPersonRole> emailRequiredFor, {bool stakeRequired = false}) {
     if (name.trim().length < 2) return false;
+    if (rowMissingStake(this, stakeRequired)) return false;
     if (rowNeedsEmail(this, emailRequiredFor) && email.trim().isEmpty) {
       return false;
     }
@@ -357,11 +390,20 @@ bool namesLooselyMatch(String a, String b) {
 
 // ─── Uploaded documents ──────────────────────────────────────────────────────
 
-/// One uploaded slot on the business-documents step.
+/// One uploaded document on the business-documents step.
 class BusinessDocumentUpload {
+  /// The group's first document while the server has not yet recognised it
+  /// (or, on an upload restored from before recognition, the one chosen).
   final String type;
   final String mediaId;
   final String fileName;
+
+  /// The group it was uploaded for; the server recognises which document it
+  /// is. Null on an upload restored from before recognition.
+  final String? group;
+
+  /// Size in bytes, for the uploaded card (absent on a restored session).
+  final int? size;
 
   /// Local temp path of the picked image, for the slot thumbnail. Kept on the
   /// RECORD (not screen state) so the preview survives leaving and re-entering
@@ -373,11 +415,17 @@ class BusinessDocumentUpload {
     required this.type,
     required this.mediaId,
     required this.fileName,
+    this.group,
+    this.size,
     this.previewPath,
     this.isPdf = false,
   });
 
-  Map<String, dynamic> toJson() => {'type': type, 'mediaId': mediaId};
+  /// As the submission sends it: an upload made for a group names its group
+  /// and the server recognises the document; an older one names its type.
+  Map<String, dynamic> toJson() => group != null
+      ? {'group': group, 'mediaId': mediaId}
+      : {'type': type, 'mediaId': mediaId};
 }
 
 // ─── Applicant ────────────────────────────────────────────────────────────────

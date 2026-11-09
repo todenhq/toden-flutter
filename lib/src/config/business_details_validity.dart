@@ -20,12 +20,15 @@ bool businessDetailsValid({
   required bool numberValid,
   required bool nameRequired,
   required bool showContactEmail,
+  // A register asked one region at a time, with no region picked yet.
+  bool regionMissing = false,
 }) {
   String v(String key) => (values[key] ?? '').trim();
 
   final pickValid = product != null &&
       product.isNotEmpty &&
       numberValid &&
+      !regionMissing &&
       (!nameRequired || v('registrationName').isNotEmpty);
   if (phase == 'pick') return pickValid;
 

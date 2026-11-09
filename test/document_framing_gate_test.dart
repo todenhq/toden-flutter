@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/document_detection.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/document_framing_gate.dart';
+import 'package:toden_flutter/src/services/document_detection.dart';
+import 'package:toden_flutter/src/services/document_framing_gate.dart';
 
 const _cardAspect = 1.586;
 
@@ -68,6 +68,29 @@ void main() {
     test('tolerates perspective skew on a real card', () {
       expect(_gate().matchesShape(_box(aspectRatio: 1.40)), isTrue);
       expect(_gate().matchesShape(_box(aspectRatio: 1.80)), isTrue);
+    });
+    test('a slip turned upright matches once the gate expects it upright', () {
+      // config/document_turn.dart: on a phone held upright the slip is framed
+      // standing up, so the detector reports about 1 / 2.07.
+      final gate = DocumentFramingGate(expectedAspect: 2.07);
+      final upright = _box(w: 0.5, h: 0.5, aspectRatio: 1 / 2.07);
+      expect(gate.matchesShape(upright), isFalse);
+      gate.expectedAspect = 1 / 2.07;
+      expect(gate.matchesShape(upright), isTrue);
+      // Still strict: a landscape card does not pass for the upright slip.
+      expect(gate.matchesShape(_box()), isFalse);
+    });
+
+    test('an upright slip a little inside its guide is framed, not too small',
+        () {
+      // On the full-screen camera an upright slip filling its guide covers
+      // about 0.28 of the frame; held at 85% of the guide it is about 0.21,
+      // which the old 0.22 floor held at "move closer" for good.
+      final gate = DocumentFramingGate(expectedAspect: 1 / 2.07);
+      final slip = _box(w: 0.42, h: 0.49, centerY: 0.46, aspectRatio: 1 / 2.07);
+      final out = gate.update(slip, at: t0);
+      expect(out.hint, DocumentHint.holdStill);
+      expect(out.framing, DocumentFraming.holding);
     });
   });
 
@@ -206,6 +229,30 @@ void main() {
       expect(gate.update(_box(), at: t0).framing, DocumentFraming.ready);
       expect(gate.hasFired, isTrue);
       expect(gate.update(null, at: t0).framing, DocumentFraming.ready);
+    });
+
+    test('release unlatches a ready verdict that was not acted on', () {
+      // The screen sees ready but may not shoot (camera still settling, wrong
+      // document, corners cut). Left latched, an EMPTY frame later read as
+      // ready and the first armed frame shot whatever was in view.
+      final gate = _gate(dwell: const Duration(milliseconds: 500));
+      gate.update(_box(), at: t0);
+      expect(gate.update(_box(), at: t0.add(const Duration(seconds: 1))).framing,
+          DocumentFraming.ready);
+      gate.release();
+      expect(gate.hasFired, isFalse);
+      expect(gate.update(null, at: t0.add(const Duration(milliseconds: 1100))).framing,
+          DocumentFraming.none);
+    });
+
+    test('release keeps a dwell that is still being held', () {
+      final gate = _gate(dwell: const Duration(milliseconds: 500));
+      gate.update(_box(), at: t0);
+      gate.update(_box(), at: t0.add(const Duration(seconds: 1)));
+      gate.release();
+      // Still framed: ready again straight away, no fresh dwell.
+      expect(gate.update(_box(), at: t0.add(const Duration(milliseconds: 1100))).framing,
+          DocumentFraming.ready);
     });
 
     test('reset clears the latch for the next side', () {

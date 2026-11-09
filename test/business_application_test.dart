@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/step_order.dart';
+import 'package:toden_flutter/toden_flutter.dart';
+import 'package:toden_flutter/src/providers/step_order.dart';
 
 // The KYB application section: which steps a business workflow adds, and how
 // the rows it collects are validated and shaped for the wire. These are the
@@ -124,10 +124,10 @@ void main() {
       final slots = resolveBusinessDocumentTypes(businessFromJson({
         'documents': {
           'enabled': true,
-          'types': [{'key': 'shareholder_register'}],
+          'types': [{'key': 'some_future_document'}],
         },
       }));
-      expect(slots.single.label, 'Shareholder Register');
+      expect(slots.single.label, 'Some Future Document');
       expect(slots.single.required, isFalse);
     });
 

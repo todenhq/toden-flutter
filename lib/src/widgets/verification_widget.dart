@@ -7,6 +7,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/verification_config.dart';
+import '../config/contact_recovery.dart' show contactBackShown;
+import '../config/id_selection_layout.dart' show countryOnIdStep;
 import '../config/session_cancelled.dart';
 import '../config/appearance_scheme.dart';
 import '../config/bright_screen.dart';
@@ -19,6 +21,7 @@ import '../providers/step_order.dart';
 import '../providers/theme_provider.dart';
 import '../utils/portrait_lock.dart';
 import 'verification_flow_scope.dart';
+import 'flow_close.dart';
 import 'flow_step_meta.dart';
 import '../i18n/text_scope.dart';
 
@@ -35,6 +38,8 @@ import '../screens/document_capture_screen.dart';
 import '../screens/id_input_screen.dart';
 import '../screens/id_type_screen.dart';
 import '../screens/nfc_screen.dart';
+import '../providers/business_documents_provider.dart';
+import '../screens/address/address_book_step.dart';
 import '../screens/address/address_entrance_step.dart';
 import '../screens/address/address_pin_step.dart';
 import '../screens/address/address_review_step.dart';
@@ -54,6 +59,7 @@ import 'ui_button.dart';
 import '../config/verification_result.dart';
 import '../services/model_readiness.dart';
 import 'icons/icons.dart';
+import '../config/scope.dart';
 
 /// Maps the appearance's initial theme to a ThemeMode. Null appearance/theme
 /// and the explicit `system` value both follow the device setting.
@@ -392,6 +398,13 @@ class _VerificationFlowWidgetState extends ConsumerState<_VerificationFlowWidget
     final config = ref.read(verificationConfigProvider);
 
     final step = state.currentStep;
+    // Watched only on its own step: the back arrow walks its groups.
+    final docGroup = step == VerificationStep.businessDocuments
+        ? ref.watch(businessDocumentGroupIndexProvider)
+        : 0;
+    final supportingDoc = step == VerificationStep.supportingDocuments
+        ? ref.watch(supportingDocumentIndexProvider)
+        : 0;
     final meta = flowStepMeta(
       step,
       config: config,
@@ -471,7 +484,17 @@ class _VerificationFlowWidgetState extends ConsumerState<_VerificationFlowWidget
     final opening = openingStep(config, serverConfig: state.serverConfig);
     final VoidCallback? onBack = switch (step) {
       VerificationStep.submitted => null, // terminal
+      // The business documents step walks back through its groups first.
+      VerificationStep.businessDocuments when docGroup > 0 => () => ref
+          .read(businessDocumentGroupIndexProvider.notifier)
+          .state = docGroup - 1,
+      // So does the supporting documents step through its documents.
+      VerificationStep.supportingDocuments when supportingDoc > 0 => () => ref
+          .read(supportingDocumentIndexProvider.notifier)
+          .state = supportingDoc - 1,
       _ when step == opening && state.multiIdSlots.isEmpty => null,
+      // A contact step reached by recovering a refused submission has no Back.
+      _ when !contactBackShown(step, state.expiredContact) => null,
       _ => notifier.previousStep,
     };
 
@@ -486,19 +509,26 @@ class _VerificationFlowWidgetState extends ConsumerState<_VerificationFlowWidget
     // It replaces the normal step with a clear error screen, strips the
     // progress bar / back button, and reports the error to onError once.
     final serverConfig = state.serverConfig;
-    final configError =
-        serverConfig.status == ServerConfigStatus.error && serverConfig.fatal
+    // A business workflow with a biometric scope is refused outright: it
+    // should never arrive (publish refuses it), and it must never open a
+    // camera (config/scope.dart unsupportedScopeConfig).
+    final unsupportedScope = unsupportedScopeConfig(config.subjectType, config.scope);
+    final configError = unsupportedScope
+        ? kUnsupportedScopeMessage
+        : serverConfig.status == ServerConfigStatus.error && serverConfig.fatal
             ? (serverConfig.error ??
                 'Unable to start verification. Please try again.')
             : null;
     if (configError != null && !_configErrorReported) {
       _configErrorReported = true;
       final verificationError = VerificationError(
-        code: switch (serverConfig.statusCode) {
-          401 => 'invalid_api_key',
-          403 => 'feature_disabled',
-          _ => 'unknown',
-        },
+        code: unsupportedScope
+            ? 'invalid_workflow'
+            : switch (serverConfig.statusCode) {
+                401 => 'invalid_api_key',
+                403 => 'feature_disabled',
+                _ => 'unknown',
+              },
         message: configError,
       );
       WidgetsBinding.instance
@@ -538,19 +568,33 @@ class _VerificationFlowWidgetState extends ConsumerState<_VerificationFlowWidget
           )
         : _screenWithMultiId(step);
 
+    // The flow's own close, for a full-screen screen a step opens over the
+    // header (the photo camera): the header X's handler, or null exactly when
+    // the header shows no X (widgets/flow_close.dart).
+    final VoidCallback? flowClose = canDismiss
+        ? () {
+            widget.onClose?.call();
+            final nav = Navigator.of(context);
+            if (nav.canPop()) nav.pop();
+          }
+        : null;
+
     // Keyed so the SAME State moves between the two shells instead of being
     // rebuilt — see _stepKeys.
     final keyedScreen = blockingMessage != null
         ? screen
         : KeyedSubtree(
             key: _stepKeys.putIfAbsent(step, GlobalKey.new),
-            child: screen,
+            child: FlowClose(onClose: flowClose, child: screen),
           );
 
     // Show the country flag beside the title on the ID-selection steps (the
     // effective country — the picked one in a multi-region flow).
+    // On the combined layout the country row below names it; the header need
+    // not repeat it.
     final headerCountry = blockingMessage == null &&
-            (step == VerificationStep.idType || step == VerificationStep.idInput)
+            (step == VerificationStep.idType || step == VerificationStep.idInput) &&
+            !(step == VerificationStep.idType && countryOnIdTypeStep(config, state))
         ? effectiveCountry(config, state)
         : null;
 
@@ -830,7 +874,12 @@ class _VerificationFlowWidgetState extends ConsumerState<_VerificationFlowWidget
 
   Widget _screenForStep(VerificationStep step) => switch (step) {
         VerificationStep.consent => const ConsentScreen(),
-        VerificationStep.countrySelect => const CountrySelectScreen(),
+        // Reached on a combined layout only from older state (a resumed run):
+        // the ID-type step carries the country there.
+        VerificationStep.countrySelect => countryOnIdStep(
+                ref.read(verificationConfigProvider).idSelectionLayout)
+            ? const IdTypeScreen()
+            : const CountrySelectScreen(),
         VerificationStep.idType => const IdTypeScreen(),
         VerificationStep.documentCapture =>
           DocumentCaptureScreen(onError: widget.onError),
@@ -884,6 +933,7 @@ class _VerificationFlowWidgetState extends ConsumerState<_VerificationFlowWidget
         // The address flow: find it, confirm it, show it, commit it. Each is a
         // real step in the order (see step_order.dart), so the progress bar
         // and the header's back arrow need nothing special here.
+        VerificationStep.addressBook => const AddressBookStep(),
         VerificationStep.addressSearch => const AddressSearchStep(),
         VerificationStep.addressCollection => const AddressPinStep(),
         VerificationStep.addressEntrance => const AddressEntranceStep(),

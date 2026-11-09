@@ -1,13 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/id_types.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/verification_config.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/resubmit_kept_id.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/step_order.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/step_resubmit.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/config/id_types.dart';
+import 'package:toden_flutter/src/config/verification_config.dart';
+import 'package:toden_flutter/src/providers/verification_state.dart';
+import 'package:toden_flutter/src/providers/resubmit_kept_id.dart';
+import 'package:toden_flutter/src/providers/step_order.dart';
+import 'package:toden_flutter/src/providers/step_resubmit.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
 
 // A send-back redo that did not ask for the ID keeps the original one.
 //

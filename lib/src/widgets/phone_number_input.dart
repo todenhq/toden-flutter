@@ -40,6 +40,11 @@ class PhoneNumberInput extends StatefulWidget {
   /// rather than buried at its alphabetical position. Mirrors the web SDK.
   final String? geoCountry;
 
+  /// The dial-code countries on offer (ISO-2), the workflow's choice; null or
+  /// empty offers every country. With one, its code is shown fixed, with no
+  /// picker. Mirrors the web SDK's PhoneNumberInput `countries`.
+  final List<String>? countries;
+
   const PhoneNumberInput({
     super.key,
     required this.defaultCountry,
@@ -47,6 +52,7 @@ class PhoneNumberInput extends StatefulWidget {
     this.value,
     this.autofocus = true,
     this.geoCountry,
+    this.countries,
   });
 
   @override
@@ -59,11 +65,13 @@ class _PhoneNumberInputState extends State<PhoneNumberInput> {
   String? _lastEmitted;
   final _controller = TextEditingController();
 
+  /// The countries on offer, or null for every one.
+  List<String>? get _offered => phoneDialCountries(widget.countries);
+
   @override
   void initState() {
     super.initState();
-    final up = widget.defaultCountry.toUpperCase();
-    _iso = kDialCodes.containsKey(up) ? up : 'NG';
+    _iso = phoneStartCountry(widget.defaultCountry, _offered);
     if ((widget.value ?? '').isNotEmpty) _seedFrom(widget.value!);
   }
 
@@ -77,13 +85,24 @@ class _PhoneNumberInputState extends State<PhoneNumberInput> {
     if (incoming != (oldWidget.value ?? '') && incoming != _lastEmitted) {
       _seedFrom(incoming);
     }
+    // The list can arrive after the field (a workflow resolved late): keep
+    // the chosen code inside it.
+    final offered = _offered;
+    if (offered != null && !offered.contains(_iso)) {
+      setState(() => _iso = offered.first);
+      _onTyped(_controller.text);
+    }
   }
 
   /// Display a value handed down from above: split an E.164 into dial code +
   /// national digits (see [splitPhoneSeed]), or show bare digits as national.
   void _seedFrom(String raw) {
     final seed = splitPhoneSeed(raw, _iso);
-    if (seed.iso != null) _iso = seed.iso!;
+    // A supplied number's own country wins, while the workflow offers it.
+    final offered = _offered;
+    if (seed.iso != null && (offered == null || offered.contains(seed.iso))) {
+      _iso = seed.iso!;
+    }
     final formatted = seed.digits.isEmpty ? '' : _format(seed.digits);
     _controller.value = TextEditingValue(
       text: formatted,
@@ -106,8 +125,12 @@ class _PhoneNumberInputState extends State<PhoneNumberInput> {
   String _format(String raw) => formatNationalDigits(raw, _iso);
 
   Future<void> _pickCountry() async {
-    final picked =
-        await showDialCodePicker(context, _iso, pinned: widget.geoCountry);
+    final picked = await showDialCodePicker(
+      context,
+      _iso,
+      pinned: widget.geoCountry,
+      codes: _offered,
+    );
     if (picked != null && picked != _iso) {
       setState(() => _iso = picked);
       // Regroup the existing digits for the new country's plan.
@@ -141,6 +164,38 @@ class _PhoneNumberInputState extends State<PhoneNumberInput> {
     final colors = context.myazaColors;
     final text = context.myazaText;
 
+    // One country on offer: nothing to choose, so its code is shown fixed.
+    final offered = _offered;
+    if (offered != null && offered.length == 1) {
+      return Row(
+        children: [
+          Semantics(
+            label: '$_iso +$_dial',
+            excludeSemantics: true,
+            child: Container(
+              height: 52,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: colors.backgroundSecondary.withValues(alpha: 0.4),
+                border: Border.all(color: colors.border),
+                borderRadius: BorderRadius.circular(UiRadius.md),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  UiCountryFlag(country: _iso, size: 22),
+                  const SizedBox(width: 6),
+                  Text('+$_dial', style: text.label),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: UiSpacing.sm),
+          Expanded(child: _numberField()),
+        ],
+      );
+    }
+
     return Row(
       children: [
         InkWell(
@@ -166,20 +221,41 @@ class _PhoneNumberInputState extends State<PhoneNumberInput> {
           ),
         ),
         const SizedBox(width: UiSpacing.sm),
-        Expanded(
-          child: UiInput(
-            controller: _controller,
-            hint: '803 123 4567',
-            keyboardType: TextInputType.phone,
-            // Digits only, but spaces the formatter inserts must survive.
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9 ]')),
-            ],
-            autofocus: widget.autofocus,
-            onChanged: _onTyped,
-          ),
-        ),
+        Expanded(child: _numberField()),
       ],
     );
   }
+
+  Widget _numberField() => UiInput(
+        controller: _controller,
+        hint: '803 123 4567',
+        keyboardType: TextInputType.phone,
+        // Digits only, but spaces the formatter inserts must survive.
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'[0-9 ]')),
+        ],
+        autofocus: widget.autofocus,
+        onChanged: _onTyped,
+      );
+}
+
+/// The dial-code countries a workflow offers, upper case and known to the
+/// dial-code table; null when it offers every country (absent or empty).
+List<String>? phoneDialCountries(List<String>? countries) {
+  if (countries == null || countries.isEmpty) return null;
+  final known = [
+    for (final c in countries)
+      if (kDialCodes.containsKey(c.toUpperCase())) c.toUpperCase(),
+  ];
+  return known.isEmpty ? null : known;
+}
+
+/// Where the phone field starts: [preferred] when it is on offer, else
+/// Nigeria when that is, else the first country offered.
+String phoneStartCountry(String preferred, List<String>? offered) {
+  final up = preferred.toUpperCase();
+  bool onOffer(String c) => kDialCodes.containsKey(c) && (offered == null || offered.contains(c));
+  if (onOffer(up)) return up;
+  if (onOffer('NG')) return 'NG';
+  return offered?.first ?? 'NG';
 }

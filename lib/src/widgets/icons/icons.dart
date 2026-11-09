@@ -63,17 +63,19 @@ class UiIcons {
   static const UiIconData locateFixed = HugeIcons.strokeRoundedGps02;
   static const UiIconData lock = HugeIcons.strokeRoundedLock;
   static const UiIconData mail = HugeIcons.strokeRoundedMail01;
-  static const UiIconData mapPin = HugeIcons.strokeRoundedMapPin;
+  // One location icon everywhere: the pin with a house. All three names draw it.
+  static const UiIconData mapPin = HugeIcons.strokeRoundedMapPinHouse;
   static const UiIconData mapPinCheck =
       HugeIcons.strokeRoundedLocationCheck01;
   static const UiIconData mapPinHouse = HugeIcons.strokeRoundedMapPinHouse;
-  static const UiIconData mapPinned = HugeIcons.strokeRoundedLocation02;
+  static const UiIconData mapPinned = HugeIcons.strokeRoundedMapPinHouse;
   // Hugeicons' Maximize02 is a PINCH GESTURE glyph (a hand), not the corner
   // arrows Lucide's `maximize2` describes. `strokeRoundedExpand` is the same
   // drawing the web SDK and the dashboard use for this.
   static const UiIconData maximize2 = HugeIcons.strokeRoundedExpand;
   static const UiIconData messageSquare = HugeIcons.strokeRoundedMessage01;
   // The counterpart of `maximize2`: the web SDK's `Minimize2` is this drawing.
+  static const UiIconData mic = HugeIcons.strokeRoundedMic01;
   static const UiIconData minimize2 = HugeIcons.strokeRoundedCollapse;
   static const UiIconData minus = HugeIcons.strokeRoundedMinusSign;
   static const UiIconData moon = HugeIcons.strokeRoundedMoon;

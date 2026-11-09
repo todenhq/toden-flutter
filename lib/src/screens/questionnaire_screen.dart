@@ -146,7 +146,10 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
           const SizedBox(height: UiSpacing.xs),
           _buildField(f),
           ..._detailInput(f),
-          if (_errors[f.key] != null) ...[
+          // A money field shows its error on the amount itself (red edge and
+          // message under it); printed here it sat under the currency control
+          // and read as if the currency were missing.
+          if (_errors[f.key] != null && f.type != QuestionnaireFieldType.money) ...[
             const SizedBox(height: UiSpacing.xs),
             Text(_errors[f.key]!,
                 style: text.bodySmall.copyWith(color: UiColors.error)),
@@ -199,6 +202,7 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
             field: f,
             controller: _controllers[f.key]!,
             currency: _answers['${f.key}_currency'] as String?,
+            errorText: _errors[f.key],
             onAmount: (n) => _answers[f.key] = n,
             onCurrency: (c) =>
                 setState(() => _answers['${f.key}_currency'] = c),
@@ -260,6 +264,9 @@ class _MoneyField extends StatelessWidget {
   final QuestionnaireField field;
   final TextEditingController controller;
   final String? currency;
+
+  /// Shown on the amount, which is the part a person fills in.
+  final String? errorText;
   final void Function(num?) onAmount;
   final void Function(String) onCurrency;
 
@@ -267,6 +274,7 @@ class _MoneyField extends StatelessWidget {
     required this.field,
     required this.controller,
     required this.currency,
+    this.errorText,
     required this.onAmount,
     required this.onCurrency,
   });
@@ -282,8 +290,10 @@ class _MoneyField extends StatelessWidget {
     // Currency FIRST, then the amount — it reads as a unit prefix ("NGN 250,000"),
     // the way a currency is actually written, and it stops the amount field's
     // caret from being pushed around by a control appearing beside it.
+    // Top-aligned so the amount's error line grows downwards under the amount
+    // alone, leaving the currency control where it is.
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (field.currencies.length > 1)
           SizedBox(
@@ -330,6 +340,7 @@ class _MoneyField extends StatelessWidget {
             hint: field.placeholder ?? '0.00',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: const [AmountInputFormatter()],
+            errorText: errorText,
             onChanged: (v) {
               final n = parseGroupedAmount(v);
               onAmount(n == null ? null : double.parse(n.toStringAsFixed(2)));
@@ -494,6 +505,8 @@ class _DateField extends StatelessWidget {
           initialDate: initial,
           firstDate: DateTime(1900),
           lastDate: DateTime(now.year + 5),
+          // The sheet is headed by what is being picked.
+          title: field.label,
         );
         if (picked != null) {
           final iso = picked.toIso8601String().split('T').first;

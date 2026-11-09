@@ -1,0 +1,222 @@
+package co.toden.flutter
+
+import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
+import io.flutter.plugin.common.EventChannel
+import io.flutter.plugin.common.MethodCall
+import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.MethodChannel.MethodCallHandler
+import io.flutter.plugin.common.MethodChannel.Result
+import io.flutter.view.TextureRegistry
+
+/**
+ * Android side of the Myaza KYC SDK. Four responsibilities, each in its own
+ * class; this file only owns the channels and routes calls to them.
+ *
+ *  1. **Per-frame face detection** (`kyc_sdk_flutter/face_detection`) →
+ *     [FaceDetectorHandler]. Dart sends an NV21 frame, we return ML Kit face
+ *     signals. Used by code paths that drive their own camera (the Flutter
+ *     camera-plugin liveness path, kept as a fallback).
+ *
+ *  2. **Text recognition** (`kyc_sdk_flutter/text_recognition`) →
+ *     [TextRecognizerHandler]. One frame or one still in, recognized lines out.
+ *
+ *  3. **Native liveness recorder** (`kyc_sdk_flutter/liveness_recorder` +
+ *     `…/faces`) → [LivenessRecorder]. Owns the camera via CameraX, running ONE
+ *     ImageAnalysis stream fanned to both ML Kit and a MediaCodec encoder.
+ *
+ *  4. **Native document camera** (`kyc_sdk_flutter/document_camera` + `…/text`)
+ *     → [DocumentCameraHandler]. The same single-session approach for the
+ *     document step, replacing the Flutter camera plugin there on Android.
+ *
+ *  5. **Screen brightness** (`kyc_sdk_flutter/capture_tuning`) →
+ *     [ScreenBrightness]. The activity window's brightness for the flash
+ *     sequence and the bright-screen liveness; needs the Activity, hence
+ *     [ActivityAware].
+ *
+ * Keeping ML Kit Android-only (Gradle) means no GoogleMLKit CocoaPod on iOS, so
+ * the SDK still builds for Apple-Silicon iOS simulators (iOS uses Apple Vision).
+ */
+class KycSdkFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
+  private lateinit var channel: MethodChannel
+  private lateinit var recorderChannel: MethodChannel
+  private lateinit var textChannel: MethodChannel
+
+  /// JPEG 2000 chip portraits (DG2). Its own channel because the Dart side
+  /// (dg2_image.dart) targets the same channel name iOS already registers.
+  private lateinit var imageChannel: MethodChannel
+  private lateinit var presenceChannel: MethodChannel
+  private lateinit var faceEventChannel: EventChannel
+  private lateinit var tuningChannel: MethodChannel
+  private val screenBrightness = ScreenBrightness()
+  /// The "Allow all the time" location request; needs the Activity.
+  private val alwaysPermission = PresenceAlwaysPermission()
+
+  private val faceDetector = FaceDetectorHandler()
+  private val textRecognizer = TextRecognizerHandler()
+  private val imageDecoder = ImageDecoderHandler()
+  private var presence: PresenceHandler? = null
+  private var documentCamera: DocumentCameraHandler? = null
+  /// Device Intelligence: stable id, integrity heuristics, Play Integrity.
+  private var deviceIntel: DeviceIntelHandler? = null
+
+  private lateinit var appContext: Context
+  private lateinit var textures: TextureRegistry
+  private val mainHandler = Handler(Looper.getMainLooper())
+
+  private var faceSink: EventChannel.EventSink? = null
+  private var recorder: LivenessRecorder? = null
+
+  override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+    appContext = binding.applicationContext
+    textures = binding.textureRegistry
+
+    channel = MethodChannel(binding.binaryMessenger, "kyc_sdk_flutter/face_detection")
+    channel.setMethodCallHandler(this)
+
+    recorderChannel = MethodChannel(binding.binaryMessenger, "kyc_sdk_flutter/liveness_recorder")
+    recorderChannel.setMethodCallHandler(this)
+
+    textChannel = MethodChannel(binding.binaryMessenger, "kyc_sdk_flutter/text_recognition")
+    textChannel.setMethodCallHandler(this)
+
+    imageChannel = MethodChannel(binding.binaryMessenger, "kyc_sdk_flutter/image_decode")
+    imageChannel.setMethodCallHandler(this)
+
+    presence = PresenceHandler(appContext)
+    presenceChannel = MethodChannel(binding.binaryMessenger, "kyc_sdk_flutter/presence")
+    presenceChannel.setMethodCallHandler(this)
+
+    tuningChannel = MethodChannel(binding.binaryMessenger, "kyc_sdk_flutter/capture_tuning")
+    tuningChannel.setMethodCallHandler { call, result ->
+      if (!screenBrightness.handle(call, result)) result.notImplemented()
+    }
+
+    faceEventChannel = EventChannel(binding.binaryMessenger, "kyc_sdk_flutter/liveness_recorder/faces")
+    faceEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
+      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+        faceSink = events
+      }
+      override fun onCancel(arguments: Any?) {
+        faceSink = null
+      }
+    })
+
+    documentCamera = DocumentCameraHandler(appContext, textures, binding.binaryMessenger)
+    deviceIntel = DeviceIntelHandler(appContext, binding.binaryMessenger)
+  }
+
+  override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+    channel.setMethodCallHandler(null)
+    recorderChannel.setMethodCallHandler(null)
+    textChannel.setMethodCallHandler(null)
+    imageChannel.setMethodCallHandler(null)
+    presenceChannel.setMethodCallHandler(null)
+    tuningChannel.setMethodCallHandler(null)
+    presence = null
+    imageDecoder.dispose()
+    textRecognizer.close()
+    faceEventChannel.setStreamHandler(null)
+    documentCamera?.detach()
+    documentCamera = null
+    deviceIntel?.detach()
+    deviceIntel = null
+    recorder?.dispose()
+    recorder = null
+    faceDetector.close()
+  }
+
+  // ── Activity (the window whose brightness is ours) ─────────────────────────
+
+  override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+    screenBrightness.attach(binding.activity)
+    alwaysPermission.attach(binding)
+  }
+
+  override fun onDetachedFromActivityForConfigChanges() {
+    screenBrightness.detach()
+    alwaysPermission.detach()
+  }
+
+  override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+    screenBrightness.attach(binding.activity)
+    alwaysPermission.attach(binding)
+  }
+
+  override fun onDetachedFromActivity() {
+    screenBrightness.detach()
+    alwaysPermission.detach()
+  }
+
+  override fun onMethodCall(call: MethodCall, result: Result) {
+    // Claims "decode" and nothing else; anything it declines falls through.
+    if (imageDecoder.handle(call, result)) return
+    // Claims the three presence methods; anything else falls through.
+    if (presence?.handle(call, result) == true) return
+    when (call.method) {
+      "requestAlwaysLocation" -> alwaysPermission.request(result)
+      "detect" -> faceDetector.detect(call, result)
+      "recognize" -> textRecognizer.recognize(call, result)
+      "recognizeBytes" -> textRecognizer.recognizeBytes(call, result)
+      "recognizeTurned" -> textRecognizer.recognizeTurned(call, result)
+      // Whether each ML Kit model can run, and a request to fetch it (see
+      // MlKitModelReadiness). The names carry the model because the face and
+      // text channels share this one handler.
+      "faceModelStatus" -> MlKitModels.face.status(appContext, install = false) { result.success(it) }
+      "prepareFaceModel" -> MlKitModels.face.status(appContext, install = true) { result.success(it) }
+      "textModelStatus" -> MlKitModels.text.status(appContext, install = false) { result.success(it) }
+      "prepareTextModel" -> MlKitModels.text.status(appContext, install = true) { result.success(it) }
+      "startRecorder" -> handleStartRecorder(result)
+      "startRecording" -> {
+        recorder?.startRecording(call.argument<Boolean>("audio") ?: false)
+        result.success(null)
+      }
+      "stopRecording" -> {
+        val path = recorder?.stopRecording()
+        result.success(path)
+      }
+      "captureStill" -> {
+        val q = call.argument<Int>("quality") ?: 90
+        result.success(recorder?.captureStillJpeg(q))
+      }
+      "disposeRecorder" -> {
+        recorder?.dispose()
+        recorder = null
+        result.success(null)
+      }
+      else -> result.notImplemented()
+    }
+  }
+
+  // ── Native liveness recorder ────────────────────────────────────────────────
+
+  private fun handleStartRecorder(result: Result) {
+    recorder?.dispose()
+    recorder = null
+
+    val rec = LivenessRecorder(appContext, textures) { payload ->
+      // Stream face signals to Dart on the main thread.
+      mainHandler.post { faceSink?.success(payload) }
+    }
+    recorder = rec
+    rec.start(
+      onReady = { textureId ->
+        mainHandler.post {
+          result.success(
+            mapOf(
+              "textureId" to textureId,
+              "rotation" to rec.rotationDegrees,
+              "previewWidth" to rec.previewBufferWidth,
+              "previewHeight" to rec.previewBufferHeight,
+            ),
+          )
+        }
+      },
+      onError = { msg -> mainHandler.post { result.error("recorder_start_failed", msg, null) } },
+    )
+  }
+}

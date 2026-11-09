@@ -17,11 +17,16 @@ import '../i18n/translate.dart' show TextFn, defaultTextFn;
 /// One requested supporting document, as the workflow configures it.
 /// How the applicant provides a document. An unknown mode from a newer
 /// workflow degrades to the upload slot this build can draw.
-enum SupportingDocumentCapture { upload, draw, drawOrUpload }
+/// How the applicant provides a document. `camera` opens the camera straight
+/// away rather than offering a source: a photo taken there and then. `file`
+/// is the opposite, what is already on the device: no camera in the sheet.
+enum SupportingDocumentCapture { upload, draw, drawOrUpload, camera, file }
 
 SupportingDocumentCapture supportingDocumentCaptureFrom(Object? raw) => switch (raw) {
       'draw' => SupportingDocumentCapture.draw,
       'draw_or_upload' => SupportingDocumentCapture.drawOrUpload,
+      'camera' => SupportingDocumentCapture.camera,
+      'file' => SupportingDocumentCapture.file,
       _ => SupportingDocumentCapture.upload,
     };
 

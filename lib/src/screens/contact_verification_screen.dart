@@ -57,6 +57,9 @@ class _ContactVerificationScreenState
         geoCountry: ref.read(kYCNotifierProvider).serverConfig.geoCountry,
       );
 
+  /// What the server actually sent, which its pinned workflow decides.
+  int? _sentCodeLength;
+
   /// Any request in flight — drives the button loader and input disabling.
   bool get _busy => _sending || _checking;
   bool get _canSend =>
@@ -105,9 +108,11 @@ class _ContactVerificationScreenState
         via: _via ?? settings.defaultChannel,
         codeLength: settings.codeLength,
         maxAttempts: settings.maxAttempts,
+        sessionId: ref.read(kYCNotifierProvider).sessionId,
       );
       if (!mounted) return;
       setState(() {
+        _sentCodeLength = sentCodeLength(res.codeLength, settings.codeLength);
         _challengeId = res.challengeId;
         _expiresAt = DateTime.tryParse(res.expiresAt ?? '');
         _code = '';
@@ -196,6 +201,7 @@ class _ContactVerificationScreenState
             emailController: _emailCtrl,
             defaultCountry: settings.defaultCountry,
             geoCountry: settings.geoCountry,
+            dialCountries: settings.dialCountries,
             enabled: !_busy,
             onEmailChanged: (v) => setState(() => _destination = v.trim()),
             onPhoneChanged: (e164, valid) => setState(() {
@@ -208,7 +214,7 @@ class _ContactVerificationScreenState
           )
         else
           ContactCodePanel(
-            codeLength: settings.codeLength,
+            codeLength: _sentCodeLength ?? settings.codeLength,
             style: settings.inputStyle,
             enabled: !_busy,
             challengeId: _challengeId!,

@@ -61,9 +61,10 @@ class NativeLivenessRecorder {
     return id;
   }
 
-  /// Begins recording the gesture clip.
-  Future<void> startRecording() async {
-    await _method.invokeMethod<void>('startRecording');
+  /// Begins recording the gesture clip. [audio] adds sound when the microphone
+  /// can be used; failing that, the clip is silent.
+  Future<void> startRecording({bool audio = false}) async {
+    await _method.invokeMethod<void>('startRecording', {'audio': audio});
     // The flash reports its colours' times from here (flash_timeline.dart).
     markRecordingStart(flashClockNow());
   }

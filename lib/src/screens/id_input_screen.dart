@@ -65,6 +65,7 @@ class _IdInputScreenState extends ConsumerState<IdInputScreen> {
 
   TextInputType _keyboardType(String key) => switch (key) {
         'bvn' || 'bvn-premium' || 'tax-id' || 'nin' => TextInputType.number,
+        'phone-number' || 'nin-phone' => TextInputType.phone,
         _ => TextInputType.visiblePassword,
       };
 

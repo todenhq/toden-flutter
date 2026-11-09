@@ -10,7 +10,7 @@ import 'package:flutter/painting.dart';
 const String kBodyFontFamily = 'Geist';
 
 /// This package's name, which is how Flutter addresses a font a package ships.
-const String kBodyFontPackage = 'myaza_kyc_sdk_flutter';
+const String kBodyFontPackage = 'toden_flutter';
 
 /// The weights bundled for [kBodyFontFamily]. A text style asking for another
 /// weight gets the nearest of these, so add a file to pubspec before using one.

@@ -18,6 +18,7 @@ import '../liveness/liveness_layout.dart';
 import '../config/biometric_options.dart';
 import '../config/capture_config.dart';
 import '../config/verification_config.dart';
+import '../config/liveness_audio.dart';
 import '../config/liveness_avatar_url.dart';
 import '../services/model_readiness.dart';
 import '../config/selfie_upload_wait.dart';
@@ -38,7 +39,10 @@ import '../config/bright_screen.dart';
 import '../providers/theme_provider.dart' show livenessCameraOnProvider;
 import '../liveness/flash_detector.dart';
 import '../liveness/liveness_types.dart';
+import '../liveness/selfie_pick.dart' show SelfieFace, kSelfieAspect;
+import '../liveness/selfie_shutter.dart';
 import '../liveness/sharpest_still.dart';
+import 'liveness_selfie_run.dart';
 import '../utils/selfie_sharpness.dart';
 import '../liveness/native_liveness_recorder.dart';
 import '../providers/camera_provider.dart';
@@ -64,6 +68,10 @@ import '../i18n/text_scope.dart';
 import '../widgets/ui_spinner.dart';
 
 // ─── Liveness screen ──────────────────────────────────────────────────────────
+
+/// The review's width against the live circle's: the web SDK's w-44 against
+/// its w-56, so the taller 3:4 selfie takes about the circle's height.
+const double kSelfieReviewWidthShare = 0.79;
 
 class LivenessScreen extends ConsumerStatefulWidget {
   /// Fires for technical errors raised on this screen (camera permission
@@ -221,6 +229,15 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
   /// The face in the most recent frame that had one: what the photo's
   /// straight-face wait reads.
   LivenessFaceData? _lastFace;
+
+  /// The selfie, chosen from the live run (liveness_selfie_run.dart): iOS
+  /// offers its analysed stream frames, Android its native recorder's.
+  final LivenessSelfieRun _selfieRun = LivenessSelfieRun(ios: Platform.isIOS);
+
+  /// Whether this camera path offers frames to [_selfieRun]. The Android
+  /// camera-plugin fallback (the native recorder failed) has YUV frames and
+  /// takes the photo as before.
+  bool get _selfieRunActive => Platform.isIOS || _nativeRecorder != null;
   bool _completionHandled = false;
   int _sensorOrientation = 0;
   bool _isDim = false;
@@ -320,6 +337,11 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
   // document/selfie capture keep using the Flutter camera plugin.
   bool get _useNativeRecorder => Platform.isAndroid;
   NativeLivenessRecorder? _nativeRecorder;
+
+  // Sound on the clip. Answered once, before the camera opens, because the
+  // recording cannot gain a track afterwards. A refusal costs the sound alone.
+  bool _microphoneAsked = false;
+  bool _recordAudio = false;
   int? _nativeTextureId;
   int _nativePreviewW = 0;
   int _nativePreviewH = 0;
@@ -494,6 +516,9 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
       if (_permissionDenied) setState(() => _permissionDenied = false);
     }
 
+    await _askForMicrophone();
+    if (!mounted) return;
+
     // Android: native CameraX recorder (single stream → ML Kit + encoder).
     if (_useNativeRecorder) {
       await _initNativeRecorder();
@@ -529,6 +554,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     await ref.read(cameraNotifierProvider.notifier).initialize(
           direction: CameraLensDirection.front,
           resolution: CaptureConfig.livenessResolution,
+          enableAudio: _recordAudio,
         );
     if (!mounted) return;
 
@@ -557,6 +583,14 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     ref.read(livenessNotifierProvider.notifier).startDetection();
   }
 
+  /// Asks for the microphone when the workflow records sound.
+  Future<void> _askForMicrophone() async {
+    if (_microphoneAsked) return;
+    _microphoneAsked = true;
+    if (!recordsLivenessAudio(ref.read(verificationConfigProvider))) return;
+    _recordAudio = await requestDocumentMicrophone();
+  }
+
   /// Android: start the native CameraX recorder. It owns the camera, streams
   /// face signals to us, renders the preview into a Flutter texture, and records
   /// a gesture-showing clip. Gesture detection runs natively (ML Kit) on the
@@ -571,7 +605,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
         return;
       }
       // Record the whole session so the clip captures the gestures.
-      await recorder.startRecording();
+      await recorder.startRecording(audio: _recordAudio);
       if (kDebugMode) {
         debugPrint(
           'KYC native preview: rotation=${recorder.rotationDegrees} '
@@ -610,6 +644,19 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
       if (data.brightness >= 0) _checkBrightnessLuma(data.brightness);
       _latestNativeRgb = data.faceRgb; // flash reflection source on Android
       notifier.processFrame(data);
+      final recorder = _nativeRecorder;
+      if (recorder != null) {
+        // The flow is portrait: the upright frame is the narrow side wide.
+        final w = math.min(recorder.previewWidth, recorder.previewHeight);
+        final h = math.max(recorder.previewWidth, recorder.previewHeight);
+        _offerSelfie(data, (capturing) => _selfieRun.offerNative(
+              data,
+              width: w,
+              height: h,
+              capturing: capturing,
+              grab: () => recorder.captureStill(quality: kNativeSelfieQuality),
+            ));
+      }
     } else {
       notifier.reportNoFace();
     }
@@ -648,6 +695,10 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
           _lastFaceFrameStride = plane.bytesPerRow;
         }
         notifier.processFrame(faceData);
+        if (Platform.isIOS) {
+          _offerSelfie(faceData, (capturing) =>
+              _selfieRun.offerBgra(faceData, image, capturing: capturing));
+        }
       } else {
         notifier.reportNoFace();
       }
@@ -752,6 +803,96 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
       await Future<void>.delayed(const Duration(milliseconds: 60));
     }
     return false;
+  }
+
+  /// Offers an analysed face to the selfie run during the gestures and the
+  /// final capture. Not while the flash paints (a tinted frame is no selfie)
+  /// nor with a second face in frame; a broken run clears what was held.
+  void _offerSelfie(LivenessFaceData face, void Function(bool capturing) offer) {
+    final notifier = ref.read(livenessNotifierProvider.notifier);
+    _selfieRun.sync(notifier.runGeneration);
+    final live = ref.read(livenessNotifierProvider);
+    final capturing = live.phase == LivenessPhase.capturing;
+    if (!capturing && live.phase != LivenessPhase.challenge) return;
+    if (_flashSequenceRunning.value || live.multipleFaces || face.faceCount > 1) return;
+    offer(capturing);
+  }
+
+  /// The final capture (liveness/selfie_shutter.dart): waits for a frame that
+  /// could be the selfie, saying what to fix, then answers whether to take the
+  /// run's best frame or, when none ever qualified, the photo as before. Null
+  /// when the run broke instead (the face left for a second, or the
+  /// continuity guard fired), already reported.
+  Future<SelfieShutterCall?> _awaitSelfie() async {
+    if (!_selfieRunActive) return SelfieShutterCall.fallback;
+    final notifier = ref.read(livenessNotifierProvider.notifier);
+    final shutter = SelfieShutter(DateTime.now());
+    DateTime? fedAt;
+    while (mounted) {
+      final now = DateTime.now();
+      _selfieRun.sync(notifier.runGeneration);
+      if (notifier.integrityBroken) {
+        _capturingHandled = false;
+        _flashResult = null;
+        notifier.reportIntegrityFailure();
+        return null;
+      }
+      if (ref.read(livenessNotifierProvider).phase != LivenessPhase.capturing) {
+        _capturingHandled = false;
+        return null;
+      }
+      if (shutter.faceLost(now, _lastFaceSeenAt)) {
+        _capturingHandled = false;
+        _flashResult = null;
+        notifier.failFaceLost();
+        return null;
+      }
+      final at = _selfieRun.lastVerdictAt;
+      if (at != null && at != fedAt && at.isAfter(shutter.start)) {
+        fedAt = at;
+        shutter.feed(_selfieRun.lastVerdict, at);
+      }
+      final call = shutter.decide(now, hasBest: _selfieRun.candidates.best != null);
+      if (call != SelfieShutterCall.wait) return call;
+      if (shutter.shouldGuide(now)) {
+        notifier.showSelfieGuidance(selfieGuidanceFor(_selfieRun.lastVerdict));
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 40));
+    }
+    return null;
+  }
+
+  /// Takes the run's best frame as the selfie, cut to the standard frame, and
+  /// stops the recording behind it. False when it could not be encoded, or
+  /// when it measures soft: the photo is then taken now, sharpest of a few
+  /// with quiet retakes (_sharpestStill), like any other soft first shot.
+  Future<bool> _takeChosenSelfie() async {
+    final chosen = await _selfieRun.encodeBest();
+    if (!mounted || chosen == null) return false;
+    double? score;
+    try {
+      score = await compute(measureSelfieSharpnessBytes, chosen);
+    } catch (_) {
+      score = null;
+    }
+    if (!mounted || isSelfieBlurry(score)) return false;
+    _softSelfie = false;
+    ref.read(livenessNotifierProvider.notifier).captureSelfieEncoded(chosen);
+    final nativeRecorder = _nativeRecorder;
+    if (_useNativeRecorder && nativeRecorder != null) {
+      _pendingRecordingStop = _stopNativeRecordingInBackground(nativeRecorder);
+    } else if (_recordsDuringGestures) {
+      _pendingRecordingStop =
+          _stopRecordingInBackground(ref.read(cameraNotifierProvider.notifier));
+    }
+    return true;
+  }
+
+  /// Where the face is in a still taken without a candidate: the last
+  /// analysed face moved into the still's pixels (selfie_pick.dart).
+  SelfieFace? _lastFaceInStill({required bool ios}) {
+    final face = _lastFace;
+    return face == null ? null : SelfieFace.inStill(face, ios: ios);
   }
 
   /// Waits until the face has looked straight at the camera for a moment
@@ -973,10 +1114,20 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
       return;
     }
 
-    // Wait for the face to come back to the camera and stay there. A turn or
-    // a nod leaves the head still moving, and the photo used to be taken a
-    // fixed 300 ms later, often mid-turn. The frame stream keeps running, so
-    // the frame that is photographed is one of the straight ones.
+    // The selfie is CHOSEN from the live run (liveness/selfie_pick.dart):
+    // frames were scored through the gestures, and the capture waits for one
+    // facing the camera, eyes open and close enough, or after a fair chance
+    // takes the run's best. Only a frame whose face had held still counts
+    // (selfie_pick.dart, SelfieSteadiness). The face leaving for a second
+    // breaks the run.
+    final call = await _awaitSelfie();
+    if (!mounted || call == null) return;
+    if (call == SelfieShutterCall.useBest && await _takeChosenSelfie()) return;
+    if (!mounted) return;
+
+    // No frame of the run qualified (or it would not encode, or measured
+    // soft): the photo is taken as it was, still cut to the standard frame
+    // around the last face.
     await _awaitStraightFace();
     if (!mounted) return;
 
@@ -1006,7 +1157,9 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
         final selfie = await nativeRecorder.captureStill(
           quality: CaptureConfig.selfieImageQuality,
         );
-        return selfie == null ? null : processSelfieStreamStill(selfie);
+        return selfie == null
+            ? null
+            : processSelfieStreamStill(selfie, cut: _lastFaceInStill(ios: false));
       });
       if (!mounted) return;
 
@@ -1027,7 +1180,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
       _recordingFailure = null;
       await nativeRecorder.stopRecording();
       if (!mounted) return;
-      await nativeRecorder.startRecording();
+      await nativeRecorder.startRecording(audio: _recordAudio);
       ref.read(livenessNotifierProvider.notifier).reset();
       return;
     }
@@ -1055,6 +1208,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
           // mirrored (matching the mirrored preview), so flipping again would
           // UN-mirror the selfie. Keep it as-is to preserve the selfie mirror.
           mirror: false,
+          cut: _lastFaceInStill(ios: true),
         );
       });
       if (!mounted) return;
@@ -1120,7 +1274,15 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
       return;
     }
 
-    await ref.read(livenessNotifierProvider.notifier).captureSelfie(bytes);
+    // A full-resolution picture shares no pixels with the analysed frames, so
+    // the face is taken where the capture put it: centred in the circle.
+    final face = _lastFace;
+    await ref.read(livenessNotifierProvider.notifier).captureSelfie(
+          bytes,
+          cut: face == null
+              ? null
+              : SelfieFace(centreX: 0.5, centreY: 0.5, width: face.faceSizeRatio),
+        );
   }
 
   /// Stops the gesture recording after the selfie is already shown, so the
@@ -1185,6 +1347,8 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
                   .read(livenessNotifierProvider.notifier)
                   .fellBackToGestures,
             ),
+            promptTimes:
+                ref.read(livenessNotifierProvider.notifier).promptTimes,
             flash: _flashResult,
           ),
         );
@@ -1442,7 +1606,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     // Android native recorder: restart its recording for a fresh gesture clip.
     final nativeRecorder = _nativeRecorder;
     if (_useNativeRecorder && nativeRecorder != null) {
-      nativeRecorder.startRecording();
+      nativeRecorder.startRecording(audio: _recordAudio);
       return;
     }
 
@@ -2462,17 +2626,19 @@ class _SelfieReviewView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ── Selfie circle (with in-frame uploading overlay) ───────────────────
+        // ── The selfie, passport-shaped as it is cut (with in-frame uploading
+        // overlay): 3:4, head and shoulders (liveness/selfie_pick.dart).
         Center(
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
-            width: circleSize,
-            height: circleSize,
+            width: circleSize * kSelfieReviewWidthShare,
+            height: circleSize * kSelfieReviewWidthShare / kSelfieAspect,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(UiRadius.md),
               border: Border.all(color: context.myazaColors.primary200, width: 3),
             ),
-            child: ClipOval(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(UiRadius.md - 3),
               child: Stack(
                 fit: StackFit.expand,
                 children: [

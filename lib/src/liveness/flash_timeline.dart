@@ -20,6 +20,9 @@ int? _recordingStartedAt;
 /// The liveness recorder went live (or stopped: pass null). Epoch milliseconds.
 void markRecordingStart(int? at) => _recordingStartedAt = at;
 
+/// When the recorder went live, or null: what prompt times are measured from too.
+int? recordingStart() => _recordingStartedAt;
+
 /// The current time on the clock the recording start was marked with.
 int flashClockNow() => DateTime.now().millisecondsSinceEpoch;
 

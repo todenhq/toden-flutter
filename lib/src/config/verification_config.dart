@@ -12,8 +12,10 @@ import 'multi_id.dart';
 import 'biometric_options.dart';
 import '../i18n/translate.dart' show WorkflowTexts;
 import 'screen_content.dart';
+import 'id_selection_layout.dart';
 
 export 'screen_content.dart';
+export 'id_selection_layout.dart' show IdSelectionLayout;
 
 // ─── Environment ────────────────────────────────────────────────────────────
 
@@ -227,7 +229,8 @@ class LivenessConfig {
 /// Configuration for the spoken liveness instructions ("nod your head",
 /// "blink", …). This is text-to-speech **output** played to the user for
 /// accessibility — it never records audio, so no microphone permission is
-/// involved.
+/// involved. ([VerificationConfig.documentAudio] and
+/// [VerificationConfig.livenessAudio] are what use the microphone.)
 ///
 /// Structured as an object (rather than a bare boolean) so a [language] can be
 /// added without a breaking change — Myaza operates across NG/GH/KE/ZA/CI, and
@@ -421,6 +424,12 @@ class VerificationConfig {
   /// null means "offer everything the org is granted". Intersected with the
   /// server's granted list.
   final List<String>? idTypes;
+
+  /// On a multi-country flow, where the ID's country is picked: a country row
+  /// on the ID-type step ([IdSelectionLayout.combined], the default when
+  /// null) or a country step of its own ([IdSelectionLayout.separate]). See
+  /// config/id_selection_layout.dart. Normally set by a resolved workflow.
+  final IdSelectionLayout? idSelectionLayout;
   final bool enableSelfie;
   final bool enableDocumentCapture;
 
@@ -438,7 +447,27 @@ class VerificationConfig {
   /// (config/document_capture_methods.dart), never raw.
   final bool allowDocumentScan;
 
+  /// Show the captured document, with Retake and Continue, before moving on.
+  /// Default `false`: a camera scan moves straight on. The screen
+  /// still appears for a photo that was uploaded, a failed upload, or a photo
+  /// the capture check could not read. Normally set by a workflow
+  /// (`documentReview`).
+  final bool documentReview;
+
+  /// Record sound in the side clips while the document is scanned. Default
+  /// `false`, normally set by a workflow (`documentAudio`). Needs `NSMicrophoneUsageDescription` on iOS and
+  /// `RECORD_AUDIO` on Android, declared by the host app. Best-effort: without
+  /// them, or if the microphone is refused, the clip is silent and nothing
+  /// fails.
+  final bool documentAudio;
+
   final bool enableLiveness;
+
+  /// Record sound in the liveness video. Default `false`, normally set by a
+  /// workflow (`livenessAudio`), on the same terms as [documentAudio]: a silent
+  /// clip when the microphone is not
+  /// declared or is refused.
+  final bool livenessAudio;
 
   /// Presence Intelligence liveness method: `'gestures'` (default, randomized
   /// head-gesture challenges, always including a head turn), `'flash'`
@@ -641,10 +670,14 @@ class VerificationConfig {
     this.countries,
     this.multiId,
     this.idTypes,
+    this.idSelectionLayout,
     this.enableSelfie = true,
     this.enableDocumentCapture = true,
     this.allowDocumentUpload = true,
     this.allowDocumentScan = true,
+    this.documentReview = false,
+    this.documentAudio = false,
+    this.livenessAudio = false,
     this.enableLiveness = true,
     this.livenessMode = 'gestures',
     this.flashSequenceLength = 4,
@@ -697,10 +730,14 @@ class VerificationConfig {
     /// has to be dropped — and `idTypes: null` cannot say that in a copyWith,
     /// where null means "keep".
     bool clearIdTypes = false,
+    IdSelectionLayout? idSelectionLayout,
     bool? enableSelfie,
     bool? enableDocumentCapture,
     bool? allowDocumentUpload,
     bool? allowDocumentScan,
+    bool? documentReview,
+    bool? documentAudio,
+    bool? livenessAudio,
     bool? enableLiveness,
     String? livenessMode,
     int? flashSequenceLength,
@@ -741,11 +778,15 @@ class VerificationConfig {
         countries: countries ?? this.countries,
         multiId: multiId ?? this.multiId,
         idTypes: clearIdTypes ? null : (idTypes ?? this.idTypes),
+        idSelectionLayout: idSelectionLayout ?? this.idSelectionLayout,
         enableSelfie: enableSelfie ?? this.enableSelfie,
         enableDocumentCapture:
             enableDocumentCapture ?? this.enableDocumentCapture,
         allowDocumentUpload: allowDocumentUpload ?? this.allowDocumentUpload,
         allowDocumentScan: allowDocumentScan ?? this.allowDocumentScan,
+        documentReview: documentReview ?? this.documentReview,
+        documentAudio: documentAudio ?? this.documentAudio,
+        livenessAudio: livenessAudio ?? this.livenessAudio,
         enableLiveness: enableLiveness ?? this.enableLiveness,
         livenessMode: livenessMode ?? this.livenessMode,
         flashSequenceLength: flashSequenceLength ?? this.flashSequenceLength,
@@ -830,8 +871,9 @@ class VerificationError {
   ///                                  cancelled screen
   ///   • 'unknown'                  — anything else
   ///
-  /// Voice guidance is text-to-speech *output* — it never records audio, so
-  /// there is no microphone-permission code.
+  /// Voice guidance is text-to-speech *output* — it never records audio, and a
+  /// refused microphone for document audio only silences the clip, so there is
+  /// no microphone-permission code.
   final String code;
   final String message;
   /// For 'insufficient_credits': { required, balance, currency }.

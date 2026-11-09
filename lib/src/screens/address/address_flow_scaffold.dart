@@ -6,6 +6,7 @@ import '../../providers/verification_provider.dart';
 import '../../providers/verification_state.dart';
 import 'address_flow_controller.dart';
 import 'address_intro_gate.dart';
+import 'saved_address_sheet.dart';
 import '../../i18n/text_scope.dart';
 
 // ─── What every address step shares ──────────────────────────────────────────
@@ -88,7 +89,7 @@ mixin AddressFlowScaffold<T extends ConsumerStatefulWidget> on ConsumerState<T> 
     // Watched here, once, so the whole screen rebuilds when the collected
     // address changes. Everything below reads through the controller.
     ref.watch(kYCNotifierProvider);
-    return ListenableBuilder(
+    final screen = ListenableBuilder(
       listenable: flow,
       builder: (context, _) {
         final gated = flow.showIntroGate(step);
@@ -115,6 +116,10 @@ mixin AddressFlowScaffold<T extends ConsumerStatefulWidget> on ConsumerState<T> 
         return buildBody(context);
       },
     );
+    // The offer of a saved address sits over whichever step opens the flow,
+    // outside the primer's gate so it comes first.
+    final offersSaved = step == VerificationStep.addressSearch || step == VerificationStep.addressCollection;
+    return offersSaved ? SavedAddressOffer(onUsed: flow.exitForward, child: screen) : screen;
   }
 
   bool _wasGated = false;

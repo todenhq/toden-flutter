@@ -1,123 +1,65 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../config/country_names.g.dart' show kCountryNames;
-import '../config/id_types.dart' show countryLabel;
 import '../config/inferred_country.dart';
-import '../config/scope.dart';
-import '../config/theme.dart';
+import '../config/poa_country_gate.dart';
+import '../i18n/text_scope.dart';
 import '../providers/verification_provider.dart';
-import 'country_field.dart';
-import 'country_flag.dart';
+import 'country_summary_select.dart';
 
-// ─── Address-scope country control ───────────────────────────────────────────
-//
-// The declared-country control for ADDRESS-SCOPED flows — mounted on the Proof
-// of Address screen (the Didit PoA model: the applicant names their market,
-// then uploads the document). Mirrors the web SDK's
-// steps/address/AddressCountryControl and the RN twin: the pick drives the
-// document kinds on offer, the search filter, the map's opening view, the PoA
-// vendor market, and rides the submission as the verification's country. The
-// pin stays the ground truth regardless.
-//
-// The picker is the house country sheet (CountryField) in its region-grouped
-// mode, with the inferred country (server geo first, device locale second)
-// pinned on top as "Your location" — the web's region menu, in the sheet the
-// rest of the mobile flow uses (user decision 2026-09-06).
+export '../config/poa_country_gate.dart' show poaOfferedCountries;
 
-/// What the picker offers: the org's accepted list (unknown codes dropped),
-/// else every named country.
-List<String> poaOfferedCountries(List<String> configured) {
-  final list = configured
-      .map((c) => c.toUpperCase())
-      .where(kCountryNames.containsKey)
-      .toList(growable: false);
-  return list.isNotEmpty ? list : kCountryNames.keys.toList(growable: false);
-}
+// ─── The Proof of Address step's country control ─────────────────────────────
+//
+// On every scope (the Didit PoA model: the applicant names where the document
+// is from, then uploads it). The step owns the value and what a pick does
+// (config/poa_country_gate.dart): on the address scope the pick is the flow's
+// declared country, which also drives the search filter, the map's opening
+// view and the submission's country; elsewhere it is the proof of address's
+// own country, which need not be the ID's.
+//
+// It offers the org's accepted list (proofOfAddress.countries, the server
+// refuses submissions outside it), else the whole world, in the shared
+// summary row (country_summary_select.dart), as the combined ID step picks its
+// country. The inferred country (server geo first, device locale second) is
+// pinned in the sheet as "Your location". Mirrors the web SDK's
+// steps/address/AddressCountryControl and the RN twin.
 
 class AddressCountryControl extends ConsumerWidget {
-  const AddressCountryControl({super.key});
+  /// The document's country, or null while there is none.
+  final String? value;
+
+  /// The caption over the country: "Your address is in".
+  final String label;
+
+  final ValueChanged<String> onPick;
+
+  const AddressCountryControl({
+    super.key,
+    required this.value,
+    required this.label,
+    required this.onPick,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(verificationConfigProvider);
-    if (configScope(config.scope) != 'address') return const SizedBox.shrink();
-
     final state = ref.watch(kYCNotifierProvider);
-    final colors = context.myazaColors;
-    final text = context.myazaText;
-    final offered =
-        poaOfferedCountries(config.proofOfAddress?.countries ?? const []);
-    // Only a country the applicant PICKED shows as selected: the address
-    // scope has no seeded country to show (web's AddressCountryControl, the
-    // same rule), and showing config.country here while the attachment
-    // area's flag read `selectedCountry` had the two disagreeing.
-    final value = state.selectedCountry ?? '';
-    void pick(String code) =>
-        ref.read(kYCNotifierProvider.notifier).setCountry(code);
-
-    // One accepted country = nothing to pick. Show it as a settled fact rather
-    // than a sheet that could only ever re-answer itself.
-    // The label sits ABOVE the field, as it does on every other input (user
-    // decision 2026-09-05) — the read-only box is CountryField's trigger
-    // without the chevron, so the settled and pickable states line up.
-    if (offered.length == 1) {
-      final only = offered.single;
-      return Padding(
-        padding: const EdgeInsets.only(bottom: UiSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Country', style: text.label),
-            const SizedBox(height: UiSpacing.xs),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: UiSpacing.md,
-                vertical: UiSpacing.md,
-              ),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(UiRadius.sm),
-                border: Border.all(color: colors.border),
-                color: colors.backgroundSecondary,
-              ),
-              child: Row(
-                children: [
-                  UiCountryFlag(country: only, size: 20),
-                  const SizedBox(width: UiSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      countryLabel(only),
-                      style: text.body,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: UiSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('Country', style: text.label),
-          const SizedBox(height: UiSpacing.xs),
-          CountryField(
-            country: value,
-            codes: offered,
-            onChanged: pick,
-            placeholder: 'Select country',
-            // The inferred country pinned on top of the sheet; the sheet
-            // itself drops it when the org's list does not carry it.
-            geoCountry: inferredCountry(state.serverConfig.geoCountry),
-            grouped: true,
-          ),
-        ],
+    final t = context.verificationText;
+    return CountrySummarySelect(
+      countries: poaOfferedCountries(config.proofOfAddress?.countries ?? const []),
+      value: value,
+      onPick: onPick,
+      label: label,
+      geoCountry: inferredCountry(state.serverConfig.geoCountry),
+      copy: CountrySummaryCopy(
+        placeholder: t('proofOfAddress.country.placeholder'),
+        change: t('proofOfAddress.country.change'),
+        choose: t('proofOfAddress.country.choose'),
+        search: t('proofOfAddress.country.search'),
+        noMatches: t('proofOfAddress.country.noMatches'),
+        selected: t('proofOfAddress.country.selected'),
+        yourLocation: t('proofOfAddress.country.yourLocation'),
       ),
     );
   }

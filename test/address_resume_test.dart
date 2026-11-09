@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/address_flow.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/address_step_order.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/session_restore.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/step_order.dart';
+import 'package:toden_flutter/toden_flutter.dart';
+import 'package:toden_flutter/src/config/address_flow.dart';
+import 'package:toden_flutter/src/providers/address_step_order.dart';
+import 'package:toden_flutter/src/providers/verification_state.dart';
+import 'package:toden_flutter/src/providers/session_restore.dart';
+import 'package:toden_flutter/src/providers/step_order.dart';
 
 // ─── Resuming onto an address step ───────────────────────────────────────────
 //

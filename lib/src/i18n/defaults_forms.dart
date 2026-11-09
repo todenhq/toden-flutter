@@ -38,7 +38,7 @@ const Map<String, String> kFormTextDefaults = {
   'business.details.confirm': 'Confirm details & continue',
   'business.documents.title': 'Business documents',
   'business.documents.description':
-      'Upload the supporting documents for your business. Each one must clearly show the registered business name and registration number. Required documents are marked with *.',
+      'Upload one document for each group, one group at a time. Each must clearly show the registered business name and registration number.',
   'business.applicant.title': 'Now verify your own identity',
   'business.applicant.description':
       'Tell us your role at the business, then verify your identity with a government-issued ID.',
@@ -62,7 +62,7 @@ const Map<String, String> kFormTextDefaults = {
   'keyPeople.pending.body': "We are checking the official register for the company's directors and owners.",
   'keyPeople.await.allDone': 'Everyone on this application has completed their identity check.',
   'keyPeople.await.intro':
-      'To complete the review, the people below must verify their identity with a KYC check. Anyone with an email on file has already been sent their link.',
+      'To complete the review, the people below must verify their identity with a KYC check. We will email each person their link if you gave their email address.',
   'keyPeople.await.linkValidity': 'Links are valid for 14 days.',
   'questionnaire.title': 'A Few More Questions',
   'questionnaire.description': 'Please answer the following to complete your verification.',

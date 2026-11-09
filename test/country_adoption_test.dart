@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/country_adoption.dart';
+import 'package:toden_flutter/src/config/country_adoption.dart';
 
 // ─── The shared vectors (test/country_adoption_vectors.json) ─────────────────
 //

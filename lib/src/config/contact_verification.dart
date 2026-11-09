@@ -64,6 +64,11 @@ class PhoneVerificationConfig {
   /// Default dial-code country (ISO-2); falls back to the flow's country.
   final String? defaultCountry;
 
+  /// The dial-code countries the phone field offers (ISO-2, upper case);
+  /// empty offers every country. With one, its code is shown fixed, with no
+  /// picker. The web SDK's `phoneVerification.countries`.
+  final List<String> countries;
+
   const PhoneVerificationConfig({
     this.enabled = false,
     this.required = true,
@@ -72,6 +77,7 @@ class PhoneVerificationConfig {
     this.inputStyle = OtpInputStyle.segmented,
     this.channels = const ['sms'],
     this.defaultCountry,
+    this.countries = const [],
   });
 
   /// Offered channels, normalised — never empty, unknown values dropped.
@@ -95,5 +101,8 @@ class PhoneVerificationConfig {
             .map((e) => e.toString())
             .toList(growable: false),
         defaultCountry: json['defaultCountry'] as String?,
+        countries: ((json['countries'] as List?) ?? const [])
+            .map((e) => e.toString().toUpperCase())
+            .toList(growable: false),
       );
 }

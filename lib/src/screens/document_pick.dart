@@ -4,7 +4,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../config/photo_mode.dart';
 import '../widgets/media_source_sheet.dart';
+import 'photo_camera.dart';
 
 // ─── Picking a document file ─────────────────────────────────────────────────
 //
@@ -60,23 +62,71 @@ String documentMimeFor(String? extension) => switch (extension?.toLowerCase()) {
 /// names its copy `image_picker_<UUID>.png` (the photo library does not expose
 /// the original), which reads as noise on the uploaded card. The slot key says
 /// what the file IS — `incorporation_certificate.jpg`.
+///
+/// [source] skips the sheet: a document the workflow wants photographed there
+/// and then opens the camera directly.
+///
+/// The camera is the SDK's own (screens/photo_camera.dart), titled
+/// [cameraTitle]. Its Upload opens this same sheet without the camera, since
+/// they have just come from it; [cameraUpload] false hides Upload (a document
+/// the workflow wants photographed now).
 Future<DocumentPickResult> pickDocument(
   BuildContext context, {
   required String slotKey,
+  MediaSource? source,
+  bool allowCamera = true,
+  String cameraTitle = '',
+  bool cameraUpload = true,
 }) async {
-  final source = await showMediaSourceSheet(context);
+  source ??= await showMediaSourceSheet(context, allowCamera: allowCamera);
   if (source == null) return DocumentPickResult.cancelled;
-  return switch (source) {
-    MediaSource.photoLibrary => _pickImage(ImageSource.gallery, slotKey),
-    MediaSource.camera => _pickImage(ImageSource.camera, slotKey),
-    MediaSource.files => _pickFile(),
-  };
+  switch (source) {
+    case MediaSource.photoLibrary:
+      return _pickImage(ImageSource.gallery, slotKey);
+    case MediaSource.files:
+      return _pickFile();
+    case MediaSource.camera:
+      if (!context.mounted) return DocumentPickResult.cancelled;
+      final shot = await openPhotoCamera(
+        context,
+        title: cameraTitle,
+        instruction: PhotoCopy.fitDocument,
+        allowUpload: cameraUpload,
+      );
+      switch (shot.exit) {
+        case PhotoCameraExit.cancelled:
+          return DocumentPickResult.cancelled;
+        case PhotoCameraExit.photo:
+          return _readImage(shot.photo!, slotKey);
+        case PhotoCameraExit.upload:
+          if (!context.mounted) return DocumentPickResult.cancelled;
+          final instead =
+              await showMediaSourceSheet(context, allowCamera: false);
+          return switch (instead) {
+            MediaSource.photoLibrary => _pickImage(ImageSource.gallery, slotKey),
+            MediaSource.files => _pickFile(),
+            _ => DocumentPickResult.cancelled,
+          };
+      }
+  }
 }
 
 Future<DocumentPickResult> _pickImage(ImageSource source, String slotKey) async {
+  final XFile? picked;
   try {
-    final picked = await ImagePicker().pickImage(source: source, imageQuality: 90);
-    if (picked == null) return DocumentPickResult.cancelled;
+    picked = await ImagePicker().pickImage(source: source, imageQuality: 90);
+  } catch (_) {
+    return const DocumentPickResult(error: _kPhotoReadError);
+  }
+  if (picked == null) return DocumentPickResult.cancelled;
+  return _readImage(picked, slotKey);
+}
+
+const String _kPhotoReadError = 'Could not read that photo. Please try another.';
+
+/// A picked or taken photo, as the upload wants it.
+Future<DocumentPickResult> _readImage(XFile picked, String slotKey) async {
+  try {
     final bytes = await picked.readAsBytes();
     final ext = picked.name.split('.').lastOrNull ?? 'jpg';
     return DocumentPickResult(
@@ -88,9 +138,7 @@ Future<DocumentPickResult> _pickImage(ImageSource source, String slotKey) async 
       ),
     );
   } catch (_) {
-    return const DocumentPickResult(
-      error: 'Could not read that photo. Please try another.',
-    );
+    return const DocumentPickResult(error: _kPhotoReadError);
   }
 }
 

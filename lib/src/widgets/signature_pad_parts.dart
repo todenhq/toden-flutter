@@ -27,53 +27,79 @@ class SignatureExpandPill extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  Widget build(BuildContext context) => SignaturePill(
+        icon: expanded ? UiIcons.minimize2 : UiIcons.maximize2,
+        label: expanded ? 'Collapse' : 'Expand',
+        semanticsLabel: expanded
+            ? 'Collapse the signature box'
+            : 'Expand the signature box',
+        onTap: onTap,
+      );
+}
+
+/// A small white pill in a corner of the pad (Expand, Clear): always dark on
+/// the white pad, whatever the flow's theme. Small to look at; the padding
+/// round it keeps the tap area generous.
+class SignaturePill extends StatelessWidget {
+  const SignaturePill({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.semanticsLabel,
+    required this.onTap,
+  });
+
+  final UiIconData icon;
+  final String label;
+  final String semanticsLabel;
+  final VoidCallback? onTap;
+
+  @override
   Widget build(BuildContext context) {
     final text = context.myazaText;
-    final label = expanded ? 'Collapse' : 'Expand';
     return Semantics(
       button: true,
-      label: expanded
-          ? 'Collapse the signature box'
-          : 'Expand the signature box',
+      enabled: onTap != null,
+      label: semanticsLabel,
       excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Container(
-            height: 28,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: ShapeDecoration(
-              color: Colors.white.withValues(alpha: 0.95),
-              shape: const StadiumBorder(side: BorderSide(color: _kPillBorder)),
-              shadows: const [
-                BoxShadow(
-                  color: Color(0x0D000000),
-                  offset: Offset(0, 1),
-                  blurRadius: 2,
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                UiIcon(
-                  expanded ? UiIcons.minimize2 : UiIcons.maximize2,
-                  size: 12,
-                  color: _kPillInk,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  label,
-                  style: text.bodySmall.copyWith(
-                    fontSize: 11,
-                    height: 1,
-                    fontWeight: FontWeight.w600,
-                    color: _kPillInk,
+        child: Opacity(
+          opacity: onTap == null ? 0.5 : 1,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Container(
+              height: 28,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: ShapeDecoration(
+                color: Colors.white.withValues(alpha: 0.95),
+                shape:
+                    const StadiumBorder(side: BorderSide(color: _kPillBorder)),
+                shadows: const [
+                  BoxShadow(
+                    color: Color(0x0D000000),
+                    offset: Offset(0, 1),
+                    blurRadius: 2,
                   ),
-                ),
-              ],
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  UiIcon(icon, size: 12, color: _kPillInk),
+                  const SizedBox(width: 4),
+                  Text(
+                    label,
+                    style: text.bodySmall.copyWith(
+                      fontSize: 11,
+                      height: 1,
+                      fontWeight: FontWeight.w600,
+                      color: _kPillInk,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

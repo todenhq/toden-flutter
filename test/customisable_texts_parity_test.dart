@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/i18n/customisable_texts.dart';
+import 'package:toden_flutter/src/i18n/customisable_texts.dart';
 
 // ─── The customisable texts against the shared contract ──────────────────────
 //

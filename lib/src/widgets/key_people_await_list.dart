@@ -49,6 +49,7 @@ List<AwaitRow> rowsFromServer(List<AwaitingPerson> people) => [
           inviteUrl: p.inviteUrl,
           isApplicant: p.isApplicant,
           isCorporate: p.isCorporate,
+          foundInDocuments: p.foundInDocuments,
         ),
     ];
 

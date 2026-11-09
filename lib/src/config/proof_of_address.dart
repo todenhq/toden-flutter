@@ -63,6 +63,20 @@ enum PoaNameRule {
       };
 }
 
+/// How the applicant provides the document: a photo, a file, or either (the
+/// default). Mirrors the web SDK's `proofOfAddress.capture`.
+enum PoaCapture {
+  both,
+  camera,
+  file;
+
+  static PoaCapture fromKey(Object? key) => switch (key) {
+        'camera' => PoaCapture.camera,
+        'file' => PoaCapture.file,
+        _ => PoaCapture.both,
+      };
+}
+
 class ProofOfAddressConfig {
   final bool enabled;
 
@@ -91,6 +105,22 @@ class ProofOfAddressConfig {
   /// Per-country, per-kind exceptions to [nameMatch] (ISO-2 → kind key → rule).
   final Map<String, Map<String, PoaNameRule>> countryNameMatch;
 
+  /// The documents accepted inside the kinds (subtype keys, e.g.
+  /// `water_bill`). A kind none of these belong to accepts all of its own
+  /// (config/poa_subtypes.dart); empty = all.
+  final List<String> documentSubtypes;
+
+  /// Days a recognised document stays valid, over its kind's window (subtype
+  /// key → days). The server applies it; the SDK states the kind's window.
+  final Map<String, int> documentSubtypeValidity;
+
+  /// Per-kind recency window in days (kind key → days), over [maxAgeDays]
+  /// (0 = no limit).
+  final Map<String, int> documentValidity;
+
+  /// How the applicant provides the document (default: both).
+  final PoaCapture capture;
+
   const ProofOfAddressConfig({
     this.enabled = false,
     this.documentTypes = const [],
@@ -100,7 +130,16 @@ class ProofOfAddressConfig {
     this.countryDocuments = const {},
     this.nameMatch,
     this.countryNameMatch = const {},
+    this.documentSubtypes = const [],
+    this.documentSubtypeValidity = const {},
+    this.documentValidity = const {},
+    this.capture = PoaCapture.both,
   });
+
+  static Map<String, int> _days(Object? raw) => {
+        for (final e in ((raw is Map ? raw : null) ?? const {}).entries)
+          if (e.value is num) e.key.toString(): (e.value as num).toInt(),
+      };
 
   static List<PoaDocumentType> _known(List<String> keys) => keys
       .map(PoaDocumentType.tryFromKey)
@@ -177,5 +216,11 @@ class ProofOfAddressConfig {
                   k.key.toString(): PoaNameRule.tryFromKey(k.value)!,
             },
         },
+        documentSubtypes: ((json['documentSubtypes'] as List?) ?? const [])
+            .map((e) => e.toString())
+            .toList(growable: false),
+        documentSubtypeValidity: _days(json['documentSubtypeValidity']),
+        documentValidity: _days(json['documentValidity']),
+        capture: PoaCapture.fromKey(json['capture']),
       );
 }

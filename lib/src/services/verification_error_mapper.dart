@@ -1,4 +1,5 @@
 import '../config/verification_config.dart';
+import '../config/business_document_groups.dart';
 import '../config/session_cancelled.dart';
 import 'api_service.dart';
 
@@ -27,6 +28,13 @@ const Map<String, ({String code, String message})> _codedErrors = {
     code: 'invalid_workflow',
     message:
         'This workflow cannot accept a business submission. Contact the organization that sent you here.',
+  ),
+  // The reference names a record of the other type (a business flow naming a
+  // person, or the reverse): a configuration problem, not a retry.
+  'entity_type_mismatch': (
+    code: 'invalid_workflow',
+    message:
+        'This verification is set up for a different kind of record. Contact the organisation that sent it.',
   ),
   'business_verifications_disabled': (
     code: 'feature_disabled',
@@ -60,12 +68,8 @@ const Map<String, ({String code, String message})> _codedErrors = {
   // The business-application sections DO have screens now, so these are
   // recoverable: the applicant goes back and fills in what's missing. Reaching
   // them means the client-side gate let something through (e.g. the workflow
-  // was republished mid-flow with a newly required slot).
-  'missing_documents': (
-    code: 'unknown',
-    message:
-        'Some required business documents are missing. Please go back and upload them.',
-  ),
+  // was republished mid-flow with a newly required slot). `missing_documents`
+  // is mapped below, since it names what is missing.
   'missing_company_info': (
     code: 'unknown',
     message:
@@ -82,6 +86,10 @@ VerificationError mapToVerificationError(Object error, {required ErrorContext co
   final uploadCtx = context == ErrorContext.upload;
 
   if (error is VerificationApiException) {
+    if (error.error == 'missing_documents') {
+      return VerificationError(
+          code: 'unknown', message: missingDocumentsMessage(error.details));
+    }
     final coded = _codedErrors[error.error];
     if (coded != null) {
       return VerificationError(code: coded.code, message: coded.message);

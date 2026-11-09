@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/awaiting_people.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/providers/awaiting_people.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
 
 // ─── The KYB success screen waits for the settled people list ────────────────
 //

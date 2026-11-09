@@ -7,10 +7,11 @@ import '../config/document_guide.dart';
 // ─── Document scan painter ────────────────────────────────────────────────────
 //
 // The drawing half of DocumentScanOverlay, split out for the 200-line rule.
-// Layers, back to front: scrim → grid → sweep → brackets → dwell ring.
+// Layers, back to front: scrim → sweep → brackets → dwell ring.
 
 class DocumentScanPainter extends CustomPainter {
   final double aspect;
+  final DocumentGuideBand? band;
   final Color accent;
 
   /// 0..1 sweep phase, or null once locked (motion stops).
@@ -30,6 +31,7 @@ class DocumentScanPainter extends CustomPainter {
 
   const DocumentScanPainter({
     required this.aspect,
+    this.band,
     required this.accent,
     required this.sweep,
     required this.lock,
@@ -44,7 +46,6 @@ class DocumentScanPainter extends CustomPainter {
     final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(14));
 
     _paintScrim(canvas, size, rrect);
-    if (sweep != null) _paintGrid(canvas, rrect, sweep!);
     if (sweep != null) _paintSweep(canvas, rect, rrect, sweep!);
     _paintBorder(canvas, rrect);
     _paintBrackets(canvas, rect);
@@ -62,26 +63,6 @@ class DocumentScanPainter extends CustomPainter {
       outside,
       Paint()..color = Colors.black.withValues(alpha: scrim),
     );
-  }
-
-  /// Faint drifting grid — reads as "processing", and gives the sweep
-  /// something to travel over so motion is visible on a plain background.
-  void _paintGrid(Canvas canvas, RRect guide, double phase) {
-    canvas.save();
-    canvas.clipRRect(guide);
-    final rect = guide.outerRect;
-    final paint = Paint()
-      ..color = accent.withValues(alpha: 0.10)
-      ..strokeWidth = 1;
-    const step = 26.0;
-    final drift = phase * step; // one cell per cycle, so it loops seamlessly
-    for (double x = rect.left - step + drift; x < rect.right; x += step) {
-      canvas.drawLine(Offset(x, rect.top), Offset(x, rect.bottom), paint);
-    }
-    for (double y = rect.top - step + drift; y < rect.bottom; y += step) {
-      canvas.drawLine(Offset(rect.left, y), Offset(rect.right, y), paint);
-    }
-    canvas.restore();
   }
 
   /// Scan line with a soft trailing band, ping-ponging so it never jumps.
@@ -191,7 +172,7 @@ class DocumentScanPainter extends CustomPainter {
   /// Shared with the post-shutter crop — see config/document_guide.dart. This
   /// painter must NOT compute its own rect: the user frames against what is
   /// drawn here, and the crop takes what that file defines.
-  Rect _guideRect(Size size) => documentGuideRect(size, aspect);
+  Rect _guideRect(Size size) => documentGuideRect(size, aspect, band: band);
 
   @override
   bool shouldRepaint(DocumentScanPainter oldDelegate) =>
@@ -201,5 +182,6 @@ class DocumentScanPainter extends CustomPainter {
       oldDelegate.accent != accent ||
       oldDelegate.scrim != scrim ||
       oldDelegate.pulse != pulse ||
-      oldDelegate.aspect != aspect;
+      oldDelegate.aspect != aspect ||
+      oldDelegate.band != band;
 }

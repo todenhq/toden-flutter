@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../config/address_book.dart';
 import '../../config/address_collection.dart';
 import '../../config/address_flow.dart';
 import '../../config/verification_config.dart';
@@ -16,6 +17,7 @@ import 'address_country_adoption.dart';
 import 'address_photo_actions.dart';
 import 'address_pin_actions.dart';
 import 'address_pin_label.dart';
+import '../../config/scope.dart';
 
 // ─── The address flow's shared brain ─────────────────────────────────────────
 //
@@ -79,7 +81,13 @@ class AddressFlowController extends ChangeNotifier
 
   AddressCollectionConfig? get cfg => config.addressCollection;
 
+  /// Business wording ("the premises"): the KYB application's premises step
+  /// and a scoped business address check alike.
   bool get isBusiness => config.subjectType == 'business';
+
+  /// The KYB application's premises step, whose country is the register's. A
+  /// scoped business address check declares its country like any address scope.
+  bool get kybPremises => isBusinessApplication(config.subjectType, config.scope);
 
   MapLatLng? get pin {
     final a = address;
@@ -88,7 +96,7 @@ class AddressFlowController extends ChangeNotifier
 
   /// A KYB flow's pin is the BUSINESS PREMISES, so the country that centres
   /// the map is the registry's, not the applicant's.
-  String? get country => isBusiness
+  String? get country => kybPremises
       ? (state.businessCountry ?? config.business?.country)
       : effectiveCountry(config, state);
 
@@ -101,22 +109,21 @@ class AddressFlowController extends ChangeNotifier
   /// is the COMMIT rather than an advance.
   ///
   /// Derived from the flow's own step list rather than asserted from the
-  /// subject type. Today only KYB ends on the pin, so `isBusiness` would give
-  /// the same answer — but it answers a different question, and a flow that
-  /// ever ended somewhere else would silently stop taking the attest fix and
-  /// storing the presence pin, with nothing to show for it.
+  /// subject type: a flow that ended somewhere unexpected would otherwise
+  /// silently stop taking the attest fix and storing the presence pin.
   bool isLastAddressStep(VerificationStep step) => nextAddressStep(steps, step) == null;
 
-  /// The entrance photo's mode. KYB never offers the slot: the premises pin
-  /// and its directions are the capture, and the server's business path
-  /// carries no address photo.
-  String get photoMode => isBusiness ? 'off' : addressPhotoMode(cfg);
+  /// The entrance photo's mode (on a KYB flow, the premises entrance).
+  String get photoMode => addressPhotoMode(cfg);
 
   /// Street View framing is offered: the workflow did not opt out and the
   /// server minted a maps frame URL, which the framed /embed/street-view page
   /// rides in a WebView on the app grant (address_step_order.dart).
-  bool get streetViewOffered =>
-      !isBusiness && addressFlowOptionsFor(config, state).streetViewOffered;
+  bool get streetViewOffered => addressFlowOptionsFor(config, state).streetViewOffered;
+
+  /// What this mount offers of the Toden address book (the save question after
+  /// the review step, and the saved address offer).
+  AddressBookOffer get bookOffer => addressBookOfferFor(config, state);
 
   /// Whether this step should show the presence primer instead of its body.
   bool showIntroGate(VerificationStep step) =>
@@ -158,7 +165,7 @@ class AddressFlowController extends ChangeNotifier
   /// on the pin.
   void exitForward() {
     final order = buildStepOrder(config, state);
-    final last = order.lastIndexWhere(kAddressFlowOrder.contains);
+    final last = order.lastIndexWhere(isAddressFlowStep);
     if (last < 0 || last + 1 >= order.length) return;
     notifier.goToStep(order[last + 1]);
   }
@@ -183,7 +190,8 @@ class AddressFlowController extends ChangeNotifier
     if (cfg?.presenceEnabled == true && userId != null && userId.isNotEmpty) {
       await savePresencePin(userId, current.lat, current.lng,
           alwaysOn: cfg?.presenceAlwaysOn == true,
-          background: cfg?.presenceBackground != false);
+          background: cfg?.presenceBackground != false,
+          playIntegrityProject: state.serverConfig.playIntegrityCloudProjectNumber);
     }
     if (!alive) return;
 

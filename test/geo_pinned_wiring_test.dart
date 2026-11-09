@@ -38,11 +38,15 @@ void main() {
     // The sheet, not a line under the field: "Your location looks like X. Use
     // it" was removed (user decision 2026-09-06) in favour of the same pinned
     // row the country-select step and the phone field carry.
+    // The control is the shared summary row, whose sheet is the grouped one.
     final control = read('widgets/address_country_control.dart');
     expect(control,
         contains('geoCountry: inferredCountry(state.serverConfig.geoCountry)'));
-    expect(control, contains('grouped: true'));
+    expect(control, contains('CountrySummarySelect('));
     expect(control, isNot(contains('looks like')));
+    final row = read('widgets/country_summary_select.dart');
+    expect(row, contains('pinned: geoCountry'));
+    expect(row, contains('grouped: true'));
     final field = read('widgets/country_field.dart');
     expect(field, contains('pinned: geoCountry'));
     expect(field, contains('grouped: grouped'));

@@ -6,6 +6,8 @@ import 'presence_milestone_track.dart';
 import 'presence_milestones.dart';
 import 'icons/icons.dart';
 import '../i18n/text_scope.dart';
+import '../presence/background_ask_controller.dart';
+import 'ui_button.dart';
 
 /// The success screen's presence card, drawn as a LIVE PROCESS rather than a
 /// notice: the check began the moment they submitted, so the badge pulses and
@@ -15,12 +17,25 @@ import '../i18n/text_scope.dart';
 /// and of the intro gate's milestones — the promise made at the start of the
 /// address flow and the card at the end are two frames of one story.
 class PresenceExpectations extends StatelessWidget {
-  const PresenceExpectations({super.key});
+  const PresenceExpectations({super.key, this.background, this.finishLine, this.onTurnOn});
+
+  /// The "allow all the time" answer: [BackgroundOutcome.off] swaps the header
+  /// for the work still to do ([finishLine]) and a way to turn checks on;
+  /// null keeps the usual wording.
+  final BackgroundOutcome? background;
+  final String? finishLine;
+  final VoidCallback? onTurnOn;
 
   @override
   Widget build(BuildContext context) {
     // Catalogue texts (a workflow may reword them); defaults in i18n/.
     final t = context.verificationText;
+    final off = background == BackgroundOutcome.off;
+    final body = off && finishLine != null
+        ? finishLine!
+        : background == BackgroundOutcome.on
+            ? 'Automatic checks are on. Nothing else for you to do.'
+            : t('address.presence.description');
     PresenceMilestone milestone(int n, UiIconData icon) => PresenceMilestone(
           icon: icon,
           stage: t('address.presence.step$n.stage'),
@@ -28,7 +43,7 @@ class PresenceExpectations extends StatelessWidget {
           caption: t('address.presence.step$n.caption'),
           active: n == 1,
         );
-    return Padding(
+    final card = Padding(
       padding: const EdgeInsets.only(top: UiSpacing.lg),
       child: PresenceCard(
         header: PresenceHeaderBand(
@@ -36,8 +51,8 @@ class PresenceExpectations extends StatelessWidget {
             leading: const _LiveDot(),
             label: t('address.presence.badge'),
           ),
-          title: t('address.presence.title'),
-          body: t('address.presence.description'),
+          title: off ? t('address.presence.off.title') : t('address.presence.title'),
+          body: body,
           compact: true,
         ),
         track: PresenceMilestoneTrack(
@@ -49,6 +64,19 @@ class PresenceExpectations extends StatelessWidget {
           medallion: 32,
         ),
       ),
+    );
+    if (!off || onTurnOn == null) return card;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        card,
+        const SizedBox(height: UiSpacing.sm + 4),
+        UiButton(
+          label: t('address.background.allow'),
+          variant: UiButtonVariant.outline,
+          onPressed: onTurnOn,
+        ),
+      ],
     );
   }
 }

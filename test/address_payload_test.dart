@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/address_state.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/address_state_json.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart'
+import 'package:toden_flutter/src/config/address_state.dart';
+import 'package:toden_flutter/src/config/address_state_json.dart';
+import 'package:toden_flutter/src/services/api_service.dart'
     show AddressParts;
 
 // ─── What leaves the address flow ────────────────────────────────────────────
@@ -31,6 +31,7 @@ void main() {
           deviceLat: 6.4283,
           deviceLng: 3.4217,
           deviceAccuracy: 20,
+          deviceMocked: true,
           capturedAt: '2026-08-25T00:00:00.000Z',
         )),
         {
@@ -41,6 +42,7 @@ void main() {
           'deviceLat': 6.4283,
           'deviceLng': 3.4217,
           'deviceAccuracy': 20,
+          'deviceMocked': true,
           'capturedAt': '2026-08-25T00:00:00.000Z',
         },
       );

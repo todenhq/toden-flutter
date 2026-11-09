@@ -5,8 +5,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:myaza_kyc_sdk_flutter/src/utils/selfie_sharpness.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/selfie_soft_notice.dart';
+import 'package:toden_flutter/src/utils/selfie_sharpness.dart';
+import 'package:toden_flutter/src/widgets/selfie_soft_notice.dart';
 
 // ─── The selfie focus check ──────────────────────────────────────────────────
 //

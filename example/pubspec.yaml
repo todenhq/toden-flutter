@@ -1,5 +1,5 @@
-name: myaza_kyc_sdk_flutter_example
-description: "Minimal example showing how to launch the Myaza KYC flow with myaza_kyc_sdk_flutter."
+name: toden_flutter_example
+description: "Minimal example showing how to launch a Toden verification with toden_flutter."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -14,7 +14,7 @@ dependencies:
     sdk: flutter
 
   # The SDK under test, resolved from the package root.
-  myaza_kyc_sdk_flutter:
+  toden_flutter:
     path: ..
 
 dev_dependencies:

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/dial_code_rows.dart';
+import 'package:toden_flutter/src/widgets/dial_code_rows.dart';
 
 // The country sheet's list as data: the pinned geo row and the region
 // grouping the address-scope country control asks for. The RN SDK's
@@ -51,5 +51,18 @@ void main() {
   test('a guess the filter excluded is not resurrected', () {
     final items = buildDialCodeItems([entries.first], 'GH', grouped: true);
     expect(codes(items), ['#Europe', 'FR']);
+  });
+
+  test('the summary row\'s sheet pins the current answer above the visitor\'s own', () {
+    final items = buildDialCodeItems(entries, 'GH', grouped: true, pinSelected: 'NG');
+    expect(codes(items), ['NG', 'GH', '#Europe', 'FR', '#Americas', 'US']);
+    final pins = items.whereType<DialCodeRowItem>().where((i) => i.pinned).toList();
+    expect([for (final p in pins) p.selectedPin], [true, false]);
+  });
+
+  test('the visitor\'s own country is not pinned twice when it is the answer', () {
+    final items = buildDialCodeItems(entries, 'NG', grouped: false, pinSelected: 'ng');
+    expect(codes(items), ['NG', 'FR', 'GH', 'US']);
+    expect((items.first as DialCodeRowItem).selectedPin, isTrue);
   });
 }

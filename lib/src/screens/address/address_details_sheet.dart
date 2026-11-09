@@ -36,16 +36,23 @@ Future<void> showAddressDetailsSheet(
   required AddressCollectionConfig? config,
   required ValueChanged<AddressDetailsPatch> onChanged,
 }) {
+  final modes = addressFieldModes(config);
+  final anyRequired = modes.values.any((m) => m == AddressFieldMode.required);
+  // The house sheet header carries the title and the line under it.
   return showUiSheet<void>(
     context,
     isScrollControlled: true,
+    title: context.verificationText('address.details.title'),
+    description: anyRequired
+        ? 'Correct anything the map got wrong. Fields marked * are required.'
+        : context.verificationText('address.details.hint'),
     builder: (_) => _AddressDetailsBody(
       isBusiness: isBusiness,
       directionsRequired: directionsRequired,
       parts: parts,
       country: country,
       address: address,
-      modes: addressFieldModes(config),
+      modes: modes,
       onChanged: onChanged,
     ),
   );
@@ -107,9 +114,6 @@ class _AddressDetailsBodyState extends State<_AddressDetailsBody> {
 
   @override
   Widget build(BuildContext context) {
-    final text = context.myazaText;
-    final colors = context.myazaColors;
-    final anyRequired = widget.modes.values.any((m) => m == AddressFieldMode.required);
     final streetSection = _on('propertyNumber') || _on('street') || _on('unit') || _on('propertyName');
     return SafeArea(
       top: false,
@@ -120,15 +124,7 @@ class _AddressDetailsBodyState extends State<_AddressDetailsBody> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(context.verificationText('address.details.title'), style: text.heading3),
-              const SizedBox(height: 2),
-              Text(
-                anyRequired
-                    ? 'Correct anything the map got wrong. Fields marked * are required.'
-                    : context.verificationText('address.details.hint'),
-                style: text.bodySmall.copyWith(color: colors.textSecondary),
-              ),
-              const SizedBox(height: UiSpacing.md),
+              const SizedBox(height: UiSpacing.xs),
               if (streetSection) const AddressSectionHeading('Street and building'),
               addressFieldPair(
                 _field('propertyNumber', label: 'Number', hint: 'e.g. 11', maxLength: 20, controller: _number, patch: (v) => AddressDetailsPatch(propertyNumber: v)),

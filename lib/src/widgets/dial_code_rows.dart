@@ -18,11 +18,13 @@ sealed class DialCodeItem {
   const DialCodeItem();
 }
 
-/// A country row; [pinned] marks the visitor's own ("Your location").
+/// A country row; [pinned] marks a row lifted above the list: the visitor's
+/// own ("Your location"), or the current answer when [selectedPin] ("Selected").
 final class DialCodeRowItem extends DialCodeItem {
   final DialCodeEntry entry;
   final bool pinned;
-  const DialCodeRowItem(this.entry, {this.pinned = false});
+  final bool selectedPin;
+  const DialCodeRowItem(this.entry, {this.pinned = false, this.selectedPin = false});
 }
 
 /// A region label above the rows that follow it.
@@ -34,14 +36,28 @@ final class DialCodeHeaderItem extends DialCodeItem {
 /// The sheet's items over the ALREADY-FILTERED entries: where they appear to
 /// be first (lifted out of the alphabet, still subject to the search), then
 /// the rest — flat in the given order, or under region headers when [grouped].
+///
+/// [pinSelected], the country summary row's sheet (CountrySummarySelect),
+/// lifts the current answer above the visitor's own as well, tagged
+/// "Selected", so neither is a hunt through two hundred rows. Mirrors the
+/// web SDK's CountrySummarySelect pins.
 List<DialCodeItem> buildDialCodeItems(
   List<DialCodeEntry> visible,
   String? geoCountry, {
   required bool grouped,
+  String? pinSelected,
 }) {
-  final split = pinGeoRow(visible, geoCountry, (e) => e.iso);
+  final chosen = pinGeoRow(visible, pinSelected, (e) => e.iso);
+  final current = chosen.pinned;
+  final geoCode = geoCountry?.trim().toUpperCase();
+  final split = pinGeoRow(
+    chosen.rest,
+    current != null && current.iso.toUpperCase() == geoCode ? null : geoCountry,
+    (e) => e.iso,
+  );
   final geo = split.pinned;
   final items = <DialCodeItem>[
+    if (current != null) DialCodeRowItem(current, pinned: true, selectedPin: true),
     if (geo != null) DialCodeRowItem(geo, pinned: true),
   ];
   if (!grouped) {

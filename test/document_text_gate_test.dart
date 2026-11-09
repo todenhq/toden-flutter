@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/document_framing_gate.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/document_text_gate.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/document_type_signals.dart';
+import 'package:toden_flutter/src/services/document_framing_gate.dart';
+import 'package:toden_flutter/src/services/document_text_gate.dart';
+import 'package:toden_flutter/src/services/document_type_signals.dart';
 
 // Two MRZ lines of a TD3 passport — 44 chars each, '<' fillers.
 final _mrzLines = [
@@ -207,6 +207,17 @@ void main() {
           mrzAlreadyCaptured: true,
           now: start.add(const Duration(milliseconds: 800)));
       expect(later.framing, DocumentFraming.ready);
+    });
+
+    test('release unlatches a ready verdict that was not acted on', () {
+      final gate = DocumentTextGate();
+      gate.update(_mrzLines,
+          country: 'NG', idType: 'passport', hasValidMrz: true);
+      expect(gate.hasFired, isTrue);
+      gate.release();
+      expect(gate.hasFired, isFalse);
+      final g = gate.update(_bookPage, country: 'NG', idType: 'passport');
+      expect(g.framing, isNot(DocumentFraming.ready));
     });
 
     test('reset re-arms after a retake', () {

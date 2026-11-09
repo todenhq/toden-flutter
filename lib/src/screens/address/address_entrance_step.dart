@@ -52,9 +52,14 @@ class _AddressEntranceStepState extends ConsumerState<AddressEntranceStep>
       flow.pin != null &&
       (flow.vendorsStubbed || _svFrameUrl != null);
 
+  /// Taken while mounted: `dispose` runs after the element is unmounted, and
+  /// `ref` throws there ("Cannot use ref after the widget was disposed").
+  late final VerificationNotifier _notifier;
+
   @override
   void initState() {
     super.initState();
+    _notifier = ref.read(kYCNotifierProvider.notifier);
     _framing = _streetView;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -67,9 +72,15 @@ class _AddressEntranceStepState extends ConsumerState<AddressEntranceStep>
 
   @override
   void dispose() {
-    // Not through `flow.notifier` (the mixin disposes the controller first);
-    // the flag is transient and the next mount sets it again anyway.
-    ref.read(kYCNotifierProvider.notifier).setAddressEntranceFraming(false);
+    // Never `ref` here: dispose runs after unmount, so `ref.read` THROWS, and
+    // a throw in dispose stops the parent KeyedSubtree (this step's reused
+    // GlobalKey) from unmounting. The next visit then reuses a half-torn-down
+    // element, the build fails and a release build draws it as a plain grey
+    // box (2026-10-19). The flag is cleared after the frame, not during the
+    // tree's teardown, where a provider change would rebuild listeners while
+    // the tree is locked. The next mount sets it again anyway.
+    final notifier = _notifier;
+    Future.microtask(() => notifier.setAddressEntranceFraming(false));
     super.dispose();
   }
 

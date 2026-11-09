@@ -21,6 +21,7 @@ Future<Map<String, dynamic>> deviceFixFields() async {
     'deviceLat': fix.lat,
     'deviceLng': fix.lng,
     if (fix.accuracy != null) 'deviceAccuracy': fix.accuracy,
+    if (fix.mocked != null) 'deviceMocked': fix.mocked,
     'capturedAt': fix.timestamp.toUtc().toIso8601String(),
   };
 }
@@ -35,6 +36,7 @@ Future<AddressState> withDeviceFix(AddressState current) async {
     deviceLat: (fix['deviceLat'] as num?)?.toDouble(),
     deviceLng: (fix['deviceLng'] as num?)?.toDouble(),
     deviceAccuracy: (fix['deviceAccuracy'] as num?)?.toDouble(),
+    deviceMocked: fix['deviceMocked'] as bool?,
     capturedAt: fix['capturedAt'] as String?,
   );
 }

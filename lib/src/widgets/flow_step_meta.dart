@@ -3,8 +3,12 @@ import '../config/id_types.dart';
 import '../config/verification_config.dart';
 import '../config/proof_of_address.dart';
 import '../config/supporting_documents.dart';
+import '../config/scope.dart';
+import '../i18n/business_variants.dart';
 import '../i18n/translate.dart';
 import '../providers/address_step_order.dart';
+import '../providers/poa_step.dart';
+import '../config/poa_subtypes.dart' show poaKindDays;
 import '../providers/verification_state.dart';
 import '../providers/step_order.dart';
 import '../screens/contact_verification_channel.dart' show kChannelLabels;
@@ -20,7 +24,8 @@ class StepMeta {
   const StepMeta(this.title, [this.description]);
 }
 
-StepMeta _base(VerificationStep step, TextFn t, bool business, VerificationConfig c) =>
+StepMeta _base(VerificationStep step, TextFn t, bool business, VerificationConfig c,
+        {bool scopedBusiness = false}) =>
     switch (step) {
       // Consent and submitted have no header title: the screen owns it.
       VerificationStep.consent || VerificationStep.submitted => const StepMeta(''),
@@ -31,22 +36,32 @@ StepMeta _base(VerificationStep step, TextFn t, bool business, VerificationConfi
           'Enter your ID number', t('selectDocument.idInput.description')),
       VerificationStep.liveness =>
         StepMeta(t('presence.title'), t('presence.camera.description')),
-      VerificationStep.contactEmail =>
-        StepMeta(t('contact.email.title'), t('contact.email.intro')),
-      VerificationStep.contactPhone => StepMeta(t('contact.phone.title'),
-          "We'll send a one-time code to confirm this number belongs to you."),
+      // A scoped business workflow confirms the company's contact details.
+      VerificationStep.contactEmail => StepMeta(
+          t(businessKey('contact.email.title', scopedBusiness)),
+          t(businessKey('contact.email.intro', scopedBusiness))),
+      VerificationStep.contactPhone => StepMeta(
+          t(businessKey('contact.phone.title', scopedBusiness)),
+          "We'll send a one-time code to confirm this number belongs to "
+          "${scopedBusiness ? 'your business' : 'you'}."),
       VerificationStep.countrySelect => StepMeta(t('selectDocument.country.title'),
           t('selectDocument.country.description')),
       VerificationStep.nfc => StepMeta(t('nfc.title'), t('nfc.description')),
       VerificationStep.proofOfAddress => StepMeta(t('proofOfAddress.title')),
+      VerificationStep.addressBook => StepMeta(
+          t('address.book.chosen.title'), t('address.book.pick.description')),
+      // A KYB flow's address is the BUSINESS PREMISES.
       VerificationStep.addressSearch => StepMeta(
-          t('address.search.title'), t('address.search.description')),
-      // A KYB flow's pin is the BUSINESS PREMISES.
+          t(business ? 'address.search.title.business' : 'address.search.title'),
+          t('address.search.description')),
       VerificationStep.addressCollection => StepMeta(
           t(business ? 'address.pin.title.business' : 'address.pin.title'),
           t('address.pin.description')),
-      VerificationStep.addressEntrance => StepMeta(t('address.entrance.title'),
-          t('address.entrance.description.photo')),
+      VerificationStep.addressEntrance => StepMeta(
+          t('address.entrance.title'),
+          t(business
+              ? 'address.entrance.description.photo.business'
+              : 'address.entrance.description.photo')),
       VerificationStep.addressReview => StepMeta(
           t(business
               ? 'address.review.title.business'
@@ -55,8 +70,9 @@ StepMeta _base(VerificationStep step, TextFn t, bool business, VerificationConfi
       VerificationStep.supportingDocuments => StepMeta(t('supportingDocuments.title')),
       // The questionnaire's own title/description are the older fields.
       VerificationStep.questionnaire => StepMeta(
-          t('questionnaire.title', legacy: c.questionnaire?.title),
-          t('questionnaire.description', legacy: c.questionnaire?.description)),
+          t(businessKey('questionnaire.title', scopedBusiness), legacy: c.questionnaire?.title),
+          t(businessKey('questionnaire.description', scopedBusiness),
+              legacy: c.questionnaire?.description)),
       VerificationStep.businessDetails => StepMeta(t('business.details.title'),
           t('business.details.description')),
       VerificationStep.businessKeyPeople =>
@@ -76,8 +92,15 @@ StepMeta flowStepMeta(
   required bool selfieComplete,
 }) {
   final isBusiness = config.subjectType == 'business';
-  var meta = _base(step, t, isBusiness, config);
+  // A scoped business workflow words its screens for the company.
+  final scopedBusiness = isScopedBusiness(config.subjectType, config.scope);
+  var meta = _base(step, t, isBusiness, config, scopedBusiness: scopedBusiness);
 
+  // The combined layout picks the country above the IDs: the header says so.
+  if (step == VerificationStep.idType && countryOnIdTypeStep(config, state)) {
+    meta = StepMeta(t('selectDocument.combined.title'),
+        t('selectDocument.combined.description'));
+  }
   // The entrance step framing street imagery describes THAT, not a camera.
   if (step == VerificationStep.addressEntrance && state.addressEntranceFraming) {
     meta = StepMeta(meta.title, t('address.entrance.description.framing'));
@@ -107,22 +130,26 @@ StepMeta flowStepMeta(
   // only where the workflow's name rule wants it for the picked kind.
   if (step == VerificationStep.proofOfAddress) {
     final poa = config.proofOfAddress;
-    final days = poa?.maxAgeDays ?? 90;
-    final kind = state.poaDocumentType == null
-        ? null
-        : PoaDocumentType.tryFromKey(state.poaDocumentType!);
+    // The window of the kind the step shows, for the country it shows
+    // (providers/poa_step.dart), so the line never describes another.
+    final kind = poaStepKind(config, state);
+    final days = poaKindDays(poa, kind);
     final nameNeeded = poa == null ||
-        poa.namePolicyFor(state.selectedCountry ?? config.country, kind) !=
-            PoaNameRule.off;
+        poa.namePolicyFor(poaStepCountry(config, state), kind) != PoaNameRule.off;
     meta = StepMeta(
       meta.title,
-      'Upload a document that shows your '
-      '${nameNeeded ? 'name and home address' : 'home address'}, issued '
-      'within the last $days days.',
+      t(
+        businessKey(
+          nameNeeded ? 'proofOfAddress.description' : 'proofOfAddress.description.noName',
+          scopedBusiness,
+        ),
+        // A kind with no window ("Any date") keeps the workflow's own.
+        vars: {'days': days > 0 ? days : (poa?.maxAgeDays ?? 90)},
+      ),
     );
   }
   if (step == VerificationStep.contactEmail || step == VerificationStep.contactPhone) {
-    meta = _contactMeta(step, meta, config, state);
+    meta = _contactMeta(step, meta, config, state, scopedBusiness);
   }
   if (step == VerificationStep.documentCapture) {
     meta = _documentMeta(config, state, t);
@@ -136,8 +163,8 @@ StepMeta flowStepMeta(
 /// The contact steps turn their promise ("we'll send a code") into an
 /// instruction once a code is out, naming the channel the user picked. Only
 /// state raised by THIS step counts: both contact steps are the same screen.
-StepMeta _contactMeta(
-    VerificationStep step, StepMeta meta, VerificationConfig config, VerificationState state) {
+StepMeta _contactMeta(VerificationStep step, StepMeta meta, VerificationConfig config,
+    VerificationState state, bool scopedBusiness) {
   final isPhone = step == VerificationStep.contactPhone;
   final live = state.contactChannel == (isPhone ? 'phone' : 'email');
   final by = isPhone && live && state.contactVia.isNotEmpty
@@ -153,7 +180,8 @@ StepMeta _contactMeta(
   }
   if (isPhone) {
     return StepMeta(meta.title,
-        "We'll send a one-time code$by to confirm this number belongs to you.");
+        "We'll send a one-time code$by to confirm this number belongs to "
+        "${scopedBusiness ? 'your business' : 'you'}.");
   }
   return meta;
 }
@@ -165,6 +193,8 @@ StepMeta _documentMeta(VerificationConfig config, VerificationState state, TextF
   final doc = {'document': state.selectedIdType?.label ?? 'Document'};
   final twoSided = state.selectedIdType?.scanSides == ScanSides.frontAndBack;
   final up = documentCaptureMethodsFor(config).uploadOnly;
+  // The loading screen carries its own title.
+  if (state.docReviewPhase == 'checking') return const StepMeta('');
   final (title, description) = switch (state.docReviewPhase) {
     'front_preview' => up
         ? ('frontAdded', 'frontAdded')

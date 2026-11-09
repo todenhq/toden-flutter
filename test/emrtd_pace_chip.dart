@@ -3,9 +3,9 @@ import 'dart:typed_data';
 
 import 'package:pointycastle/export.dart' as pc;
 
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_cipher.dart';
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_pace_params.dart';
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_tlv.dart';
+import 'package:toden_flutter/src/nfc/emrtd_cipher.dart';
+import 'package:toden_flutter/src/nfc/emrtd_pace_params.dart';
+import 'package:toden_flutter/src/nfc/emrtd_tlv.dart';
 
 // A chip that performs the chip's half of PACE-GM properly: a real encrypted
 // nonce, its own mapping and key agreement, independently derived session keys,

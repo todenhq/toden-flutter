@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/verification_config.dart';
+import 'package:toden_flutter/src/config/verification_config.dart';
 
 // The progress bar is the default indicator (2026-09-29). Steps and none stay
 // available, and a value this build does not know takes the default.

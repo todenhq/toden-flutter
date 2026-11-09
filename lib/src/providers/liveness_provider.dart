@@ -9,11 +9,15 @@ import '../liveness/face_detection.dart';
 import '../liveness/flash_challenge.dart';
 import '../liveness/flash_outcome.dart';
 import '../liveness/flash_ready_gate.dart';
+import '../liveness/flash_timeline.dart';
 import '../liveness/face_continuity.dart';
+import '../liveness/selfie_pick.dart' show SelfieFace;
+import '../liveness/selfie_shutter.dart' show SelfieGuidance;
 import '../liveness/liveness_types.dart';
 import '../liveness/capture_pose.dart';
 import '../liveness/face_window.dart';
 import '../liveness/passive_hold.dart';
+import '../liveness/prompt_timeline.dart';
 import '../liveness/sharpest_still.dart';
 import '../services/image_service.dart';
 import 'verification_provider.dart';
@@ -182,6 +186,13 @@ class LivenessNotifier extends _$LivenessNotifier {
   /// reads it to abort the flash rather than finish measuring a stranger.
   bool get integrityBroken => _integrityBroken;
 
+  /// Counts breaks in the live run: a continuity jump, a face back after a
+  /// gap, a restart. The screen clears the selfie it has chosen so far when
+  /// this moves (liveness/selfie_pick.dart): the selfie must come from one
+  /// unbroken run.
+  int _runGeneration = 0;
+  int get runGeneration => _runGeneration;
+
   // Flash-only liveness: the pre-flash "hold still" gate (positioned + lit for a
   // dwell). Null in gesture / both modes, whose challenges already provide the
   // framing feedback loop. See FlashReadyGate.
@@ -196,6 +207,12 @@ class LivenessNotifier extends _$LivenessNotifier {
   /// claim reports that both methods ran.
   bool _fellBackToGestures = false;
   bool get fellBackToGestures => _fellBackToGestures;
+
+  /// When each prompt appeared and passed, for the claim (prompt_timeline.dart).
+  final PromptTimeline _prompts = PromptTimeline();
+
+  /// The prompts' times against the recording, or null with no recording.
+  List<Map<String, Object>>? get promptTimes => _prompts.report(recordingStart());
 
   /// The prompts this session's manager ran, in order (for the liveness claim).
   List<LivenessChallenge> get challengesRun =>
@@ -245,6 +262,7 @@ class LivenessNotifier extends _$LivenessNotifier {
     if (state.phase != LivenessPhase.loading) return;
     _continuity.reset();
     _integrityBroken = false;
+    _runGeneration++;
     state = LivenessState(
       phase: LivenessPhase.positioning,
       instruction: 'Position your face in the circle',
@@ -284,9 +302,11 @@ class LivenessNotifier extends _$LivenessNotifier {
     // challenges; only continuity ties that human to the one being captured.
     switch (_continuity.update(data, DateTime.now())) {
       case FaceContinuity.substituted:
+        _runGeneration++;
         _onFaceSubstituted();
         return;
       case FaceContinuity.reacquired:
+        _runGeneration++;
         // Not proof of anything — people look away — but nothing vouches for
         // the returning face either, so earned progress does not cross the gap.
         _onFaceReacquired();
@@ -503,11 +523,12 @@ class LivenessNotifier extends _$LivenessNotifier {
   /// base64-encodes it, and transitions to [LivenessPhase.complete]. Call from
   /// the screen after taking a picture. The work runs in an isolate / on a
   /// native thread, so it doesn't block the UI isolate.
-  Future<void> captureSelfie(Uint8List imageBytes) async {
+  Future<void> captureSelfie(Uint8List imageBytes, {SelfieFace? cut}) async {
     if (state.phase != LivenessPhase.capturing) return;
-    // Single pass: bake orientation, brighten a backlit/dark face, size + encode
-    // a sharp JPEG (no square-box downscale that would soften the face).
-    final bytes = await processSelfieImage(imageBytes);
+    // Single pass: bake orientation, cut to the standard selfie frame around
+    // [cut] (liveness/selfie_pick.dart), brighten a backlit/dark face, size +
+    // encode a sharp JPEG.
+    final bytes = await processSelfieImage(imageBytes, cut: cut);
     _completeWithSelfie(bytes);
   }
 
@@ -575,11 +596,13 @@ class LivenessNotifier extends _$LivenessNotifier {
       _manager = ChallengeManager.none();
     }
     _manager.reset();
+    _prompts.reset();
     _flashGate?.reset();
     // A retry starts a fresh session: whoever is in frame now becomes the
     // reference, and the previous attempt's verdict does not carry over.
     _continuity.reset();
     _integrityBroken = false;
+    _runGeneration++;
     // NOT _lightingSampled — the sampler keeps running across a retry, so
     // lighting stays confirmed; re-arming it would re-introduce the warmup race.
     _xHistory.clear();
@@ -700,6 +723,38 @@ class LivenessNotifier extends _$LivenessNotifier {
     state = state.copyWith(instruction: kLookStraightInstruction);
   }
 
+  /// Says what to fix while the final capture waits for a frame that could be
+  /// the selfie (liveness/selfie_shutter.dart). Null leaves the line as it is.
+  void showSelfieGuidance(SelfieGuidance? guidance) {
+    if (state.phase != LivenessPhase.capturing || guidance == null) return;
+    final line = switch (guidance) {
+      SelfieGuidance.lookStraight => kLookStraightInstruction,
+      SelfieGuidance.moveCloser => kMoveCloserInstruction,
+      SelfieGuidance.holdStill => kHoldStillInstruction,
+    };
+    if (state.instruction == line) return;
+    state = state.copyWith(instruction: line);
+  }
+
+  /// The face left the final capture for about a second: the run is broken,
+  /// and the selfie may not come from whatever is held up after the gap.
+  void failFaceLost() {
+    if (state.phase == LivenessPhase.complete ||
+        state.phase == LivenessPhase.failed) {
+      return;
+    }
+    _cancelTimer();
+    _flashGate?.reset();
+    _runGeneration++;
+    state = state.copyWith(
+      phase: LivenessPhase.failed,
+      instruction: 'Let\'s start over. Please stay in frame.',
+      error: 'face_lost',
+      clearActiveChallenge: true,
+      clearPositionGuidance: true,
+    );
+  }
+
   void _startNextChallenge() {
     final challenge = _manager.current;
     if (challenge == null) {
@@ -715,6 +770,7 @@ class LivenessNotifier extends _$LivenessNotifier {
 
     final timeout = _timeoutFor(challenge);
 
+    _prompts.shown(challenge.type.name, flashClockNow());
     _xHistory.clear();
     _earHistory.clear();
     _hold.reset();
@@ -784,6 +840,7 @@ class LivenessNotifier extends _$LivenessNotifier {
   void _onChallengePassed() {
     _challengeProcessing = true;
     _cancelTimer();
+    _prompts.passed(flashClockNow());
     _manager.advance();
 
     state = state.copyWith(

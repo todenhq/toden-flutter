@@ -55,7 +55,14 @@ Map<String, dynamic> progressFromState(VerificationState s, {String? effectiveCo
         if (s.businessDocuments.isNotEmpty)
           'documents': [
             for (final d in s.businessDocuments)
-              {'type': d.type, 'mediaId': d.mediaId, 'fileName': d.fileName, if (d.isPdf) 'isPdf': true},
+              {
+                'type': d.type,
+                if (d.group != null) 'group': d.group,
+                'mediaId': d.mediaId,
+                'fileName': d.fileName,
+                if (d.size != null) 'size': d.size,
+                if (d.isPdf) 'isPdf': true,
+              },
           ],
         'applicantRole': s.applicantRole?.key,
         'applicantName': s.applicantName ?? '',

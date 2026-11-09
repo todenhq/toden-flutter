@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/supporting_documents.dart';
+import 'package:toden_flutter/src/config/supporting_documents.dart';
 
 // MIRROR of the web SDK's supporting-documents-intro test. An applicant on iOS
 // must read the same words as one on the web.

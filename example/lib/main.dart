@@ -1,25 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
+import 'package:toden_flutter/toden_flutter.dart';
 
 // Credentials come from --dart-define so no real key is ever committed here.
 // Against a local kyc-core, pass all three:
 //
 //   flutter run \
-//     --dart-define=MYAZA_API_KEY=pk_dev_... \
-//     --dart-define=MYAZA_DEV_SERVER=http://$(ipconfig getifaddr en0):3001 \
-//     --dart-define=MYAZA_WORKFLOW_ID=wf_...
+//     --dart-define=TODEN_API_KEY=pk_dev_... \
+//     --dart-define=TODEN_DEV_SERVER=http://$(ipconfig getifaddr en0):3001 \
+//     --dart-define=TODEN_WORKFLOW_ID=wf_...
 //
-// The key prefix picks the environment, so MYAZA_DEV_SERVER is read only by a
+// The key prefix picks the environment, so TODEN_DEV_SERVER is read only by a
 // `pk_dev_*` key. A `pk_test_*` key targets staging and ignores it, which is
 // why the placeholder default below cannot reach a machine on your desk.
 const String kApiKey = String.fromEnvironment(
-  'MYAZA_API_KEY',
+  'TODEN_API_KEY',
   defaultValue: 'pk_test_xxxxxxxxxxxxxxxxxxxxxxxx',
 );
-const String kDevServer = String.fromEnvironment('MYAZA_DEV_SERVER');
-const String kWorkflowId = String.fromEnvironment('MYAZA_WORKFLOW_ID');
+const String kDevServer = String.fromEnvironment('TODEN_DEV_SERVER');
+const String kWorkflowId = String.fromEnvironment('TODEN_WORKFLOW_ID');
 // The org's user reference. Address presence reports only for a named user.
-const String kUserId = String.fromEnvironment('MYAZA_USER_ID', defaultValue: 'usr_123');
+const String kUserId = String.fromEnvironment('TODEN_USER_ID', defaultValue: 'usr_123');
+// The person's email, passed as userData. Optional: it also lets the flow
+// offer an address they saved before without an email step.
+const String kUserEmail = String.fromEnvironment('TODEN_USER_EMAIL');
 
 void main() => runApp(const ExampleApp());
 
@@ -29,7 +32,7 @@ class ExampleApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      title: 'Myaza Identity Example',
+      title: 'Toden Identity Example',
       debugShowCheckedModeBanner: false,
       home: HomeScreen(),
     );
@@ -52,6 +55,7 @@ class HomeScreen extends StatelessWidget {
         devUrl: kDevServer.isEmpty ? null : kDevServer,
         workflowId: kWorkflowId.isEmpty ? null : kWorkflowId,
         userId: kUserId,
+        userData: kUserEmail.isEmpty ? null : const UserData(email: kUserEmail),
         // A workflow declares its own countries and ID types, so these are
         // omitted when one is set. Passing them anyway narrows a multi-region
         // flow to this hardcoded list: such a flow keeps its ID types per
@@ -63,7 +67,7 @@ class HomeScreen extends StatelessWidget {
         enableDocumentCapture: true,
         enableLiveness: true,
         appearance: const VerificationAppearance(
-          companyName: 'Myaza',
+          companyName: 'Toden',
           theme: VerificationThemeMode.light,
         ),
         metadata: const {'userId': kUserId},
@@ -86,7 +90,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Myaza KYC Example')),
+      appBar: AppBar(title: const Text('Toden Example')),
       body: Center(
         child: FilledButton(
           onPressed: () => _startVerification(context),

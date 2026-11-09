@@ -7,7 +7,8 @@ import '../services/api_service.dart';
 import '../widgets/ui_alert.dart';
 import '../widgets/ui_button.dart';
 import '../widgets/ui_input.dart';
-import '../widgets/ui_select.dart';
+import '../config/business_search.dart';
+import 'business_region_select.dart';
 import 'business_search_results.dart';
 import '../widgets/icons/icons.dart';
 import '../i18n/text_scope.dart';
@@ -19,10 +20,11 @@ import '../i18n/text_scope.dart';
 // into a search of their own filing cabinet, which is where KYB applications
 // are abandoned.
 //
-// The search itself is FREE and read-only; only picking a result leads to the
-// paid register check. It fires on an explicit submit, never on keystroke: a
-// debounce spends the register's small, uncontracted rate-limit budget on
-// every prefix nobody asked for. Sizes and rhythm mirror the web and RN SDKs
+// The search is read-only and free on most registers; where a register charges
+// per search the org pays, so the attempt session rides along. Picking a
+// result leads to the register check. It fires on an explicit submit, never
+// on keystroke: a debounce spends the register's small, uncontracted
+// rate-limit budget on every prefix nobody asked for. Sizes and rhythm mirror the web and RN SDKs
 // (12px block gaps, 48px input/button) — keep the three in lockstep.
 
 class BusinessSearch extends ConsumerStatefulWidget {
@@ -30,11 +32,16 @@ class BusinessSearch extends ConsumerStatefulWidget {
   final ValueChanged<BusinessSearchHit> onPicked;
   final VoidCallback onManualEntry;
 
+  /// The server refused search by name for this attempt (its message, or
+  /// null): the step moves to registration-number entry.
+  final ValueChanged<String?> onRefused;
+
   const BusinessSearch({
     super.key,
     required this.country,
     required this.onPicked,
     required this.onManualEntry,
+    required this.onRefused,
   });
 
   @override
@@ -75,35 +82,29 @@ class _BusinessSearchState extends ConsumerState<BusinessSearch> {
 
   Future<void> _loadRegions() async {
     setState(() => _regions = const []);
-    if (widget.country.isEmpty) return;
     final country = widget.country;
-    try {
-      final res = await ref
-          .read(kYCNotifierProvider.notifier)
-          .api
-          .businessRegions(country);
-      if (mounted && widget.country == country) {
-        setState(() => _regions = res.regions);
-      }
-    } catch (_) {
-      // An empty list means "do not ask" — also the safe answer when the
-      // catalogue is unreachable: the search itself says so on its own.
+    final regions = await loadBusinessRegions(ref, country);
+    if (mounted && widget.country == country) {
+      setState(() => _regions = regions);
     }
   }
 
   Future<void> _run() async {
     final q = _queryCtrl.text.trim();
     final region = ref.read(kYCNotifierProvider).businessSubdivisionCode;
+    final sessionId = ref.read(kYCNotifierProvider).sessionId;
     if (q.length < 2) return;
     if (_regions.isNotEmpty && (region ?? '').isEmpty) return;
     setState(() => _phase = 'searching');
     try {
-      final res = await ref.read(kYCNotifierProvider.notifier).api.businessSearch(
-            country: widget.country,
-            query: q,
-            limit: 50,
-            subdivisionCode: region,
-          );
+      final res =
+          await ref.read(kYCNotifierProvider.notifier).api.businessSearch(
+                country: widget.country,
+                query: q,
+                limit: 50,
+                subdivisionCode: region,
+                sessionId: sessionId,
+              );
       if (!mounted) return;
       setState(() {
         _hits = res.results;
@@ -111,7 +112,15 @@ class _BusinessSearchState extends ConsumerState<BusinessSearch> {
         _filter = '';
         _phase = 'results';
       });
-    } catch (_) {
+    } catch (e) {
+      // Search by name is not coming back for this attempt (switched off, no
+      // session, the org cannot pay, too many searches): straight to the number.
+      final refusal = businessSearchRefusal(e);
+      if (refusal != null) {
+        if (mounted) setState(() => _phase = 'idle');
+        widget.onRefused(refusal.message);
+        return;
+      }
       // Deliberately NOT an empty result list. "No matches" reads as "this
       // business is not registered", a claim an outage has not earned.
       if (mounted) setState(() => _phase = 'unavailable');
@@ -122,8 +131,8 @@ class _BusinessSearchState extends ConsumerState<BusinessSearch> {
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
     final text = context.myazaText;
-    final region = ref.watch(
-        kYCNotifierProvider.select((s) => s.businessSubdivisionCode));
+    final region =
+        ref.watch(kYCNotifierProvider.select((s) => s.businessSubdivisionCode));
     final searching = _phase == 'searching';
     final q = _filter.trim().toLowerCase();
     final shown = q.isEmpty
@@ -137,23 +146,7 @@ class _BusinessSearchState extends ConsumerState<BusinessSearch> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_regions.isNotEmpty) ...[
-          Text('State or region of registration', style: text.label),
-          const SizedBox(height: UiSpacing.sm),
-          UiSelect<String>(
-            value: (region ?? '').isEmpty ? null : region,
-            sheetTitle: 'State or region',
-            searchable: true,
-            options: [
-              for (final r in _regions)
-                UiSelectOption(value: r.code, label: r.name),
-            ],
-            onChanged: (code) => ref
-                .read(kYCNotifierProvider.notifier)
-                .setBusinessField('subdivisionCode', code),
-          ),
-          const SizedBox(height: 12),
-        ],
+        BusinessRegionSelect(regions: _regions),
 
         // No label: the placeholder says it, and the magnifier says what kind
         // of field this is — the web SDK's exact arrangement.

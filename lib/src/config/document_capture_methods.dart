@@ -61,3 +61,58 @@ DocumentCaptureMethods documentCaptureMethodsFor(VerificationConfig config) =>
       allowDocumentScan: config.allowDocumentScan,
       allowDocumentUpload: config.allowDocumentUpload,
     );
+
+// ─── After a side is captured ─────────────────────────────────────────────────
+//
+// The review screen is off unless `documentReview` is true: a camera scan skips
+// it, because
+// the scan already held the document steady and checked it was readable. An
+// uploaded photo has had no such look from anyone, so it keeps the screen, and
+// a side restored from an earlier visit (no source) keeps it too: only a fresh
+// capture moves on by itself. Mirrors the web and React Native SDKs.
+
+/// How a side's photo came to be. Null: restored, or not captured.
+enum DocumentSideSource { camera, upload }
+
+enum AfterDocumentCapture {
+  /// Show the front before asking for the back.
+  previewFront,
+
+  /// Move straight to scanning the back.
+  scanBack,
+
+  /// Show the review screen.
+  review,
+
+  /// Upload and move on, with no review.
+  handOver,
+}
+
+bool skipsDocumentReview({
+  required bool documentReview,
+  required List<DocumentSideSource?> sources,
+}) =>
+    !documentReview && sources.every((s) => s == DocumentSideSource.camera);
+
+AfterDocumentCapture afterDocumentCapture({
+  required bool documentReview,
+  required bool isBack,
+  required bool twoSided,
+  required DocumentSideSource? front,
+  required DocumentSideSource? back,
+  required bool hasBack,
+}) {
+  final sides = twoSided ? [front, back] : [front];
+  if (skipsDocumentReview(documentReview: documentReview, sources: sides)) {
+    return AfterDocumentCapture.handOver;
+  }
+  if (isBack || !twoSided) return AfterDocumentCapture.review;
+  final scanOn = !hasBack &&
+      skipsDocumentReview(documentReview: documentReview, sources: [front]);
+  return scanOn ? AfterDocumentCapture.scanBack : AfterDocumentCapture.previewFront;
+}
+
+/// Whether the side clips should try to record sound. Upload-only flows have
+/// no clips to record into.
+bool recordsDocumentAudio(VerificationConfig config) =>
+    config.documentAudio && documentCaptureMethodsFor(config).scan;

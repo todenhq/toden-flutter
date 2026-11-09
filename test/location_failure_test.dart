@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/location_failure.dart';
-import 'package:myaza_kyc_sdk_flutter/src/utils/address_current_location.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/services/location_failure.dart';
+import 'package:toden_flutter/src/utils/address_current_location.dart';
 
 // ─── Location failures are CLASSIFIED ────────────────────────────────────────
 //

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../config/document_guide.dart';
 import '../config/theme.dart';
 import '../services/document_framing_gate.dart';
 import 'document_scan_painter.dart';
@@ -29,11 +30,16 @@ class DocumentScanOverlay extends StatefulWidget {
   /// Guide rect aspect (width / height) the document should fill.
   final double aspect;
 
+  /// The free band an upright guide fills (config/document_guide.dart). Null
+  /// for a landscape guide, which ignores it.
+  final DocumentGuideBand? band;
+
   const DocumentScanOverlay({
     super.key,
     required this.framing,
     required this.progress,
     required this.aspect,
+    this.band,
   });
 
   @override
@@ -103,6 +109,7 @@ class _DocumentScanOverlayState extends State<DocumentScanOverlay>
           return CustomPaint(
             painter: DocumentScanPainter(
               aspect: widget.aspect,
+              band: widget.band,
               accent: accent,
               // Freeze the search motion once locked: continuing to sweep
               // would imply we're still looking after we've decided.

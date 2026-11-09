@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 // ─── A test that reads another package skips when that package is absent ─────
 //
-// The public mirror (todenhq/kyc-sdk-flutter) carries this package alone. A
+// The public mirror (todenhq/toden-flutter) carries this package alone. A
 // test that reaches into sdk-react or sdk-react-native by a relative
 // path passes here and fails there, which is how the 2.7.0 publish was refused.
 // Such a test guards each sibling read with `existsSync()` and a `skip:`; this

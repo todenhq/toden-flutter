@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/step_order.dart';
+import 'package:toden_flutter/toden_flutter.dart';
+import 'package:toden_flutter/src/providers/step_order.dart';
 
 // ─── Address-only flows (Address Intelligence standalone) ────────────────────
 //

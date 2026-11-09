@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/presence/presence_tier.dart';
+import 'package:toden_flutter/src/presence/presence_tier.dart';
 
 // The one table behind presenceStatus().tier. A port of the RN SDK's
 // presenceTier.test.ts — keep the two in lockstep.

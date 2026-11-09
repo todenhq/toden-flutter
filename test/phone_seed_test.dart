@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/phone_seed.dart';
+import 'package:toden_flutter/src/config/phone_seed.dart';
 
 // ─── The phone field's pure half ─────────────────────────────────────────────
 //

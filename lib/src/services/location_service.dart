@@ -24,6 +24,12 @@ const double kPreciseEnoughM = 25;
 /// Hard ceiling on the whole precise-fix watch.
 const Duration kPreciseWindow = Duration(seconds: 8);
 
+/// The window bounds how long a reading may keep improving, not how long the
+/// first one may take. A phone indoors with no recent fix needs longer than 8s
+/// to get one at all (Galaxy S24, 2026-11-01). The React Native SDK keeps the
+/// same value.
+const Duration kNoReadingLimit = Duration(seconds: 30);
+
 /// Once ANY fix exists, wait only this much longer for a better one. A wifi or
 /// cell fix never reaches 25m, and waiting out the whole window for an accuracy
 /// that is not coming reads as "keeps loading".
@@ -160,6 +166,7 @@ Future<DeviceFixResult> precisePositionResult() async {
     Position? best;
     Timer? grace;
     Timer? window;
+    Timer? limit;
     StreamSubscription<Position>? sub;
     var streamFailed = false;
 
@@ -167,11 +174,15 @@ Future<DeviceFixResult> precisePositionResult() async {
       if (completer.isCompleted) return;
       grace?.cancel();
       window?.cancel();
+      limit?.cancel();
       unawaited(sub?.cancel());
       completer.complete(fix);
     }
 
-    window = Timer(kPreciseWindow, () => finish(best));
+    window = Timer(kPreciseWindow, () {
+      if (best != null) finish(best);
+    });
+    limit = Timer(kNoReadingLimit, () => finish(best));
     sub = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.best,

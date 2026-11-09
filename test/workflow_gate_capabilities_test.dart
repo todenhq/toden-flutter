@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
 
 // A workflow mount skips /config, so every capability fact the /config path
 // carries has to ride the workflow resolution AND be forwarded by the gate.
@@ -9,7 +9,8 @@ import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
 // Street View, geo default all silently off on workflow embeds, user report
 // 2026-09-08); this pins them as a source diff so the next field cannot slip.
 
-/// `key: response.key` pairs in verification_provider's /config → ServerSdkConfig block
+/// `key: response.key` pairs (or `key: filter(response.key, …)`, as the ID
+/// list is) in verification_provider's /config → ServerSdkConfig block
 /// (built as `final ready = ServerSdkConfig(...)` so the opening-step nudge can
 /// read it before it is applied).
 Set<String> _configForwardedKeys() {
@@ -17,16 +18,16 @@ Set<String> _configForwardedKeys() {
   final block = RegExp(r'final ready = ServerSdkConfig\(\s*status: ServerConfigStatus\.ready,(.*?)\);', dotAll: true)
       .firstMatch(src)!
       .group(1)!;
-  return RegExp(r'(\w+): response\.\1').allMatches(block).map((m) => m.group(1)!).toSet();
+  return RegExp(r'(\w+): (?:\w+\()?response\.\1').allMatches(block).map((m) => m.group(1)!).toSet();
 }
 
 /// `key: res.key` pairs in the workflow gate's ServerSdkConfig block.
 Set<String> _gateForwardedKeys() {
   final src = File('lib/src/widgets/workflow_gate.dart').readAsStringSync();
-  final block = RegExp(r'serverConfig: ServerSdkConfig\(\s*status: ServerConfigStatus\.ready,(.*?)\),', dotAll: true)
+  final block = RegExp(r'serverConfig: ServerSdkConfig\(\s*status: ServerConfigStatus\.ready,(.*?)\n\s*\),', dotAll: true)
       .firstMatch(src)!
       .group(1)!;
-  return RegExp(r'(\w+): res\.\1').allMatches(block).map((m) => m.group(1)!).toSet();
+  return RegExp(r'(\w+): (?:\w+\()?res\.\1').allMatches(block).map((m) => m.group(1)!).toSet();
 }
 
 void main() {

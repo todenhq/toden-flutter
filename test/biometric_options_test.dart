@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
+import 'package:toden_flutter/toden_flutter.dart';
 
 // Mirrors the server's biometric-options.test.ts and the web/RN SDKs' tests;
 // the defaults are a contract the four keep together.

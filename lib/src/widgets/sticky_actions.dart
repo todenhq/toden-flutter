@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
+import 'fill_remaining.dart';
 
 /// A step's primary actions, held at the bottom edge of a viewport-filling
 /// body. Mirrors the web SDK's StickyActions and the RN twin.
@@ -26,10 +27,14 @@ class StickyActions extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // The body's own height reaches a FillRemainingColumn inside it, so a
+        // map can run down to the actions on a tall phone (fill_remaining.dart).
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: UiSpacing.sm),
-            child: body,
+          child: LayoutBuilder(
+            builder: (context, box) => SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: UiSpacing.sm),
+              child: FillViewportScope(height: box.maxHeight - UiSpacing.sm, child: body),
+            ),
           ),
         ),
         // RN's footer: the hairline runs edge to edge (its negative margins

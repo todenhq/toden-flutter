@@ -37,10 +37,13 @@ Future<Map<String, dynamic>?> collectAttestation({
   required ChallengeFetcher fetchChallenge,
   String? cloudProjectNumber,
   Duration budget = kAttestationBudget,
+  // Ties the proof to specific contents: turns the server's challenge into the
+  // bytes the platform signs. Omit for a plain attestation.
+  List<int> Function(List<int> challenge)? bindChallenge,
 }) async {
   final Future<Map<String, dynamic>?> work = switch (platform) {
-    'ios' => _appAttest(native, fetchChallenge),
-    'android' => _playIntegrity(native, fetchChallenge, cloudProjectNumber),
+    'ios' => _appAttest(native, fetchChallenge, bindChallenge),
+    'android' => _playIntegrity(native, fetchChallenge, cloudProjectNumber, bindChallenge),
     _ => Future.value(null),
   };
   try {
@@ -53,6 +56,7 @@ Future<Map<String, dynamic>?> collectAttestation({
 Future<Map<String, dynamic>?> _appAttest(
   DeviceIntelPlatform native,
   ChallengeFetcher fetchChallenge,
+  List<int> Function(List<int>)? bindChallenge,
 ) async {
   final state = await native.appAttestState();
   // Simulators and pre-iOS-14 devices: App Attest is not there to ask.
@@ -64,8 +68,8 @@ Future<Map<String, dynamic>?> _appAttest(
 
   // No key yet means nothing could be asserted: attest whatever the server said.
   final attest = challenge.attest || stored == null;
-  final clientDataHash =
-      Uint8List.fromList(sha256.convert(challenge.bytes).bytes);
+  final signed = bindChallenge?.call(challenge.bytes) ?? challenge.bytes;
+  final clientDataHash = Uint8List.fromList(sha256.convert(signed).bytes);
   final out = await native.appAttest(
     keyId: stored,
     clientDataHash: clientDataHash,
@@ -90,6 +94,7 @@ Future<Map<String, dynamic>?> _playIntegrity(
   DeviceIntelPlatform native,
   ChallengeFetcher fetchChallenge,
   String? cloudProjectNumber,
+  List<int> Function(List<int>)? bindChallenge,
 ) async {
   // No project named by the server: Play Integrity tokens could not be
   // decoded for this org, so none is requested.
@@ -100,7 +105,8 @@ Future<Map<String, dynamic>?> _playIntegrity(
   if (challenge == null) return null;
 
   // Digest.toString() is lowercase hex, exactly what the server rehashes.
-  final requestHash = sha256.convert(challenge.bytes).toString();
+  final signed = bindChallenge?.call(challenge.bytes) ?? challenge.bytes;
+  final requestHash = sha256.convert(signed).toString();
   final token = _nonEmpty(await native.playIntegrityToken(
     cloudProjectNumber: project,
     requestHash: requestHash,

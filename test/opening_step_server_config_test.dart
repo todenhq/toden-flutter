@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/step_order.dart';
+import 'package:toden_flutter/toden_flutter.dart';
+import 'package:toden_flutter/src/providers/verification_state.dart';
+import 'package:toden_flutter/src/providers/step_order.dart';
 
 // ─── The opening step reads the server's facts ───────────────────────────────
 //

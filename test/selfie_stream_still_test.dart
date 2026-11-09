@@ -4,8 +4,9 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:myaza_kyc_sdk_flutter/src/config/capture_config.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/image_service.dart';
+import 'package:toden_flutter/src/config/capture_config.dart';
+import 'package:toden_flutter/src/liveness/selfie_pick.dart' show SelfieFace;
+import 'package:toden_flutter/src/services/image_service.dart';
 
 // ─── The Android liveness still keeps the preview's exposure ─────────────────
 //
@@ -65,7 +66,23 @@ void main() {
     // The defect was the choice of encoder at one call site, which no
     // behavioural test of the encoders can see.
     final source = File('lib/src/screens/liveness_screen.dart').readAsStringSync();
-    expect(source, contains('processSelfieStreamStill(selfie)'));
-    expect(source, isNot(contains('processSelfieImage(selfie)')));
+    expect(source, contains('processSelfieStreamStill(selfie'));
+    expect(source, isNot(contains('processSelfieImage(selfie')));
+    // So does the still the run chose (liveness_selfie_run.dart).
+    final run = File('lib/src/screens/liveness_selfie_run.dart').readAsStringSync();
+    expect(run, contains('processSelfieStreamStill(bytes, cut: best.face)'));
+    expect(run, isNot(contains('processSelfieImage(')));
+  });
+
+  test('a cut still is the standard selfie frame: 3:4, at most 720 wide', () async {
+    // The face 40% of a 1080-wide upright frame, centred.
+    final frame = _indoorFrame(width: 1080, height: 1440);
+    final out = await processSelfieStreamStill(
+      frame,
+      cut: const SelfieFace(centreX: 0.5, centreY: 0.5, width: 0.4),
+    );
+    final decoded = img.decodeJpg(out)!;
+    expect(decoded.width, 720);
+    expect(decoded.width / decoded.height, closeTo(0.75, 0.01));
   });
 }

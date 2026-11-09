@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/utils/map_tiles.dart';
+import 'package:toden_flutter/src/utils/map_tiles.dart';
 
 // ─── The pin step's map height and its reachable Continue ────────────────────
 //

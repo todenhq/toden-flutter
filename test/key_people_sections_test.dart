@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/business.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/business_application.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/key_people_section_defs.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/key_people_sections.dart';
+import 'package:toden_flutter/src/config/business.dart';
+import 'package:toden_flutter/src/config/business_application.dart';
+import 'package:toden_flutter/src/config/key_people_section_defs.dart';
+import 'package:toden_flutter/src/config/key_people_sections.dart';
 
 // Sections are VIEWS over one list, and the classification has to match what
 // the SERVER will make of the same submission. Where it does not, the screen

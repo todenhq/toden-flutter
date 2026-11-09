@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-import 'package:myaza_kyc_sdk_flutter/src/utils/map_tiles.dart' show MapLatLng;
-import 'package:myaza_kyc_sdk_flutter/src/utils/step_log.dart';
+import 'package:toden_flutter/toden_flutter.dart';
+import 'package:toden_flutter/src/utils/map_tiles.dart' show MapLatLng;
+import 'package:toden_flutter/src/utils/step_log.dart';
 
 // ─── The address flow's pure rules ───────────────────────────────────────────
 //

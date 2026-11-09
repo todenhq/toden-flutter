@@ -2,6 +2,8 @@ import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/verification_config.dart';
+import '../providers/address_book_provider.dart';
+import '../providers/business_documents_provider.dart';
 import '../providers/camera_provider.dart';
 import '../providers/verification_provider.dart';
 import '../providers/verification_state.dart';
@@ -44,7 +46,13 @@ List<Override> verificationFlowOverrides(
       kYCNotifierProvider.overrideWith(VerificationNotifier.new),
       cameraNotifierProvider.overrideWith(CameraNotifier.new),
       livenessNotifierProvider.overrideWith(LivenessNotifier.new),
+      // The saved address offer, which outlives the steps it sits over.
+      addressBookProvider.overrideWith(AddressBookNotifier.new),
       verificationThemeModeProvider.overrideWith((ref) => initialThemeMode(config.appearance)),
       // Per flow, so one flow's selfie camera never lights another's screen.
       livenessCameraOnProvider.overrideWith((ref) => false),
+      // Which business-document group is open; the back arrow walks them.
+      businessDocumentGroupIndexProvider.overrideWith((ref) => 0),
+      // And which supporting document is open.
+      supportingDocumentIndexProvider.overrideWith((ref) => 0),
     ];

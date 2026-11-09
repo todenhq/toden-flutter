@@ -1,0 +1,296 @@
+/// Myaza KYC SDK — public API barrel file.
+///
+/// Import this single file to access everything:
+///   import 'package:kyc_sdk_flutter/kyc_sdk_flutter.dart';
+library toden_flutter;
+
+// Config
+export 'src/config/verification_config.dart'
+    show
+        VerificationProgressStyle,
+        VerificationThemeMode,
+        VerificationAppearance,
+        VerificationConsentContent,
+        VerificationSuccessContent,
+        LivenessConfig,
+        VoiceGuidanceConfig,
+        UserData,
+        WorkflowCountryOption,
+        IdSelectionLayout,
+        VerificationConfig,
+        VerificationSubmission,
+        VerificationError;
+
+// The verdict callback payload (a flow that waits for its result in the app).
+export 'src/config/verification_result.dart' show VerificationResult;
+
+// The biometric scopes' flow options (selfie review, where the verdict lands,
+// the Done button), resolved the same way on the server and every SDK.
+export 'src/config/biometric_options.dart'
+    show
+        BiometricFlowConfig,
+        BiometricFlowOptions,
+        BiometricFlowConfigX,
+        biometricFlowOptions,
+        showsSelfieReview,
+        waitsForResult,
+        showsDoneButton;
+// The org's own words on the biometric screens (loading + the two verdicts),
+// resolved with the tokens filled the way the consent and success copy are.
+export 'src/config/biometric_copy.dart'
+    show
+        BiometricCopy,
+        BiometricCopyText,
+        BiometricCopyX,
+        ResolvedBiometricCopy,
+        biometricCopyFor;
+export 'src/config/copy_tokens.dart' show fillCopyTokens;
+
+// Custom texts: a workflow's (or the host's) copy by language then key; the
+// keys are the shared catalogue's (see test/customisable_texts_vectors.json).
+export 'src/i18n/translate.dart' show WorkflowTexts, kBaseTextLanguage;
+export 'src/i18n/customisable_texts.dart' show kCustomisableTextKeys;
+
+export 'src/config/id_types.dart'
+    show
+        ScanSides,
+        IdTypeConfig,
+        kCuratedIdTypes,
+        countryLabel,
+        curatedIdTypesForCountry,
+        curatedIdType,
+        resolveIdTypeDefinition;
+
+export 'src/config/country_names.g.dart' show kCountryNames;
+
+export 'src/config/questionnaire.dart'
+    show
+        QuestionnaireFieldType,
+        QuestionnaireOption,
+        QuestionnaireField,
+        QuestionnaireConfig;
+
+export 'src/config/proof_of_address.dart'
+    show PoaCapture, PoaDocumentType, ProofOfAddressConfig;
+
+// Artefacts kept on file, so a host configuring the flow in code (rather
+// than through a workflow) can name what it wants collected.
+export 'src/config/supporting_documents.dart'
+    show
+        SupportingDocumentRequest,
+        SupportingDocumentsConfig,
+        SupportingDocumentUpload;
+
+export 'src/config/address_collection.dart'
+    show
+        AddressCollectionConfig,
+        AddressState,
+        AddressPickedAt,
+        AddressStreetView,
+        addressPayload;
+
+// The address wire shapes: the breakdown a collected address holds onto, and
+// what the four address endpoints answer with.
+export 'src/services/api_service.dart'
+    show
+        AddressParts,
+        AddressReverseResult,
+        AddressSearchHit,
+        PlaceSuggestion,
+        ResolvedPlace;
+
+// The address flow as pure rules — a cross-SDK mirror of the web and RN
+// models. Exported so a host can reason about the flow it configured.
+export 'src/config/address_flow.dart'
+    show
+        AddressFlowOptions,
+        addressFlowOptions,
+        addressFlowSteps,
+        addressVendorsStubbed,
+        kSampleAddressLine,
+        nextAddressStep,
+        prevAddressStep,
+        metersBetween,
+        shouldAskLabelDecision,
+        displayAddressLine,
+        kPinEpsilon,
+        kKeepPickedLabelRadiusM,
+        kLabelPromptMinMoveM,
+        kReverseDebounce;
+
+// Presence verification (Address Intelligence Phase 2): the foreground
+// reporter the HOST APP calls on app open, plus the on-device pin store.
+export 'src/presence/presence_reporter.dart'
+    show AddressPresence, PresenceReportReason, PresenceReportResult;
+// savePresencePin is the org-side handoff for STANDALONE address
+// verification: when capture happened on a hosted web link (or the org's own
+// backend already holds the address), the host app hands the SDK the pin so
+// the foreground and background presence tiers can run.
+export 'src/presence/presence_store.dart' show clearPresencePin, savePresencePin;
+// What the SDK does when the organisation stops monitoring; a host may also
+// call it itself (for example on sign-out).
+export 'src/presence/presence_stand_down.dart' show standDownPresence;
+export 'src/presence/background_presence.dart'
+    show
+        BackgroundPresenceReason,
+        EnableBackgroundResult,
+        BackgroundPresence,
+        kGeofenceRadiusMeters;
+// The Android foreground-service tier (the OkHi reliability move): a
+// persistent notification keeps the process alive on phones whose battery
+// managers drop geofence transitions. Opt-in; the host words the notification
+// and declares the service in its own manifest.
+export 'src/presence/foreground_presence.dart'
+    show
+        EnableForegroundServiceResult,
+        ForegroundServiceReason,
+        PresenceService,
+        PresenceNotification;
+export 'src/presence/presence_status.dart'
+    show
+        PresencePermission,
+        PresenceSettingsTarget,
+        PresenceStatus,
+        PresenceTier,
+        openLocationSettings,
+        presenceStatus;
+export 'src/presence/presence_tier.dart'
+    show PresenceTierInputs, resolvePresenceTier;
+// The stay the background tier has open on this phone: when the person
+// arrived and when it can next be reported.
+export 'src/presence/presence_stay.dart' show PresenceStay, presenceStay;
+// Where the check stands on the server (running, verified, how far along),
+// for the host app to show without a webhook relayed through its backend.
+export 'src/presence/presence_watch_status.dart'
+    show
+        PresenceWatchState,
+        PresenceWatchStatus,
+        fetchPresenceWatchStatus,
+        parsePresenceWatchStatus;
+
+export 'src/config/contact_verification.dart'
+    show OtpInputStyle, EmailVerificationConfig, PhoneVerificationConfig;
+
+export 'src/config/nfc_config.dart' show NfcConfig;
+
+export 'src/config/business.dart'
+    show
+        BusinessProductInput,
+        BusinessProduct,
+        kBusinessProducts,
+        kDefaultBusinessProduct,
+        businessProduct,
+        isValidContactEmail,
+        CompanyInfoField,
+        CompanyInfoMode,
+        KeyPersonRole,
+        ApplicantRole,
+        KeyPeopleLevel,
+        keyPersonRoleFromKey,
+        kBusinessDocumentLabels,
+        businessDocumentLabel,
+        WorkflowKeyPeopleConfig,
+        WorkflowBusinessDocumentType,
+        WorkflowBusinessDocumentsConfig,
+        WorkflowBusinessApplicantConfig,
+        WorkflowBusinessConfig;
+
+// The KYB application section — which steps a business workflow adds beyond the
+// registration details, and the row/payload models those steps collect.
+export 'src/config/business_application.dart'
+    show
+        kMaxKeyPeopleRows,
+        hasKeyPeopleCollection,
+        hasBusinessDocumentsStep,
+        hasApplicantVerification,
+        keyPeopleMinEntries,
+        resolveBusinessDocumentTypes,
+        ResolvedBusinessDocumentType,
+        KeyPersonEntry,
+        KeyPersonOwnerEntry,
+        looksCorporate,
+        BusinessDocumentUpload,
+        keyPeoplePayload;
+
+// NFC chip reader — the interface + types are public so hosts can inject a
+// custom/stub reader via `nfcChipReaderOverride` (tests, or a different eMRTD lib).
+export 'src/services/nfc_reader.dart'
+    show
+        NfcMrzKey,
+        NfcChipData,
+        NfcReadException,
+        NfcChipReader,
+        nfcChipReaderOverride;
+
+// Validators — useful for callers who want to pre-validate before calling show()
+export 'src/services/validators.dart'
+    show
+        ValidationResult,
+        validateIdNumber,
+        maskIdNumber;
+
+export 'src/config/theme.dart'
+    show
+        UiColors,
+        UiTypography,
+        UiRadius,
+        UiSpacing,
+        UiSizing;
+
+// Liveness types
+export 'src/liveness/liveness_types.dart'
+    show
+        LivenessChallenge,
+        LivenessPhase,
+        ChallengeConfig,
+        kDefaultChallengePool;
+
+// Face detection — real on-device detection ships in-package and is the default
+// (iOS: Apple Vision · Android: ML Kit native Gradle; no GoogleMLKit pod, so
+// arm64 iOS-simulator builds work). Hosts need not register anything;
+// registerFaceDetectorFactory() is an optional override (custom detector/tests).
+export 'src/liveness/face_detection.dart'
+    show
+        LivenessFaceData,
+        FaceDetectorService,
+        NativeFaceDetectorService,
+        StubFaceDetectorService,
+        registerFaceDetectorFactory,
+        createFaceDetectorService,
+        hasFaceDetectorFactory;
+
+// State
+// On Android the ML Kit models are fetched by Play Services rather than bundled.
+// A host that opens its own camera flow can start the downloads early.
+export 'src/services/model_readiness.dart'
+    show
+        ModelReadyState,
+        isFaceModelReady,
+        isTextModelReady,
+        primeFaceModel,
+        primeTextModel;
+
+export 'src/providers/verification_state.dart'
+    show
+        VerificationStep,
+        VerificationMediaIds,
+        VerificationSubmissionResult,
+        VerificationState;
+
+// Widgets
+export 'src/widgets/ui_button.dart' show UiButton, UiButtonVariant;
+export 'src/widgets/ui_input.dart' show UiInput;
+export 'src/widgets/ui_card.dart' show UiCard;
+export 'src/widgets/ui_alert.dart' show UiAlert, UiAlertVariant;
+export 'src/widgets/step_header.dart' show StepHeader;
+export 'src/widgets/verification_bottom_sheet.dart' show VerificationBottomSheet;
+
+// Entry widget (Verification.show + VerificationWidget)
+//
+// Face re-authentication runs through this same entry point: mount it with a
+// workflow whose scope is `biometric-authentication` and the flow walks the
+// liveness step and submits to /verify like every other scope.
+export 'src/widgets/verification_widget.dart' show Verification, VerificationWidget;
+
+// The earlier names, kept as deprecated aliases.
+export 'src/deprecated_names.dart';

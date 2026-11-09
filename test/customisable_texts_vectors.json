@@ -20,7 +20,7 @@
     {
       "key": "welcome.description",
       "group": "welcome",
-      "default": "We need to verify your identity to comply with regulatory requirements. This process is quick and secure.",
+      "default": "We're required to confirm who you are, and we'll guide you at every step.",
       "configPath": [
         "consent",
         "description"
@@ -36,18 +36,7 @@
     {
       "key": "welcome.process.verifyId",
       "group": "welcome",
-      "default": "Verify your government-issued ID",
-      "availability": {
-        "subject": "individual",
-        "scopes": [
-          "full"
-        ]
-      }
-    },
-    {
-      "key": "welcome.process.personalInfo",
-      "group": "welcome",
-      "default": "Collect basic personal information",
+      "default": "Check that your ID is genuine",
       "availability": {
         "subject": "individual",
         "scopes": [
@@ -60,7 +49,10 @@
       "group": "welcome",
       "default": "Collect your business registration details",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
@@ -68,13 +60,16 @@
       "group": "welcome",
       "default": "Verify your business against the official registry",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
       "key": "welcome.process.addressPin",
       "group": "welcome",
-      "default": "Pin your home address on a map",
+      "default": "Verify your home address",
       "availability": {
         "scopes": [
           "address"
@@ -167,7 +162,7 @@
     {
       "key": "welcome.process.captureDocument",
       "group": "welcome",
-      "default": "Capture a photo of your ID document",
+      "default": "Scan your ID document",
       "availability": {
         "subject": "individual",
         "scopes": [
@@ -200,7 +195,7 @@
     {
       "key": "welcome.process.supportingDocuments",
       "group": "welcome",
-      "default": "Upload supporting documents",
+      "default": "Share any extra documents we need",
       "availability": {
         "subject": "individual",
         "scopes": [
@@ -213,17 +208,17 @@
       "group": "welcome",
       "default": "Upload a proof of address document",
       "availability": {
-        "subject": "individual",
         "scopes": [
           "full",
           "address"
-        ]
+        ],
+        "step": "proofOfAddress"
       }
     },
     {
       "key": "welcome.process.addressMap",
       "group": "welcome",
-      "default": "Pin your address on a map",
+      "default": "Verify your home address",
       "availability": {
         "scopes": [
           "full"
@@ -248,7 +243,10 @@
       "group": "welcome",
       "default": "List the company's directors and owners",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
@@ -256,7 +254,10 @@
       "group": "welcome",
       "default": "Upload supporting business documents",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
@@ -264,7 +265,10 @@
       "group": "welcome",
       "default": "Verify your own identity",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
@@ -603,7 +607,7 @@
     {
       "key": "primer.selfie.checklist2",
       "group": "primer",
-      "default": "Take off glasses or anything covering your face",
+      "default": "Take off glasses, hats, caps or anything covering your face",
       "availability": {
         "subject": "individual",
         "scopes": [
@@ -1108,7 +1112,19 @@
     {
       "key": "uploadDocument.crop.confirm",
       "group": "uploadDocument",
-      "default": "Crop & Use",
+      "default": "Use photo",
+      "availability": {
+        "subject": "individual",
+        "scopes": [
+          "full"
+        ],
+        "step": "documentCapture"
+      }
+    },
+    {
+      "key": "uploadDocument.crop.rotate",
+      "group": "uploadDocument",
+      "default": "Rotate",
       "availability": {
         "subject": "individual",
         "scopes": [
@@ -1620,6 +1636,19 @@
       }
     },
     {
+      "key": "address.search.title.business",
+      "group": "address",
+      "default": "Find the business premises",
+      "availability": {
+        "scopes": [
+          "full",
+          "address"
+        ],
+        "step": "address",
+        "subject": "business"
+      }
+    },
+    {
       "key": "address.search.description",
       "group": "address",
       "default": "Search it, use your current location, or place a pin on the map.",
@@ -1850,6 +1879,19 @@
         ],
         "step": "address",
         "subject": "individual"
+      }
+    },
+    {
+      "key": "address.entrance.description.photo.business",
+      "group": "address",
+      "default": "A photo of the shop front, office entrance or signboard helps show the business trades here.",
+      "availability": {
+        "scopes": [
+          "full",
+          "address"
+        ],
+        "step": "address",
+        "subject": "business"
       }
     },
     {
@@ -2163,11 +2205,98 @@
       }
     },
     {
+      "key": "address.background.title",
+      "group": "address",
+      "default": "Confirm your address automatically",
+      "availability": {
+        "scopes": [
+          "full",
+          "address"
+        ],
+        "step": "address",
+        "subject": "individual"
+      }
+    },
+    {
+      "key": "address.background.title.business",
+      "group": "address",
+      "default": "Confirm the premises automatically",
+      "availability": {
+        "scopes": [
+          "full",
+          "address"
+        ],
+        "step": "address",
+        "subject": "business"
+      }
+    },
+    {
+      "key": "address.background.description",
+      "group": "address",
+      "default": "Allow location all the time and your phone checks in on its own while you're at home.",
+      "availability": {
+        "scopes": [
+          "full",
+          "address"
+        ],
+        "step": "address",
+        "subject": "individual"
+      }
+    },
+    {
+      "key": "address.background.description.business",
+      "group": "address",
+      "default": "Allow location all the time and your phone checks in on its own while you're at the premises.",
+      "availability": {
+        "scopes": [
+          "full",
+          "address"
+        ],
+        "step": "address",
+        "subject": "business"
+      }
+    },
+    {
+      "key": "address.background.allow",
+      "group": "address",
+      "default": "Continue with automatic checks",
+      "availability": {
+        "scopes": [
+          "full",
+          "address"
+        ],
+        "step": "address"
+      }
+    },
+    {
+      "key": "address.background.later",
+      "group": "address",
+      "default": "Not now",
+      "availability": {
+        "scopes": [
+          "full",
+          "address"
+        ],
+        "step": "address"
+      }
+    },
+    {
+      "key": "address.presence.off.title",
+      "group": "address",
+      "default": "One more step to finish",
+      "availability": {
+        "scopes": [
+          "full",
+          "address"
+        ],
+        "step": "address"
+      }
+    },
+    {
       "key": "proofOfAddress.title",
       "group": "proofOfAddress",
       "default": "Proof of address",
       "availability": {
-        "subject": "individual",
         "scopes": [
           "full",
           "address"
@@ -2180,7 +2309,6 @@
       "group": "proofOfAddress",
       "default": "Document type",
       "availability": {
-        "subject": "individual",
         "scopes": [
           "full",
           "address"
@@ -2193,7 +2321,6 @@
       "group": "proofOfAddress",
       "default": "Utility bill",
       "availability": {
-        "subject": "individual",
         "scopes": [
           "full",
           "address"
@@ -2206,7 +2333,6 @@
       "group": "proofOfAddress",
       "default": "Bank statement",
       "availability": {
-        "subject": "individual",
         "scopes": [
           "full",
           "address"
@@ -2219,7 +2345,6 @@
       "group": "proofOfAddress",
       "default": "Tenancy agreement",
       "availability": {
-        "subject": "individual",
         "scopes": [
           "full",
           "address"
@@ -2232,7 +2357,6 @@
       "group": "proofOfAddress",
       "default": "Government-issued document",
       "availability": {
-        "subject": "individual",
         "scopes": [
           "full",
           "address"
@@ -2249,7 +2373,6 @@
         "otherLabel"
       ],
       "availability": {
-        "subject": "individual",
         "scopes": [
           "full",
           "address"
@@ -2262,7 +2385,6 @@
       "group": "proofOfAddress",
       "default": "Document uploaded",
       "availability": {
-        "subject": "individual",
         "scopes": [
           "full",
           "address"
@@ -2359,7 +2481,10 @@
       "group": "business",
       "default": "Business Details",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
@@ -2367,7 +2492,10 @@
       "group": "business",
       "default": "Provide your business registration details for verification against the official registry.",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
@@ -2375,7 +2503,10 @@
       "group": "business",
       "default": "Country of registration",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
@@ -2383,7 +2514,10 @@
       "group": "business",
       "default": "Enter the details myself",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
@@ -2391,7 +2525,10 @@
       "group": "business",
       "default": "Registration number",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
@@ -2399,7 +2536,10 @@
       "group": "business",
       "default": "Registered business name",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
@@ -2407,7 +2547,10 @@
       "group": "business",
       "default": "Company information",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
@@ -2415,7 +2558,10 @@
       "group": "business",
       "default": "We verify these details against the official registry record.",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
@@ -2423,7 +2569,10 @@
       "group": "business",
       "default": "Contact email for owner verification",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
@@ -2431,7 +2580,10 @@
       "group": "business",
       "default": "We'll email this address a link for your directors and owners to verify their identity.",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
@@ -2439,7 +2591,10 @@
       "group": "business",
       "default": "Continue checks this business against the official register and brings back its details.",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
@@ -2447,7 +2602,10 @@
       "group": "business",
       "default": "Confirm details & continue",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
@@ -2456,15 +2614,21 @@
       "default": "Business documents",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "businessDocuments"
       }
     },
     {
       "key": "business.documents.description",
       "group": "business",
-      "default": "Upload the supporting documents for your business. Each one must clearly show the registered business name and registration number. Required documents are marked with *.",
+      "default": "Upload one document for each group, one group at a time. Each must clearly show the registered business name and registration number.",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "businessDocuments"
       }
     },
@@ -2474,6 +2638,9 @@
       "default": "Now verify your own identity",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "applicant"
       }
     },
@@ -2483,6 +2650,9 @@
       "default": "Tell us your role at the business, then verify your identity with a government-issued ID.",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "applicant"
       }
     },
@@ -2492,6 +2662,9 @@
       "default": "Regulations require the person submitting a business application to verify their own identity. This only takes a minute.",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "applicant"
       }
     },
@@ -2501,6 +2674,9 @@
       "default": "Are you one of the people you listed?",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "applicant"
       }
     },
@@ -2510,6 +2686,9 @@
       "default": "I'm not one of these people",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "applicant"
       }
     },
@@ -2519,6 +2698,9 @@
       "default": "You'll verify your identity at the end of this form, so no separate invite link is needed for you.",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "applicant"
       }
     },
@@ -2528,6 +2710,9 @@
       "default": "Your role at the business",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "applicant"
       }
     },
@@ -2537,6 +2722,9 @@
       "default": "Key people",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "keyPeople"
       }
     },
@@ -2546,6 +2734,9 @@
       "default": "Add the company's directors, shareholders and beneficial owners.",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "keyPeople"
       }
     },
@@ -2555,6 +2746,9 @@
       "default": "You can skip this if you’re unsure. We’ll identify directors and owners from the official registry. Adding them here speeds up the review.",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "keyPeople"
       }
     },
@@ -2564,6 +2758,9 @@
       "default": "Add a beneficial owner",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "keyPeople"
       }
     },
@@ -2573,6 +2770,9 @@
       "default": "Add a shareholder",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "keyPeople"
       }
     },
@@ -2582,6 +2782,9 @@
       "default": "People who act on behalf of the company.",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "keyPeople"
       }
     },
@@ -2591,6 +2794,9 @@
       "default": "Add a representative",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "keyPeople"
       }
     },
@@ -2600,6 +2806,9 @@
       "default": "Working out who else needs to verify",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "keyPeople"
       }
     },
@@ -2609,6 +2818,9 @@
       "default": "We are checking the official register for the company's directors and owners.",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "keyPeople"
       }
     },
@@ -2618,15 +2830,21 @@
       "default": "Everyone on this application has completed their identity check.",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "keyPeople"
       }
     },
     {
       "key": "keyPeople.await.intro",
       "group": "keyPeople",
-      "default": "To complete the review, the people below must verify their identity with a KYC check. Anyone with an email on file has already been sent their link.",
+      "default": "To complete the review, the people below must verify their identity with a KYC check. We will email each person their link if you gave their email address.",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "keyPeople"
       }
     },
@@ -2636,6 +2854,9 @@
       "default": "Links are valid for 14 days.",
       "availability": {
         "subject": "business",
+        "scopes": [
+          "full"
+        ],
         "step": "keyPeople"
       }
     },
@@ -2753,7 +2974,10 @@
         "description"
       ],
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
@@ -3041,7 +3265,10 @@
       "group": "result",
       "default": "This business has been verified. There is nothing left to do here.",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {
@@ -3107,7 +3334,10 @@
       "group": "result",
       "default": "This business could not be verified. Contact the organisation that sent you this link to find out what happens next.",
       "availability": {
-        "subject": "business"
+        "subject": "business",
+        "scopes": [
+          "full"
+        ]
       }
     },
     {

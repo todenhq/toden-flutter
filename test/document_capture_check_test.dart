@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/document_capture_check.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/document_capture_check_notice.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/ui_button.dart';
+import 'package:toden_flutter/src/config/document_capture_check.dart';
+import 'package:toden_flutter/src/config/theme.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/widgets/document_capture_check_notice.dart';
+import 'package:toden_flutter/src/widgets/ui_button.dart';
 
 // ─── Document capture check ───────────────────────────────────────────────────
 //
@@ -18,9 +18,12 @@ import 'package:myaza_kyc_sdk_flutter/src/widgets/ui_button.dart';
 
 const _noFace = CaptureProblemKind.noFace;
 const _noBarcode = CaptureProblemKind.noBarcode;
+const _notComplete = CaptureProblemKind.notComplete;
 
-DocumentCaptureCheckResult _result(String side, {bool? face, bool? barcode}) =>
-    DocumentCaptureCheckResult(side: side, face: face, barcode: barcode);
+DocumentCaptureCheckResult _result(String side,
+        {bool? face, bool? barcode, bool? complete}) =>
+    DocumentCaptureCheckResult(
+        side: side, face: face, barcode: barcode, complete: complete);
 
 double _contrast(Color a, Color b) {
   final la = a.computeLuminance();
@@ -45,6 +48,84 @@ Widget _host(Widget child, {bool reduceMotion = false}) => MaterialApp(
     );
 
 void main() {
+  group('a document cut off at the frame', () {
+    test('false asks for a retake of that side, before the face and barcode',
+        () {
+      final problems = captureCheckProblems([
+        _result('back', barcode: false, complete: false),
+        _result('front', face: false, complete: false),
+      ]);
+      expect(problems, const [
+        CaptureProblem('front', _notComplete),
+        CaptureProblem('front', _noFace),
+        CaptureProblem('back', _notComplete),
+        CaptureProblem('back', _noBarcode),
+      ]);
+      expect(
+          captureProblemSides(
+              captureCheckProblems([_result('back', complete: false)])),
+          ['back']);
+    });
+
+    test('true or null asks for nothing', () {
+      expect(
+        captureCheckProblems([
+          _result('front', complete: null),
+          _result('back', complete: true),
+        ]),
+        isEmpty,
+      );
+    });
+
+    test('read off the server answer; an older server leaving it out is null',
+        () {
+      expect(
+          DocumentCaptureCheckResult.fromJson({
+            'side': 'front',
+            'face': null,
+            'barcode': null,
+            'complete': false
+          }).complete,
+          isFalse);
+      final older = DocumentCaptureCheckResult.fromJson(
+          {'side': 'front', 'face': null, 'barcode': null});
+      expect(older.complete, isNull);
+      expect(
+          DocumentCaptureCheckResult.fromJson(
+              {'side': 'front', 'complete': 'no'}).complete,
+          isNull);
+      expect(captureCheckProblems([older]), isEmpty);
+    });
+
+    test('the words match the web and React Native SDKs', () {
+      expect(
+        captureProblemMessage(_notComplete),
+        "We couldn't see the whole of your ID. Retake it with all four corners "
+        'inside the frame and a little space around the edges.',
+      );
+      expect(captureProblemMessage(_notComplete), isNot(contains('—')));
+    });
+
+    testWidgets('the notice offers the retake and still a way through',
+        (tester) async {
+      final retaken = <String>[];
+      var continued = 0;
+      await tester.pumpWidget(_host(DocumentCaptureCheckNotice(
+        problems: const [CaptureProblem('front', _notComplete)],
+        uploadOnly: false,
+        onRetake: retaken.add,
+        onContinueAnyway: () => continued++,
+      )));
+      await tester.pumpAndSettle();
+      expect(find.text(captureProblemMessage(_notComplete)), findsOneWidget);
+      await tester.tap(find.widgetWithText(UiButton, 'Retake front'));
+      await tester
+          .tap(find.widgetWithText(UiButton, kCaptureCheckContinueAnyway));
+      expect(retaken, ['front']);
+      expect(continued, 1);
+    });
+  });
+
   group('captureCheckProblems', () {
     test('sides that read fine ask for nothing', () {
       expect(
@@ -58,7 +139,8 @@ void main() {
       // null = the call failed or timed out; null flags = not applicable or
       // the server could not look. None of those may block the applicant.
       expect(captureCheckProblems([null, null]), isEmpty);
-      expect(captureCheckProblems([_result('front'), _result('back')]), isEmpty);
+      expect(
+          captureCheckProblems([_result('front'), _result('back')]), isEmpty);
       expect(captureCheckProblems(const []), isEmpty);
     });
 
@@ -184,7 +266,8 @@ void main() {
   });
 
   group('DocumentCaptureCheckNotice', () {
-    testWidgets('names each problem, offers a retake per side and a way through',
+    testWidgets(
+        'names each problem, offers a retake per side and a way through',
         (tester) async {
       final retaken = <String>[];
       var continued = 0;
@@ -207,15 +290,15 @@ void main() {
           tester.widget<UiButton>(find.widgetWithText(UiButton, label));
       expect(button('Retake front').variant, UiButtonVariant.primary);
       expect(button('Retake back').variant, UiButtonVariant.outline);
-      expect(button(kCaptureCheckContinueAnyway).variant,
-          UiButtonVariant.outline);
+      expect(
+          button(kCaptureCheckContinueAnyway).variant, UiButtonVariant.outline);
 
       await tester.tap(find.widgetWithText(UiButton, 'Retake back'));
       await tester.tap(find.widgetWithText(UiButton, 'Retake front'));
       expect(retaken, ['back', 'front']);
 
-      await tester.tap(
-          find.widgetWithText(UiButton, kCaptureCheckContinueAnyway));
+      await tester
+          .tap(find.widgetWithText(UiButton, kCaptureCheckContinueAnyway));
       expect(continued, 1);
     });
 

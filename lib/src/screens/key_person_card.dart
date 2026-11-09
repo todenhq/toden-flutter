@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../config/key_person_stake.dart';
+import '../providers/verification_provider.dart';
 
 import '../config/business.dart';
 import '../config/business_application.dart';
+import '../config/document_people.dart';
 import '../config/id_types.dart' show countryLabel;
 import '../config/theme.dart';
 import '../widgets/country_flag.dart';
@@ -17,7 +21,7 @@ import '../widgets/icons/icons.dart';
 // Same visual language as the applicant step's "this is me" tiles, so the two
 // screens read as one system. Mirrors the web/RN KeyPersonCard 1:1.
 
-class KeyPersonCard extends StatelessWidget {
+class KeyPersonCard extends ConsumerWidget {
   final KeyPersonEntry entry;
   final VoidCallback onTap;
 
@@ -46,7 +50,9 @@ class KeyPersonCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Owners must give a stake unless the workflow turns that off.
+    final stakeRequired = keyPeopleRequireOwnership(ref.watch(verificationConfigProvider).business);
     final colors = context.myazaColors;
     final text = context.myazaText;
     final radius = BorderRadius.circular(UiRadius.sm);
@@ -59,12 +65,13 @@ class KeyPersonCard extends StatelessWidget {
     // incomplete — the card says so instead of silently blocking Continue. A
     // missing REQUIRED email gets named specifically: "incomplete" on a row
     // whose name, role and country are all filled reads as a bug.
-    final incomplete = !entry.isValidWith(emailRequiredFor);
-    final problem = rowNeedsEmail(entry, emailRequiredFor) &&
-            entry.email.trim().isEmpty &&
-            entry.name.trim().length >= 2
-        ? 'Email required, tap to add'
-        : 'Incomplete, tap to finish';
+    final incomplete = !entry.isValidWith(emailRequiredFor, stakeRequired: stakeRequired);
+    final named = entry.name.trim().length >= 2;
+    final problem = named && rowMissingStake(entry, stakeRequired)
+        ? 'Ownership % required, tap to add'
+        : rowNeedsEmail(entry, emailRequiredFor) && entry.email.trim().isEmpty && named
+            ? 'Email required, tap to add'
+            : 'Incomplete, tap to finish';
 
     final meta = [
       roleLabel ?? entry.role.label,
@@ -167,6 +174,22 @@ class KeyPersonCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: text.bodySmall
                                 .copyWith(color: colors.textSecondary)),
+                      ],
+                      if (entry.documentRemoved) ...[
+                        const SizedBox(height: 4),
+                        Row(children: [
+                          const UiIcon(UiIcons.fileText,
+                              size: 14, color: UiColors.warning),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(kDocumentRemovedCardNote,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: text.bodySmall.copyWith(
+                                    color: colors.textDark,
+                                    fontWeight: FontWeight.w500)),
+                          ),
+                        ]),
                       ],
                     ],
                   ),

@@ -1,10 +1,12 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../utils/resolve_url.dart';
+import 'always_location.dart';
+import 'presence_report_proof.dart';
 import 'presence_store.dart';
+
+export 'always_location.dart';
 
 // ─── The BACKGROUND presence tier — native geofencing ────────────────────────
 //
@@ -36,7 +38,31 @@ enum BackgroundPresenceReason {
 class EnableBackgroundResult {
   final bool started;
   final BackgroundPresenceReason reason;
-  const EnableBackgroundResult(this.started, this.reason);
+
+  /// On a refusal: false when the OS answered without showing a prompt, which
+  /// leaves Settings as the only way forward.
+  final bool osPrompted;
+  const EnableBackgroundResult(this.started, this.reason, {this.osPrompted = true});
+}
+
+/// Whether the host should send the person to Settings: the OS refused without
+/// asking, so there was no answer of theirs to respect.
+bool needsSettings(EnableBackgroundResult? result) {
+  if (result == null || result.osPrompted) return false;
+  return result.reason == BackgroundPresenceReason.permissionDenied ||
+      result.reason == BackgroundPresenceReason.backgroundDenied;
+}
+
+/// Where a tap on "turn on" leads.
+enum AllowNext { on, off, offer }
+
+/// [AllowNext.offer] keeps the screen and offers Settings as the person's own
+/// choice. Settings is never opened for them: the signal behind `osPrompted`
+/// has read "no prompt" with the prompt on screen, and a prompt blocks touches,
+/// so a button is harmless behind one where a jump to Settings is not.
+AllowNext afterAllow(EnableBackgroundResult? result) {
+  if (result?.started == true) return AllowNext.on;
+  return needsSettings(result) ? AllowNext.offer : AllowNext.off;
 }
 
 class BackgroundPresence {
@@ -56,27 +82,32 @@ class BackgroundPresence {
     if (pin == null) {
       return const EnableBackgroundResult(false, BackgroundPresenceReason.noPin);
     }
-    final permission = await requestAlwaysLocationPermission();
+    final answer = await requestAlwaysLocation();
+    final permission = answer.permission;
     if (permission == null) {
       return const EnableBackgroundResult(false, BackgroundPresenceReason.unavailable);
     }
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      return const EnableBackgroundResult(
-          false, BackgroundPresenceReason.permissionDenied);
+      return EnableBackgroundResult(
+          false, BackgroundPresenceReason.permissionDenied, osPrompted: answer.osPrompted);
     }
     if (permission != LocationPermission.always) {
-      return const EnableBackgroundResult(false, BackgroundPresenceReason.backgroundDenied);
+      return EnableBackgroundResult(
+          false, BackgroundPresenceReason.backgroundDenied, osPrompted: answer.osPrompted);
     }
     try {
       final base = resolveBaseUrl(apiKey, devUrl: devUrl);
       final ok = await _channel.invokeMethod<bool>('enablePresence', {
+        if (pin.presenceToken != null) 'presenceToken': pin.presenceToken,
         'lat': pin.lat,
         'lng': pin.lng,
         'radius': kGeofenceRadiusMeters,
         'baseUrl': base,
         'apiKey': apiKey,
         'externalUserId': externalUserId,
+        'playIntegrityProject': pin.playIntegrityProject,
+        'emulator': await runningOnEmulator(),
       });
       return ok == true
           ? const EnableBackgroundResult(true, BackgroundPresenceReason.started)
@@ -129,59 +160,5 @@ class BackgroundPresence {
     } catch (_) {
       return false;
     }
-  }
-}
-
-/// The two-step escalation to "allow all the time": while-in-use first, then
-/// a second request for the background permission. Shared by the geofence and
-/// the foreground-service tiers so the two can never ask differently. Null
-/// when the platform could not answer at all.
-Future<LocationPermission?> requestAlwaysLocationPermission() async {
-  try {
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-    if (permission == LocationPermission.whileInUse) {
-      permission = await _requestAlwaysNatively(permission);
-    }
-    return permission;
-  } catch (_) {
-    return null;
-  }
-}
-
-/// The second step is asked by the plugin's own native code on both
-/// platforms, because geolocator's second request never reaches the system
-/// prompt on either:
-///   • iOS: it returns at once when any decision already exists, and with
-///     both usage strings declared it only ever asks for "While Using".
-///   • Android 11+: it asks for background location together with the
-///     foreground permissions, and the system ignores a mixed request.
-/// iOS shows its prompt once per install and Android stops after two
-/// refusals; after that this answers the current permission without one.
-Future<LocationPermission> _requestAlwaysNatively(LocationPermission current) async {
-  if (!Platform.isIOS && !Platform.isAndroid) return current;
-  try {
-    final word = await const MethodChannel('kyc_sdk_flutter/presence')
-        .invokeMethod<String>('requestAlwaysLocation');
-    return alwaysAnswerToPermission(word, current);
-  } catch (_) {
-    return current;
-  }
-}
-
-/// Pure: the native side's answer as a geolocator permission. An answer this
-/// build does not know keeps [current].
-LocationPermission alwaysAnswerToPermission(String? word, LocationPermission current) {
-  switch (word) {
-    case 'always':
-      return LocationPermission.always;
-    case 'whileInUse':
-      return LocationPermission.whileInUse;
-    case 'denied':
-      return LocationPermission.deniedForever;
-    default:
-      return current;
   }
 }

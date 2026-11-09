@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
-import 'package:myaza_kyc_sdk_flutter/src/utils/map_tiles.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/map_pin_picker.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/map_pin_picker_parts.dart';
+import 'package:toden_flutter/src/config/theme.dart';
+import 'package:toden_flutter/src/utils/map_tiles.dart';
+import 'package:toden_flutter/src/widgets/map_pin_picker.dart';
+import 'package:toden_flutter/src/widgets/map_pin_picker_parts.dart';
 
 // ─── The map's zoom, which is easy to get quietly wrong ──────────────────────
 //

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/map_frame.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/street_view_fov.dart';
+import 'package:toden_flutter/src/config/map_frame.dart';
+import 'package:toden_flutter/src/config/street_view_fov.dart';
 
 // A port of the web SDK's street-view-fov.test.ts and the RN twin. The three
 // implementations must agree, because a frame captured on one platform is

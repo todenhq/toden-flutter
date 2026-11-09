@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/nfc/dg2_image.dart';
+import 'package:toden_flutter/src/nfc/dg2_image.dart';
 
 // ─── Finding the portrait inside DG2 ──────────────────────────────────────────
 //

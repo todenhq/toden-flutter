@@ -31,17 +31,27 @@ String poaMimeFor(String? ext) => switch (ext?.toLowerCase()) {
 
 /// Camera roll / camera — always an image, so the mime comes from the name.
 Future<PoaPick?> pickPoaImage(ImageSource source) async {
+  final XFile? picked;
   try {
-    final picked =
-        await ImagePicker().pickImage(source: source, imageQuality: 90);
-    if (picked == null) return null;
+    picked = await ImagePicker().pickImage(source: source, imageQuality: 90);
+  } catch (_) {
+    throw const PoaPickException(_kPhotoReadError);
+  }
+  if (picked == null) return null;
+  return readPoaImage(picked);
+}
+
+const String _kPhotoReadError = 'Could not read that photo. Please try another.';
+
+/// A picked or taken photo (the SDK's own camera hands back the same XFile),
+/// in the shape the screen uploads.
+Future<PoaPick> readPoaImage(XFile picked) async {
+  try {
     final bytes = await picked.readAsBytes();
     final ext = picked.name.split('.').lastOrNull;
     return (bytes: bytes, mime: poaMimeFor(ext), name: picked.name);
   } catch (_) {
-    throw const PoaPickException(
-      'Could not read that photo. Please try another.',
-    );
+    throw const PoaPickException(_kPhotoReadError);
   }
 }
 

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/presence/presence_math.dart';
-import 'package:myaza_kyc_sdk_flutter/src/presence/presence_store.dart';
+import 'package:toden_flutter/src/presence/presence_math.dart';
+import 'package:toden_flutter/src/presence/presence_store.dart';
 
 // The on-device presence math — what decides whether a fix counts as "at the
 // address" and what local day/night it lands on. This is the whole privacy

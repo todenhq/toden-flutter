@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/bright_screen.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/workflow_merge.dart';
-import 'package:myaza_kyc_sdk_flutter/src/liveness/flash_overlay_color.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/toden_flutter.dart';
+import 'package:toden_flutter/src/config/bright_screen.dart';
+import 'package:toden_flutter/src/config/theme.dart';
+import 'package:toden_flutter/src/config/workflow_merge.dart';
+import 'package:toden_flutter/src/liveness/flash_overlay_color.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
 
 // ─── Bright screen during liveness ────────────────────────────────────────────
 //

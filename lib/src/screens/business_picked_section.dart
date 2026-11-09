@@ -18,6 +18,9 @@ class BusinessPickedSection extends StatelessWidget {
   final bool isSandbox;
   final VoidCallback onChange;
 
+  /// False under typed number entry, where the box already shows the number.
+  final bool showCard;
+
   const BusinessPickedSection({
     super.key,
     required this.country,
@@ -25,6 +28,7 @@ class BusinessPickedSection extends StatelessWidget {
     required this.registrationNumber,
     required this.isSandbox,
     required this.onChange,
+    this.showCard = true,
   });
 
   @override
@@ -34,13 +38,15 @@ class BusinessPickedSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        BusinessPickedCard(
-          country: country,
-          name: name,
-          registrationNumber: registrationNumber,
-          onChange: onChange,
-        ),
-        const SizedBox(height: UiSpacing.lg),
+        if (showCard) ...[
+          BusinessPickedCard(
+            country: country,
+            name: name,
+            registrationNumber: registrationNumber,
+            onChange: onChange,
+          ),
+          const SizedBox(height: UiSpacing.lg),
+        ],
         // Says what the button is about to do: Continue runs a real lookup
         // against the register, which takes a moment and is charged to the
         // organisation. "Continue" alone made a paid outbound call look like

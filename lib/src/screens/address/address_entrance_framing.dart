@@ -7,6 +7,7 @@ import '../../widgets/ui_button.dart';
 import '../../widgets/sticky_actions.dart';
 import '../../widgets/icons/icons.dart';
 import '../../i18n/text_scope.dart';
+import '../../widgets/fill_remaining.dart';
 
 // ─── The entrance step's SANDBOX stand-in ────────────────────────────────────
 //
@@ -34,11 +35,14 @@ class AddressEntrancePlaceholder extends StatelessWidget {
     // Web's `rounded-xl border-2 border-dashed border-border bg-muted/40`,
     // the same box RN draws: a DASHED edge, not a solid one.
     return StickyActions(
-      body: CustomPaint(
+      // The stand-in fills the spare height as the real panorama does.
+      body: FillRemainingColumn(
+        flexIndex: 0,
+        minFlexHeight: mapSurfaceHeight(MediaQuery.sizeOf(context)),
+        children: [CustomPaint(
         painter: DashedRoundedBorder(
             color: colors.border, radius: UiRadius.sm, strokeWidth: 2),
         child: Container(
-          height: mapSurfaceHeight(MediaQuery.sizeOf(context)),
           decoration: BoxDecoration(
             color: colors.backgroundSecondary.withValues(alpha: 0.4),
             borderRadius: BorderRadius.circular(UiRadius.sm),
@@ -65,7 +69,7 @@ class AddressEntrancePlaceholder extends StatelessWidget {
             ],
           ),
         ),
-      ),
+      )]),
       actions: Row(children: [
         if (!hideSkip) ...[
           Expanded(

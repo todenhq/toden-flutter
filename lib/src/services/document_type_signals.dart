@@ -19,21 +19,36 @@
 const Map<String, Map<String, List<String>>> kDocumentSignals = {
   'NG': {
     'passport': ['PASSPORT', 'TRAVEL DOCUMENT', 'P<NGA'],
+    // LICENCE: the licence itself is spelt the UK way ("NATIONAL DRIVER'S
+    // LICENCE"), so with LICENSE alone its front scored one hit and the
+    // camera held at "move closer" for good.
     'drivers-license': [
       'DRIVER', 'LICENSE', 'FRSC', 'FEDERAL ROAD SAFETY', 'DRIVING LICENCE',
+      'LICENCE',
     ],
     'pvc': [
       'VOTER', "VOTER'S CARD", 'PVC', 'INEC', 'INDEPENDENT NATIONAL ELECTORAL',
       'PERMANENT VOTER', 'ELECTORAL COMMISSION', 'VIN',
     ],
+    // Without its own list a NIN slip could not be told from any other
+    // document, so a voter's card held in its place was captured as the slip.
+    'nin-slip': [
+      'NATIONAL IDENTIFICATION NUMBER SLIP', 'NINS',
+      'NATIONAL IDENTITY MANAGEMENT', 'NIMC', 'TRACKING ID', 'DIGITAL NIN SLIP',
+    ],
   },
   'GH': {
     'passport': ['PASSPORT', 'REPUBLIC OF GHANA', 'P<GHA'],
+    // ECOWAS: the card's front is headed "ECOWAS IDENTITY CARD" and names
+    // neither the card nor the authority, so GHA- was its only hit.
     'ghana-card': [
       'GHANA CARD', 'NATIONAL IDENTIFICATION AUTHORITY', 'NIA', 'GHA-',
+      'ECOWAS',
     ],
     'voters': ['VOTER', 'ELECTORAL COMMISSION', 'EC OF GHANA'],
-    'drivers-license': ['DRIVER', 'LICENSE', 'DVLA', 'DRIVING AND VEHICLE'],
+    'drivers-license': [
+      'DRIVER', 'LICENSE', 'DVLA', 'DRIVING AND VEHICLE', 'LICENCE',
+    ],
     'ssnit': ['SSNIT', 'SOCIAL SECURITY', 'NATIONAL INSURANCE'],
   },
   'KE': {
@@ -114,7 +129,7 @@ bool hasDocumentSignals(String country, String idType) {
 /// itself) stand in for countries with no curated passport list.
 DocumentTypeMatch detectDocumentType(List<String> lines, String country) {
   if (lines.isEmpty) return DocumentTypeMatch.none;
-  final upper = lines.join('\n').toUpperCase();
+  final upper = foldAccents(lines.join('\n').toUpperCase());
   final signals = kDocumentSignals[country] ?? const {};
 
   String? bestType;
@@ -160,6 +175,7 @@ DocumentTypeMatch detectDocumentType(List<String> lines, String country) {
 /// voter-card hit — harmless while every score is diluted by the keyword count,
 /// and a false identification the moment anything counts hits directly.
 int countSignalHits(String upper, List<String> keywords) {
+  upper = foldAccents(upper);
   var hits = 0;
   for (final keyword in keywords) {
     if (_isShortAcronym(keyword)) {
@@ -173,3 +189,26 @@ int countSignalHits(String upper, List<String> keywords) {
 
 bool _isShortAcronym(String keyword) =>
     keyword.length <= 4 && RegExp(r'^[A-Z]+$').hasMatch(keyword);
+
+const Map<String, String> _accentFolds = {
+  'À': 'A', 'Á': 'A', 'Â': 'A', 'Ã': 'A', 'Ä': 'A', 'Å': 'A',
+  'Ç': 'C',
+  'È': 'E', 'É': 'E', 'Ê': 'E', 'Ë': 'E',
+  'Ì': 'I', 'Í': 'I', 'Î': 'I', 'Ï': 'I',
+  'Ñ': 'N',
+  'Ò': 'O', 'Ó': 'O', 'Ô': 'O', 'Õ': 'O', 'Ö': 'O',
+  'Ù': 'U', 'Ú': 'U', 'Û': 'U', 'Ü': 'U',
+  'Ý': 'Y', 'Ÿ': 'Y',
+};
+
+/// [upper] with its accented capitals plain. The keywords are written without
+/// accents, as the server's are, while a Côte d'Ivoire CNI prints "RÉPUBLIQUE
+/// DE CÔTE D'IVOIRE" and "IDENTITÉ": read as printed, its front scored one hit.
+String foldAccents(String upper) {
+  if (!upper.runes.any((r) => r > 127)) return upper;
+  final out = StringBuffer();
+  for (final ch in upper.split('')) {
+    out.write(_accentFolds[ch] ?? ch);
+  }
+  return out.toString();
+}

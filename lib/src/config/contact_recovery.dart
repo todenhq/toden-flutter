@@ -44,3 +44,14 @@ VerificationStep? stepAfterContactVerified({
   final remaining = expired.where((c) => c != channel).toList();
   return remaining.isEmpty ? VerificationStep.submitted : contactStepFor(remaining.first);
 }
+
+/// Whether [step] shows Back. The contact steps back into the step before
+/// them in the order (phone into email when the flow has one, else consent;
+/// email into consent), but NOT while recovering from a refused submission:
+/// that walk returns to the end, and Back would strand the person at the
+/// start. Mirrors the web SDK's `stepBeforeContact` and its `recovery` gate.
+bool contactBackShown(VerificationStep step, List<String> expired) => switch (step) {
+      VerificationStep.contactEmail => !expired.contains('email'),
+      VerificationStep.contactPhone => !expired.contains('phone'),
+      _ => true,
+    };

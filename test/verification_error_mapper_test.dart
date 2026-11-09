@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/verification_error_mapper.dart';
+import 'package:toden_flutter/toden_flutter.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/services/verification_error_mapper.dart';
 
 // Business (KYB) submissions fail with their own server error tokens. Before
 // they were mapped, every one of them fell through to a bare `unknown` (or, for
@@ -19,6 +19,7 @@ void main() {
       for (final token in [
         'workflow_not_found',
         'workflow_subject_mismatch',
+        'entity_type_mismatch',
         'country_mismatch',
         'product_unsupported',
       ]) {

@@ -13,6 +13,7 @@ import '../../providers/verification_state.dart';
 import '../../widgets/ui_button.dart';
 import 'address_flow_scaffold.dart';
 import 'address_review_card.dart';
+import 'save_address_sheet.dart';
 import '../../i18n/text_scope.dart';
 
 /// The commit point: one composed card carrying a read-only map, the entrance
@@ -66,6 +67,15 @@ class _AddressReviewStepState extends ConsumerState<AddressReviewStep>
   void _edit() => ref
       .read(kYCNotifierProvider.notifier)
       .goToStep(VerificationStep.addressCollection);
+
+  /// The save question comes once, between Confirm and leaving the flow:
+  /// closing it stays here, and an answer already given is not asked for again.
+  Future<void> _confirm() async {
+    if (flow.bookOffer.save && flow.address?.book == null) {
+      if (!await askToSaveAddress(context) || !mounted) return;
+    }
+    await flow.confirm();
+  }
 
   @override
   Widget buildBody(BuildContext context) {
@@ -127,7 +137,7 @@ class _AddressReviewStepState extends ConsumerState<AddressReviewStep>
             isLoading: flow.confirming,
             onPressed: pin == null || flow.confirming || missing.isNotEmpty
                 ? null
-                : flow.confirm,
+                : _confirm,
           ),
           buildSkip(context),
         ],

@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/liveness/flash_detector.dart';
-import 'package:myaza_kyc_sdk_flutter/src/liveness/flash_outcome.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/liveness_resume.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
+import 'package:toden_flutter/src/liveness/flash_detector.dart';
+import 'package:toden_flutter/src/liveness/flash_outcome.dart';
+import 'package:toden_flutter/src/config/liveness_resume.dart';
+import 'package:toden_flutter/src/providers/verification_state.dart';
 
 FlashResult _result({
   required bool passed,

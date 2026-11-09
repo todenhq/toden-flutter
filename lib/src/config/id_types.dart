@@ -107,6 +107,26 @@ const Map<String, List<IdTypeConfig>> kCuratedIdTypes = {
       requiresDocumentCapture: false,
       digits: 16,
     ),
+    // Both looked up by a Nigerian mobile number: the phone check, and the NIN
+    // record found by the number. Two IDs, each billed on its own.
+    IdTypeConfig(
+      key: 'phone-number',
+      label: 'Phone Number',
+      inputLabel: 'Phone number',
+      requiresDocumentCapture: false,
+    ),
+    IdTypeConfig(
+      key: 'nin-phone',
+      label: 'NIN (phone number)',
+      inputLabel: 'Phone number',
+      requiresDocumentCapture: false,
+    ),
+    IdTypeConfig(
+      key: 'nin-slip',
+      label: 'NIN (Slip)',
+      requiresDocumentCapture: true,
+      scanSides: ScanSides.frontOnly,
+    ),
     IdTypeConfig(
       key: 'passport',
       label: 'International Passport',

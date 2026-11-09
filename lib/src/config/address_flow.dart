@@ -83,6 +83,11 @@ AddressFlowOptions addressFlowOptions({
 /// this, so a skip on the search screen lands past the review rather than on
 /// the pin; and a resumed session's saved step is ranked against it.
 ///
+/// The CAPTURE steps only. The address book step confirms a picked saved
+/// address in their place; it ranks ahead of all four, which
+/// [isAddressFlowStep] and `resumeAddressStep` say once rather than every
+/// reader re-deriving it.
+///
 /// A list rather than a set because the resume clamp needs to know which
 /// offered step sits nearest a saved one. Two literals that had to agree on
 /// that order would be one more pair to keep in lockstep.
@@ -92,6 +97,11 @@ const List<VerificationStep> kAddressFlowOrder = [
   VerificationStep.addressEntrance,
   VerificationStep.addressReview,
 ];
+
+/// Whether [step] belongs to the address flow: the address book step or a
+/// capture step.
+bool isAddressFlowStep(VerificationStep step) =>
+    step == VerificationStep.addressBook || kAddressFlowOrder.contains(step);
 
 /// The individual flow's address steps, in order. The minimum is the pin and
 /// the review: somewhere to place it, and somewhere to commit it.

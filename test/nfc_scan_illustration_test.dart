@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/nfc_scan_illustration.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/nfc_scan_painter.dart';
+import 'package:toden_flutter/src/widgets/nfc_scan_illustration.dart';
+import 'package:toden_flutter/src/widgets/nfc_scan_painter.dart';
 
 /// Parity pins for the NFC illustration port. The web component is the design
 /// source of truth; these assert the constants and the animation curve that

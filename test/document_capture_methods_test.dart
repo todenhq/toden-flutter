@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/document_capture_methods.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/workflow_merge.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/document_upload_only_view.dart';
+import 'package:toden_flutter/toden_flutter.dart';
+import 'package:toden_flutter/src/config/document_capture_methods.dart';
+import 'package:toden_flutter/src/config/theme.dart';
+import 'package:toden_flutter/src/config/workflow_merge.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/i18n/translate.dart';
+import 'package:toden_flutter/src/screens/consent_process_steps.dart';
+import 'package:toden_flutter/src/widgets/document_upload_only_view.dart';
 
 // ─── Scan, upload, or both ────────────────────────────────────────────────────
 //
@@ -104,6 +106,116 @@ void main() {
         ),
       );
       expect(merged.allowDocumentScan, isFalse);
+    });
+
+    test('the workflow sets the review and audio, and absent keeps the host\'s', () {
+      final merged = mergeWorkflowIntoConfig(
+        base,
+        WorkflowFlowConfig.fromJson({'documentReview': true, 'documentAudio': true}),
+      );
+      expect(merged.documentReview, isTrue);
+      expect(merged.documentAudio, isTrue);
+
+      final kept = mergeWorkflowIntoConfig(base, WorkflowFlowConfig.fromJson(const {}));
+      expect(kept.documentReview, isFalse);
+      expect(kept.documentAudio, isFalse);
+    });
+
+    test('the applicant overlay carries the review and audio too', () {
+      final merged = overlayApplicantWorkflow(
+        base,
+        const ApplicantWorkflow(
+          id: 'wf_applicant',
+          name: 'Identity verification',
+          version: 1,
+          config: {'documentReview': true, 'documentAudio': true},
+        ),
+      );
+      expect(merged.documentReview, isTrue);
+      expect(merged.documentAudio, isTrue);
+    });
+  });
+
+  group('afterDocumentCapture', () {
+    const camera = DocumentSideSource.camera;
+    const upload = DocumentSideSource.upload;
+
+    AfterDocumentCapture next({
+      bool review = false,
+      bool isBack = false,
+      bool twoSided = false,
+      DocumentSideSource? front = camera,
+      DocumentSideSource? back,
+      bool hasBack = false,
+    }) =>
+        afterDocumentCapture(
+          documentReview: review,
+          isBack: isBack,
+          twoSided: twoSided,
+          front: front,
+          back: back,
+          hasBack: hasBack,
+        );
+
+    test('review on keeps every screen', () {
+      expect(next(review: true), AfterDocumentCapture.review);
+      expect(next(review: true, twoSided: true), AfterDocumentCapture.previewFront);
+      expect(next(review: true, twoSided: true, isBack: true, back: camera, hasBack: true),
+          AfterDocumentCapture.review);
+    });
+
+    test('a one-sided scan hands over', () {
+      expect(next(), AfterDocumentCapture.handOver);
+    });
+
+    test('a scanned front moves on to the back, then hands over', () {
+      expect(next(twoSided: true), AfterDocumentCapture.scanBack);
+      expect(next(twoSided: true, isBack: true, back: camera, hasBack: true),
+          AfterDocumentCapture.handOver);
+    });
+
+    test('a retaken front with the back still scanned hands over', () {
+      expect(next(twoSided: true, back: camera, hasBack: true),
+          AfterDocumentCapture.handOver);
+    });
+
+    test('an uploaded photo always keeps the screen', () {
+      expect(next(front: upload), AfterDocumentCapture.review);
+      expect(next(twoSided: true, front: upload), AfterDocumentCapture.previewFront);
+      expect(next(twoSided: true, isBack: true, back: upload, hasBack: true),
+          AfterDocumentCapture.review);
+      expect(next(twoSided: true, back: upload, hasBack: true),
+          AfterDocumentCapture.previewFront);
+    });
+
+    test('a restored back keeps the screen', () {
+      expect(next(twoSided: true, hasBack: true), AfterDocumentCapture.previewFront);
+    });
+  });
+
+  group('recordsDocumentAudio', () {
+    VerificationConfig config({bool audio = true, bool scan = true}) =>
+        VerificationConfig(
+          apiKey: 'pk_test_x',
+          country: 'NG',
+          documentAudio: audio,
+          allowDocumentScan: scan,
+        );
+
+    test('only when asked for, and only with a camera to record', () {
+      expect(recordsDocumentAudio(config()), isTrue);
+      expect(recordsDocumentAudio(config(audio: false)), isFalse);
+      expect(recordsDocumentAudio(config(scan: false)), isFalse);
+    });
+
+    test('is not on the consent list', () {
+      final labels = consentProcessSteps(
+        config(),
+        isBusiness: false,
+        scope: null,
+        t: defaultTextFn,
+      ).map((s) => s.label).join(' ');
+      expect(labels.toLowerCase(), isNot(contains('sound')));
     });
   });
 

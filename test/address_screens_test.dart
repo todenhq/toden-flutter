@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
-import 'package:myaza_kyc_sdk_flutter/src/screens/address/address_detail_fields.dart';
-import 'package:myaza_kyc_sdk_flutter/src/screens/address/address_location_row.dart';
-import 'package:myaza_kyc_sdk_flutter/src/screens/address/address_photo_dropzone.dart';
-import 'package:myaza_kyc_sdk_flutter/src/screens/address/address_search_results.dart';
+import 'package:toden_flutter/src/config/theme.dart';
+import 'package:toden_flutter/src/screens/address/address_detail_fields.dart';
+import 'package:toden_flutter/src/screens/address/address_location_row.dart';
+import 'package:toden_flutter/src/screens/address/address_photo_dropzone.dart';
+import 'package:toden_flutter/src/screens/address/address_search_results.dart';
 
 // ─── The address flow's capture screens ─────────────────────────────────────
 //

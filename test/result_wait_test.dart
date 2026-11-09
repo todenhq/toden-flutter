@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/biometric_copy.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/result_copy.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/result_wait.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/config/biometric_copy.dart';
+import 'package:toden_flutter/src/config/result_copy.dart';
+import 'package:toden_flutter/src/config/result_wait.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
 
 StatusResponse _read(String status, {String? reason, String? reasonCode}) => StatusResponse(
       verificationId: 'ver_1',

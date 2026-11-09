@@ -1,169 +1,215 @@
 import 'package:flutter/material.dart';
 
+import '../config/proof_of_address.dart';
 import '../config/theme.dart';
-import '../config/upload_limits.dart';
-import '../widgets/country_flag.dart';
+import '../i18n/text_scope.dart';
 import '../widgets/icons/icons.dart';
 import '../widgets/ui_spinner.dart';
 
 export 'proof_of_address_uploaded_row.dart';
 
-// ─── Proof of Address — upload states ─────────────────────────────────────────
+// ─── Proof of Address — how the document comes in ────────────────────────────
 //
-// Two states, mirroring the web SDK's ProofOfAddressStep:
-//
-//   empty    a DASHED drop zone that NAMES the document being asked for
-//            ("Upload your utility bill") plus what's accepted (the shared
-//            upload hint). A generic "tap to upload" hid which of the offered
-//            document kinds the user was actually supposed to supply.
-//   uploaded a solid row: thumbnail of the picked file, its name, the document
-//            kind underneath, and an X to remove it.
-//
-// The preview renders the in-memory bytes from the picker (no server round
-// trip); PDFs get a document tile, since the SDK ships no PDF renderer.
+// As the workflow's `proofOfAddress.capture` says: take a photo, upload a file
+// (a PDF or an image, from the photo library or Files), or both side by side
+// (the default). While the upload runs the tiles give way to one progress
+// row; after it, the uploaded card (proof_of_address_uploaded_row.dart).
+// Mirrors the web SDK's steps/PoaUploadActions and the RN twin.
 
-/// The empty / uploading state — a dashed drop zone.
-class PoaDropzone extends StatelessWidget {
+class PoaUploadActions extends StatelessWidget {
+  final PoaCapture capture;
   final bool uploading;
+  final VoidCallback onCamera;
+  final VoidCallback onFile;
 
-  /// The document kind being asked for, e.g. "Utility bill". Lower-cased into
-  /// the call to action so it reads "Upload your utility bill".
-  final String typeLabel;
-
-  /// The country the document is for — the flag before the call to action
-  /// (user decision 2026-09-05). Null when the flow does not know it yet (the
-  /// address scope before a pick): nothing is invented.
-  final String? country;
-
-  final VoidCallback? onTap;
-
-  const PoaDropzone({
+  const PoaUploadActions({
     super.key,
+    required this.capture,
     required this.uploading,
-    required this.typeLabel,
-    this.country,
-    this.onTap,
+    required this.onCamera,
+    required this.onFile,
   });
 
   @override
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
     final text = context.myazaText;
+    final t = context.verificationText;
 
-    return InkWell(
-      onTap: uploading ? null : onTap,
-      borderRadius: BorderRadius.circular(UiRadius.md),
-      child: CustomPaint(
-        painter: DashedRRectPainter(
-          color: colors.border,
-          radius: UiRadius.md,
-        ),
+    if (uploading) {
+      return Semantics(
+        liveRegion: true,
         child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(
-            vertical: UiSpacing.xl,
-            horizontal: UiSpacing.lg,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(UiRadius.md),
+            border: Border.all(color: colors.border),
           ),
-          alignment: Alignment.center,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
             children: [
-              if (uploading)
-                SizedBox(
-                  width: 30,
-                  height: 30,
-                  child: UiSpinner(
-                    strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation(colors.primary),
-                  ),
-                )
-              else
-                UiIcon(UiIcons.upload, size: 30, color: colors.textSecondary),
-              const SizedBox(height: UiSpacing.sm),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (country != null) ...[
-                    UiCountryFlag(country: country, size: 18),
-                    const SizedBox(width: UiSpacing.xs),
-                  ],
-                  Flexible(
-                    child: Text(
-                      uploading
-                          ? 'Uploading…'
-                          : 'Upload your ${typeLabel.toLowerCase()}',
-                      style: text.label,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
+              Container(
+                width: 36,
+                height: 36,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: colors.primary.withValues(alpha: 0.10),
+                  shape: BoxShape.circle,
+                ),
+                child: UiSpinner(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation(colors.primary),
+                ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                kUploadHint,
-                style: text.bodySmall.copyWith(color: colors.textSecondary),
-                textAlign: TextAlign.center,
-              ),
+              const SizedBox(width: 12),
+              Text(t('proofOfAddress.uploading'), style: text.label),
             ],
           ),
         ),
-      ),
-    );
+      );
+    }
+
+    final camera = capture != PoaCapture.file
+        ? _Tile(
+            primary: true,
+            icon: UiIcons.camera,
+            title: t('proofOfAddress.action.camera'),
+            hint: t('proofOfAddress.action.cameraHint'),
+            onTap: onCamera,
+          )
+        : null;
+    final file = capture != PoaCapture.camera
+        ? _Tile(
+            primary: false,
+            // Alone, the file tile is a row rather than a square.
+            inline: capture == PoaCapture.file,
+            icon: UiIcons.upload,
+            title: t('proofOfAddress.action.file'),
+            hint: t('proofOfAddress.action.fileHint'),
+            onTap: onFile,
+          )
+        : null;
+
+    if (camera != null && file != null) {
+      return IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: camera),
+            const SizedBox(width: 10),
+            Expanded(child: file),
+          ],
+        ),
+      );
+    }
+    return camera ?? file!;
   }
 }
 
-/// Paints a dashed rounded-rectangle outline. Flutter has no dashed `Border`,
-/// and the dashes are what mark the zone as a drop target rather than a filled
-/// field — so it's worth the painter.
-class DashedRRectPainter extends CustomPainter {
-  final Color color;
-  final double radius;
-  final double dashLength;
-  final double gapLength;
-  final double strokeWidth;
+class _Tile extends StatefulWidget {
+  final bool primary;
+  final bool inline;
+  final UiIconData icon;
+  final String title;
+  final String hint;
+  final VoidCallback onTap;
 
-  const DashedRRectPainter({
-    required this.color,
-    required this.radius,
-    this.dashLength = 6,
-    this.gapLength = 4,
-    this.strokeWidth = 1.5,
+  const _Tile({
+    required this.primary,
+    required this.icon,
+    required this.title,
+    required this.hint,
+    required this.onTap,
+    this.inline = false,
   });
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
+  State<_Tile> createState() => _TileState();
+}
 
-    final rrect = RRect.fromRectAndRadius(
-      // Inset by half the stroke so the dashes aren't clipped at the edges.
-      Rect.fromLTWH(
-        strokeWidth / 2,
-        strokeWidth / 2,
-        size.width - strokeWidth,
-        size.height - strokeWidth,
-      ),
-      Radius.circular(radius),
-    );
-
-    final path = Path()..addRRect(rrect);
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        final end = (distance + dashLength).clamp(0.0, metric.length);
-        canvas.drawPath(metric.extractPath(distance, end), paint);
-        distance = end + gapLength;
-      }
-    }
-  }
+class _TileState extends State<_Tile> {
+  bool _pressed = false;
 
   @override
-  bool shouldRepaint(DashedRRectPainter oldDelegate) =>
-      oldDelegate.color != color ||
-      oldDelegate.radius != radius ||
-      oldDelegate.dashLength != dashLength ||
-      oldDelegate.gapLength != gapLength ||
-      oldDelegate.strokeWidth != strokeWidth;
+  Widget build(BuildContext context) {
+    final colors = context.myazaColors;
+    final text = context.myazaText;
+    final primary = widget.primary;
+    final radius = BorderRadius.circular(UiRadius.md);
+    final fg = primary ? colors.onPrimary : colors.textDark;
+
+    final badge = Container(
+      width: 36,
+      height: 36,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: primary
+            ? Colors.white.withValues(alpha: 0.15)
+            : colors.primary.withValues(alpha: 0.10),
+      ),
+      child: UiIcon(widget.icon, size: 18, color: primary ? fg : colors.primary),
+    );
+    final words = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(widget.title,
+            style: text.label.copyWith(color: fg, fontWeight: FontWeight.w600)),
+        Text(
+          widget.hint,
+          style: text.bodySmall.copyWith(
+            color: primary ? fg.withValues(alpha: 0.8) : colors.textSecondary,
+          ),
+        ),
+      ],
+    );
+
+    final body = widget.inline
+        ? Row(children: [badge, const SizedBox(width: 12), Expanded(child: words)])
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [badge, const SizedBox(height: 12), words],
+          );
+
+    // A small press-in, as the web tile's active:scale-[0.98]; none when the
+    // platform asks for less motion.
+    final reduce = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    return Semantics(
+      button: true,
+      label: '${widget.title}. ${widget.hint}',
+      excludeSemantics: true,
+      child: AnimatedScale(
+        scale: _pressed && !reduce ? 0.98 : 1,
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
+        child: Container(
+          constraints: BoxConstraints(minHeight: widget.inline ? 0 : 88),
+          decoration: BoxDecoration(
+            color: primary ? colors.primary : colors.background,
+            borderRadius: radius,
+            border: primary ? null : Border.all(color: colors.border),
+            boxShadow: primary
+                ? [
+                    BoxShadow(
+                      color: colors.primary.withValues(alpha: 0.25),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: radius,
+              onTap: widget.onTap,
+              onHighlightChanged: (down) => setState(() => _pressed = down),
+              child: Padding(padding: const EdgeInsets.all(14), child: body),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -22,10 +22,10 @@
         <!-- Background presence tier: fence transitions + reboot re-arm.
              Both unexported; both no-ops until the host enables the tier. -->
         <receiver
-            android:name="co.myazahq.kyc.PresenceGeofenceReceiver"
+            android:name="co.toden.flutter.PresenceGeofenceReceiver"
             android:exported="false" />
         <receiver
-            android:name="co.myazahq.kyc.PresenceBootReceiver"
+            android:name="co.toden.flutter.PresenceBootReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

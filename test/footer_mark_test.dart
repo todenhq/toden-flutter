@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/brand.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/verification_config.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
+import 'package:toden_flutter/src/config/brand.dart';
+import 'package:toden_flutter/src/config/verification_config.dart';
+import 'package:toden_flutter/src/config/theme.dart';
 
 /// The footer mark resolves its contrast against the background it will
 /// ACTUALLY sit on. On the web that was got wrong: an imported palette puts the

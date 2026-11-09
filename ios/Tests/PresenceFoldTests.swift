@@ -1,5 +1,6 @@
+import CryptoKit
 import XCTest
-@testable import myaza_kyc_sdk_flutter
+@testable import toden_flutter
 
 /// Pins PresenceFold to the canonical cross-language vectors in
 /// test/presence_fold_vectors.json (package root). The RN SDK's
@@ -72,5 +73,21 @@ final class PresenceFoldTests: XCTestCase {
       }
     }
   }
-}
 
+  // The vector kyc-core's report-proof.test.ts pins: every copy must agree
+  // byte for byte, or the platform's proof never verifies.
+  func testReportDigestMatchesTheServerVector() {
+    let text = PresenceReportProof.digestText(
+      externalUserId: "user_123", stableId: "stable-1", deviceId: "install-1",
+      observations: [
+        ["day": "2026-10-30", "source": "geofence", "dwellMinutes": 120, "nightPresent": true, "samples": 3],
+        [
+          "day": "2026-10-31", "source": "foreground", "dwellMinutes": 0, "nightPresent": false,
+          "samples": 1, "integrity": ["mockLocation": true],
+        ],
+      ]
+    )
+    let hex = SHA256.hash(data: Data(text.utf8)).map { String(format: "%02x", $0) }.joined()
+    XCTAssertEqual(hex, "14e467f5a1431e451564634466e45e7c3a62693f9bd026c9c19570c03cbf8640")
+  }
+}

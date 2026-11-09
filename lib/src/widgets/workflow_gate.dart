@@ -4,6 +4,7 @@ import '../config/appearance_scheme.dart';
 import '../config/verification_config.dart';
 import '../config/theme.dart';
 import '../config/workflow_merge.dart';
+import '../config/chosen_only_ids.dart';
 import '../providers/verification_state.dart';
 import '../services/api_service.dart';
 import '../utils/resolve_url.dart';
@@ -37,21 +38,24 @@ Future<WorkflowGateResult> resolveWorkflowResult(VerificationConfig config) asyn
   );
   try {
     final res = await api.workflow(config.workflowId!);
+    // KYB: the mapped applicant workflow's capture template overlays the
+    // merged config (and its id is recorded for stamping) — see
+    // overlayApplicantWorkflow.
+    final merged = overlayApplicantWorkflow(
+      mergeWorkflowIntoConfig(config, res.config),
+      res.applicantWorkflow,
+    );
     return WorkflowGateResult(
-      // KYB: the mapped applicant workflow's capture template overlays the
-      // merged config (and its id is recorded for stamping) — see
-      // overlayApplicantWorkflow.
-      config: overlayApplicantWorkflow(
-        mergeWorkflowIntoConfig(config, res.config),
-        res.applicantWorkflow,
-      ),
+      config: merged,
       // Every capability fact the /config path carries rides here too: a
       // workflow mount never calls /config, so what is left out of this list
       // is silently OFF for every workflow embed (the search step, the framed
       // Google map, Street View and the geo default all were).
       serverConfig: ServerSdkConfig(
         status: ServerConfigStatus.ready,
-        idTypes: res.idTypes,
+        // Never a retired type, nor a chosen-only one the workflow does not
+        // list (config/chosen_only_ids.dart).
+        idTypes: servedIdTypes(res.idTypes, merged),
         environment: res.environment,
         branding: res.branding,
         geoCountry: res.geoCountry,
@@ -59,6 +63,7 @@ Future<WorkflowGateResult> resolveWorkflowResult(VerificationConfig config) asyn
         addressSearchMode: res.addressSearchMode,
         mapsFrameUrl: res.mapsFrameUrl,
         playIntegrityCloudProjectNumber: res.playIntegrityCloudProjectNumber,
+        addressBook: res.addressBook,
       ),
     );
   } on VerificationApiException catch (e) {

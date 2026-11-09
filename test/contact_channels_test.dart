@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/contact_verification.dart';
+import 'package:toden_flutter/src/config/contact_verification.dart';
 
 // Which channels a phone OTP step offers, and which one is used until the user
 // picks. Worth testing on its own because every failure here is silent: a wrong

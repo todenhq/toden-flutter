@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/contact_recovery.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/config/contact_recovery.dart';
+import 'package:toden_flutter/src/providers/verification_state.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
 
 void main() {
   group('expiredContactChannels', () {

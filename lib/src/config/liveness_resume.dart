@@ -14,6 +14,7 @@ import '../providers/verification_state.dart';
 const Set<VerificationStep> _afterLiveness = {
   VerificationStep.supportingDocuments,
   VerificationStep.proofOfAddress,
+  VerificationStep.addressBook,
   VerificationStep.addressSearch,
   VerificationStep.addressCollection,
   VerificationStep.addressEntrance,

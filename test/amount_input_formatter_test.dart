@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/currency_flags.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/amount_input_formatter.dart';
+import 'package:toden_flutter/src/config/currency_flags.dart';
+import 'package:toden_flutter/src/widgets/amount_input_formatter.dart';
 
 TextEditingValue _v(String text, [int? caret]) => TextEditingValue(
       text: text,

@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/verification_config.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/workflow_merge.dart';
-import 'package:myaza_kyc_sdk_flutter/src/i18n/customisable_texts.dart';
-import 'package:myaza_kyc_sdk_flutter/src/i18n/text_scope.dart';
-import 'package:myaza_kyc_sdk_flutter/src/i18n/translate.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/config/verification_config.dart';
+import 'package:toden_flutter/src/config/workflow_merge.dart';
+import 'package:toden_flutter/src/i18n/customisable_texts.dart';
+import 'package:toden_flutter/src/i18n/text_scope.dart';
+import 'package:toden_flutter/src/i18n/translate.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
 
 // ─── The text resolver ────────────────────────────────────────────────────────
 //

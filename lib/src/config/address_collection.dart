@@ -73,6 +73,13 @@ class AddressCollectionConfig {
   /// call `BackgroundPresence.enable()` / `PresenceService.enable()`.
   final bool presenceBackground;
 
+  /// The presence policy the workflow set (null = the server's default). Read
+  /// only to tell the person how much effort each choice means
+  /// (presence/presence_background_primer.dart); the server keeps the rule.
+  final int? presenceWindowDays;
+  final int? presenceMinNights;
+  final int? presenceMinDays;
+
   const AddressCollectionConfig({
     this.enabled = false,
     this.requirePin = false,
@@ -85,6 +92,9 @@ class AddressCollectionConfig {
     this.presenceEnabled = false,
     this.presenceAlwaysOn = false,
     this.presenceBackground = false,
+    this.presenceWindowDays,
+    this.presenceMinNights,
+    this.presenceMinDays,
   });
 
   factory AddressCollectionConfig.fromJson(Map<String, dynamic> json) {
@@ -102,9 +112,15 @@ class AddressCollectionConfig {
       presenceAlwaysOn: presence is Map && presence['alwaysOn'] == true,
       // Background monitoring is on unless the workflow turns it off.
       presenceBackground: presence is Map && presence['background'] != false,
+      presenceWindowDays: presence is Map ? _whole(presence['windowDays']) : null,
+      presenceMinNights: presence is Map ? _whole(presence['minNights']) : null,
+      presenceMinDays: presence is Map ? _whole(presence['minDays']) : null,
     );
   }
 }
+
+/// A whole number from the wire, or null (a wrong-typed value is dropped).
+int? _whole(Object? v) => v is num && v.isFinite ? v.round() : null;
 
 /// The per-field mode map, string values only: a wrong-typed entry is dropped
 /// so it falls back to the group default rather than breaking the parse.

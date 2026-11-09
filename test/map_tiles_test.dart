@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/utils/map_tiles.dart';
+import 'package:toden_flutter/src/utils/map_tiles.dart';
 
 // Web Mercator math for the address-collection map picker. A port of the web
 // and RN SDKs' mapTiles tests — the three implementations must agree, because
@@ -70,5 +70,9 @@ void main() {
       final none = defaultMapView(null);
       expect(none.zoom, 3);
     });
+  });
+
+  test('tile requests identify the app to OpenStreetMap', () {
+    expect(kTileHeaders['User-Agent'], startsWith('TodenVerification/'));
   });
 }

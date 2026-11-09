@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../widgets/ui_button.dart';
 import '../widgets/icons/icons.dart';
+import '../i18n/business_variants.dart';
 import '../i18n/text_scope.dart';
 
 // ─── Contact verification — footer actions ────────────────────────────────────
@@ -82,7 +83,9 @@ class ContactActions extends StatelessWidget {
             const SizedBox(width: UiSpacing.xs),
             Flexible(
               child: Text(
-                t(isPhone ? 'contact.phone.footer' : 'contact.email.footer'),
+                t(isPhone
+                    ? 'contact.phone.footer'
+                    : businessKey('contact.email.footer', context.scopedBusinessFlow)),
                 style: text.bodySmall.copyWith(color: colors.textSecondary),
               ),
             ),

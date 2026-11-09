@@ -1,3 +1,4 @@
+import '../config/address_book.dart';
 import '../config/address_collection.dart';
 import '../config/address_flow.dart';
 import '../config/verification_config.dart';
@@ -33,19 +34,32 @@ AddressFlowOptions addressFlowOptionsFor(
       hasStreetViewFrame: state.serverConfig.mapsFrameUrl != null,
     );
 
-/// The address steps this mount offers, in order.
-///
-/// KYB collapses to the single premises step: its pin and directions ARE the
-/// capture there, and the business flow has its own section rhythm.
+/// What this mount offers of the Toden address book (config/address_book.dart).
+/// `previewMode` is hard-false for the same reason as above.
+AddressBookOffer addressBookOfferFor(VerificationConfig config, VerificationState state) =>
+    addressBookOffer(
+      state.serverConfig.addressBook,
+      subjectType: config.subjectType,
+      scope: config.scope,
+    );
+
+/// The address steps this mount offers, in order. A KYB premises runs the same
+/// steps as a person's address since 2026-10-18 (search, pin, entrance,
+/// review): the entrance photo and Street View frame are part of how a
+/// business premises is checked.
 List<VerificationStep> addressStepsFor(VerificationConfig config, VerificationState state) {
   // The real step order gates the whole address block on `enabled`; this list
   // must agree, or a resume can be "clamped" onto a step the order does not
   // contain and both Continue and Back become no-ops (the stranded dead end
   // resumeAddressStep exists to prevent).
   if (config.addressCollection?.enabled != true) return const [];
-  return config.subjectType == 'business'
-      ? const [VerificationStep.addressCollection]
-      : addressFlowSteps(addressFlowOptionsFor(config, state));
+  // A picked saved address replaces the capture steps: the flow is the
+  // address book step alone, so the progress drops what is not walked and
+  // Back from the step after it lands on the pick.
+  if (state.addressBookReuse != null && addressBookOfferFor(config, state).reuse) {
+    return const [VerificationStep.addressBook];
+  }
+  return addressFlowSteps(addressFlowOptionsFor(config, state));
 }
 
 /// Where a resumed session should land when its saved step was an address one.
@@ -71,6 +85,10 @@ List<VerificationStep> addressStepsFor(VerificationConfig config, VerificationSt
 VerificationStep? resumeAddressStep(VerificationStep saved, List<VerificationStep> offered) {
   if (offered.contains(saved)) return saved;
   if (offered.isEmpty) return null;
+  // The address book step ranks ahead of every capture step, so a session
+  // saved on it with no pick (a pick is never saved) carries on into the
+  // capture.
+  if (saved == VerificationStep.addressBook) return offered.first;
   final savedRank = kAddressFlowOrder.indexOf(saved);
   // A step outside the address flow has no rank to walk from, and the
   // fallback below would answer with an address screen. Nothing about a
@@ -98,4 +116,13 @@ bool addressIntroGateShowing(
 ) =>
     config.addressCollection?.presenceEnabled == true &&
     !state.addressIntroSeen &&
-    step == addressStepsFor(config, state).first;
+    step == firstCaptureStep(addressStepsFor(config, state));
+
+/// The first step that CAPTURES the address (the presence primer's home). The
+/// address book step is only the confirmation of a picked saved address.
+VerificationStep? firstCaptureStep(List<VerificationStep> steps) {
+  for (final step in steps) {
+    if (step != VerificationStep.addressBook) return step;
+  }
+  return null;
+}

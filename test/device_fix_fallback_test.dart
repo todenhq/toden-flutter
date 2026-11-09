@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/location_service.dart';
+import 'package:toden_flutter/src/services/location_service.dart';
 
 // ─── The attest fix falls back on the one the flow already took ────────────
 //

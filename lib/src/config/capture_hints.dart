@@ -16,18 +16,28 @@ String documentHintText(DocumentHint hint, {required String label}) {
     case DocumentHint.searching:
       return 'Point the camera at your $label';
     case DocumentHint.moreLight:
-      return 'Too dark — move somewhere brighter';
+      return 'Too dark. Move somewhere brighter';
     case DocumentHint.wrongDocument:
-      return "That doesn't look like a $label";
+      // "your", not "a": an article chosen by letter misreads labels said as
+      // letters or acronyms ("an SSNIT", "a NIN").
+      return "That doesn't look like your $label";
     case DocumentHint.showMrz:
       return 'Include the code strip along the bottom of the page';
     case DocumentHint.moveCloser:
       return 'Move closer';
     case DocumentHint.moveBack:
       // The one users don't reach for on their own.
-      return 'Move back a little — fit the whole $label in view';
+      return 'Move back a little. Fit the whole $label in view';
     case DocumentHint.centre:
       return 'Centre your $label in the frame';
+    case DocumentHint.placeInFrame:
+      return 'Place your ID inside the frame';
+    case DocumentHint.fitCorners:
+      return 'Fit all four corners of your ID inside the frame';
+    case DocumentHint.spaceAround:
+      return 'Move back a little so there is space around your ID';
+    case DocumentHint.showBack:
+      return "That's still the front. Turn your $label over";
     case DocumentHint.holdStill:
       return 'Hold still…';
     case DocumentHint.captured:
@@ -43,4 +53,8 @@ bool documentHintIsAction(DocumentHint hint) =>
     hint == DocumentHint.showMrz ||
     hint == DocumentHint.moveCloser ||
     hint == DocumentHint.moveBack ||
-    hint == DocumentHint.centre;
+    hint == DocumentHint.centre ||
+    hint == DocumentHint.placeInFrame ||
+    hint == DocumentHint.fitCorners ||
+    hint == DocumentHint.spaceAround ||
+    hint == DocumentHint.showBack;

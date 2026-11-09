@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
+import 'package:toden_flutter/toden_flutter.dart';
 
 // ─── The address line the flow SHOWS ─────────────────────────────────────────
 //

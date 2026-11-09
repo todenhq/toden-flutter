@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/trust_attribution.dart';
-import 'package:myaza_kyc_sdk_flutter/src/screens/consent_legal_notice.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/powered_by.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/powered_by_custom.dart';
+import 'package:toden_flutter/src/config/theme.dart';
+import 'package:toden_flutter/src/config/trust_attribution.dart';
+import 'package:toden_flutter/src/screens/consent_legal_notice.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/widgets/powered_by.dart';
+import 'package:toden_flutter/src/widgets/powered_by_custom.dart';
 
 // ─── Footer attribution and the consent notice's Myaza line ───────────────────
 //

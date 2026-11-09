@@ -148,6 +148,9 @@ class _UiInputState extends State<UiInput> {
       onChanged: widget.onChanged,
       onSubmitted: widget.onSubmitted,
       onTap: widget.onTap,
+      // A tap anywhere off the field puts the keyboard away, as RN's inputs
+      // do. Without it a sheet's keyboard only left on a scroll drag.
+      onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
       style: fieldStyle,
       cursorColor: colors.primary,
       decoration: InputDecoration(
@@ -169,7 +172,15 @@ class _UiInputState extends State<UiInput> {
             ? Padding(
                 // RN's input holds its suffix `md` in from the edge.
                 padding: const EdgeInsets.only(right: UiSpacing.md),
-                child: Align(alignment: Alignment.centerRight, child: suffixIcon),
+                // widthFactor/heightFactor 1: without them the Align grew to
+                // the whole slot it was offered, a text suffix ("%") took the
+                // field's full width and what was typed drew in no space.
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  widthFactor: 1,
+                  heightFactor: 1,
+                  child: suffixIcon,
+                ),
               )
             : null,
         suffixIconConstraints:

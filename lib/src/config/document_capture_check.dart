@@ -3,7 +3,8 @@ import '../services/api_service.dart' show DocumentCaptureCheckResult;
 // ─── Document capture check ───────────────────────────────────────────────────
 //
 // After a document side uploads, the server reads it with the SAME detectors it
-// later decides the verification with: a readable face on the printed photo
+// later decides the verification with: the whole document inside the frame
+// (all four corners, on every side), a readable face on the printed photo
 // (the front, and only when the workflow compares the selfie with that photo)
 // and a readable barcode (the side that carries one, for documents whose
 // details are read from a barcode). A miss is caught here, while the applicant
@@ -19,7 +20,7 @@ const String kCaptureCheckTitle = 'Check your photos';
 const String kCaptureCheckContinueAnyway = 'Continue anyway';
 
 /// What the server could not find on a side.
-enum CaptureProblemKind { noFace, noBarcode }
+enum CaptureProblemKind { notComplete, noFace, noBarcode }
 
 /// One finding: which side (`front` | `back`), and what was missing on it.
 class CaptureProblem {
@@ -43,9 +44,10 @@ class CaptureProblem {
 /// both sides over.
 const List<String> _kSides = ['front', 'back'];
 
-/// The retakes to ask for, front before back and, on each side, a missing face
-/// before a missing barcode. Each finding appears once, however many answers
-/// carried it.
+/// The retakes to ask for, front before back and, on each side, a document cut
+/// off at the frame first (usually why the others failed, and one retake fixes
+/// all three), then a missing face, then a missing barcode. Each finding
+/// appears once, however many answers carried it.
 List<CaptureProblem> captureCheckProblems(
   List<DocumentCaptureCheckResult?> results,
 ) {
@@ -57,6 +59,8 @@ List<CaptureProblem> captureCheckProblems(
 
   return [
     for (final side in _kSides) ...[
+      if (missing(side, (r) => r.complete))
+        CaptureProblem(side, CaptureProblemKind.notComplete),
       if (missing(side, (r) => r.face))
         CaptureProblem(side, CaptureProblemKind.noFace),
       if (missing(side, (r) => r.barcode))
@@ -73,6 +77,9 @@ List<String> captureProblemSides(List<CaptureProblem> problems) => [
 
 /// What to tell the applicant. Each line names the cause and the fix.
 String captureProblemMessage(CaptureProblemKind kind) => switch (kind) {
+      CaptureProblemKind.notComplete =>
+        "We couldn't see the whole of your ID. Retake it with all four "
+            'corners inside the frame and a little space around the edges.',
       CaptureProblemKind.noFace =>
         "We couldn't see the face in the photo on the front of your ID. "
             'Retake it in good light, with the ID out of any plastic cover and '

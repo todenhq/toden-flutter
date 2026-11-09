@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/presence/presence_stay.dart';
+import 'package:toden_flutter/src/presence/presence_stay.dart';
 
 void main() {
   test('no stay open is null', () {

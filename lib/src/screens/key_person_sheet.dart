@@ -49,6 +49,8 @@ Future<KeyPersonSheetResult?> showKeyPersonSheet(
   return showUiSheet<KeyPersonSheetResult>(
     context,
     isScrollControlled: true,
+    // The heading rides the house sheet header, beside its close.
+    title: editing ? 'Edit person' : 'Add a person',
     builder: (_) => _KeyPersonSheetBody(
       editing: editing,
       section: section,
@@ -147,21 +149,6 @@ class _KeyPersonSheetBodyState extends State<_KeyPersonSheetBody> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Handle and close come from showUiSheet now. What is left is
-            // this sheet's own heading, sitting tight under the handle the way
-            // the system sheets set a title.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                UiSpacing.md,
-                0,
-                UiSpacing.md,
-                UiSpacing.sm,
-              ),
-              child: Text(
-                widget.editing ? 'Edit person' : 'Add a person',
-                style: text.body.copyWith(fontWeight: FontWeight.w700),
-              ),
-            ),
             Flexible(
               child: SingleChildScrollView(
                 keyboardDismissBehavior:
@@ -189,7 +176,7 @@ class _KeyPersonSheetBodyState extends State<_KeyPersonSheetBody> {
                 UiSpacing.md,
                 UiSpacing.sm,
                 UiSpacing.md,
-                UiSpacing.lg,
+                UiSpacing.md,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,

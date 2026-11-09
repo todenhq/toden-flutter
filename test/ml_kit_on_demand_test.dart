@@ -30,10 +30,13 @@ void main() {
       );
       // A second read of the property is how one model ends up bundled and the
       // other fetched: a build that is neither small nor offline.
-      expect(
-        "'myazaKycBundledMlKit'".allMatches(gradle).length,
-        "'myazaKycBundledMlKit'".allMatches(declaration).length,
-      );
+      for (final name in ["'todenBundledMlKit'", "'myazaKycBundledMlKit'"]) {
+        expect(name.allMatches(declaration).length, 1);
+        expect(name.allMatches(gradle).length, 1);
+      }
+      // The Toden name is looked up first; the legacy one is its fallback.
+      expect(declaration.indexOf("'todenBundledMlKit'"),
+          lessThan(declaration.indexOf("'myazaKycBundledMlKit'")));
     });
 
     test('the bundled branch takes BOTH bundled artifacts', () {
@@ -64,7 +67,7 @@ void main() {
       expect(gradle, contains('buildConfigField "boolean", "BUNDLED_ML_KIT"'));
       expect(gradle, contains('buildConfig true'));
       expect(
-        read('android/src/main/kotlin/co/myazahq/kyc/MlKitModelReadiness.kt'),
+        read('android/src/main/kotlin/co/toden/flutter/MlKitModelReadiness.kt'),
         contains('BuildConfig.BUNDLED_ML_KIT'),
       );
     });
@@ -78,7 +81,7 @@ void main() {
 
   group('the readiness check settles', () {
     final gate =
-        read('android/src/main/kotlin/co/myazahq/kyc/MlKitModelReadiness.kt');
+        read('android/src/main/kotlin/co/toden/flutter/MlKitModelReadiness.kt');
 
     test('the manifest names both models, so Play fetches them at install', () {
       expect(read('android/src/main/AndroidManifest.xml'),
@@ -94,7 +97,7 @@ void main() {
 
     test('the plugin routes every question the Dart side asks', () {
       final plugin =
-          read('android/src/main/kotlin/co/myazahq/kyc/KycSdkFlutterPlugin.kt');
+          read('android/src/main/kotlin/co/toden/flutter/KycSdkFlutterPlugin.kt');
       final dart = read('lib/src/services/model_readiness.dart');
       for (final method in const [
         'faceModelStatus',

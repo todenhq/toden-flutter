@@ -1,9 +1,9 @@
 import 'dart:ui' show Color;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/liveness/flash_challenge.dart';
-import 'package:myaza_kyc_sdk_flutter/src/liveness/flash_detector.dart';
-import 'package:myaza_kyc_sdk_flutter/src/liveness/flash_liveness_runner.dart';
+import 'package:toden_flutter/src/liveness/flash_challenge.dart';
+import 'package:toden_flutter/src/liveness/flash_detector.dart';
+import 'package:toden_flutter/src/liveness/flash_liveness_runner.dart';
 
 void main() {
   group('liveness mode', () {

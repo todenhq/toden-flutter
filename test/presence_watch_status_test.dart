@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/presence/presence_watch_status.dart';
+import 'package:toden_flutter/src/presence/presence_watch_status.dart';
 
 // The body is the server's PresenceStatusView (kyc-core,
 // src/lib/address-intel/presence/status.ts).

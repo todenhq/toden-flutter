@@ -81,6 +81,11 @@ const Map<String, String> kPresenceInstructionKeys = {
   'Blink your eyes': 'presence.challenge.blink',
   'Smile please': 'presence.challenge.smile',
   'Hold still and look at the camera': 'presence.challenge.hold',
+  // The final capture's guidance (selfie_shutter.dart). Not customisable: the
+  // defaults are in i18n/defaults_presence_guidance.dart.
+  'Kindly look straight at the camera': 'presence.position.lookStraight',
+  'Kindly move closer': 'presence.position.moveCloser',
+  'Kindly hold still': 'presence.position.holdStill',
 };
 
 /// [raw] as the workflow words it, when it is one of the keyed instructions.

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/multi_id.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/verification_provider.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart'
+import 'package:toden_flutter/toden_flutter.dart';
+import 'package:toden_flutter/src/config/multi_id.dart';
+import 'package:toden_flutter/src/providers/verification_provider.dart';
+import 'package:toden_flutter/src/providers/verification_state.dart'
     show ServerConfigStatus, ServerSdkConfig;
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
 
 // ─── The multi-ID strip must not flex a scrolling step ───────────────────────
 //

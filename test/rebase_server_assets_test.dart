@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/utils/resolve_url.dart';
+import 'package:toden_flutter/src/utils/resolve_url.dart';
 
 // Regression (2026-09-28): over a dev USB tunnel (adb reverse → localhost) the
 // org logo loaded but a workflow's own logo and the footer logos did not: they

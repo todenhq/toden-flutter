@@ -1,10 +1,10 @@
-name: myaza_kyc_sdk_flutter
+name: toden_flutter
 description: Toden SDK for Flutter. ID verification, liveness detection, NFC chip reading and document capture.
-version: 3.7.0
+version: 4.0.0
 
-homepage: https://github.com/todenhq/kyc-sdk-flutter
-repository: https://github.com/todenhq/kyc-sdk-flutter
-issue_tracker: https://github.com/todenhq/kyc-sdk-flutter/issues
+homepage: https://github.com/todenhq/toden-flutter
+repository: https://github.com/todenhq/toden-flutter
+issue_tracker: https://github.com/todenhq/toden-flutter/issues
 
 topics:
   - kyc
@@ -67,9 +67,13 @@ dependencies:
   share_plus: ">=12.0.0 <13.0.0"  # native share sheet for key-people invite links
 
 dev_dependencies:
+  vector_graphics_compiler: ^1.1.11  # reads the sample documents as flutter_svg will
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  # The presence token test fakes the path_provider platform.
+  path_provider_platform_interface: ^2.1.2
+  plugin_platform_interface: ^2.1.8
   build_runner: ^2.4.0
   riverpod_generator: ^2.4.0
 
@@ -115,5 +119,5 @@ flutter:
       ios:
         pluginClass: KycSdkFlutterPlugin
       android:
-        package: co.myazahq.kyc
+        package: co.toden.flutter
         pluginClass: KycSdkFlutterPlugin

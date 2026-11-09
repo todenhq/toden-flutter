@@ -2,8 +2,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
-import 'package:myaza_kyc_sdk_flutter/src/screens/address/address_review_card.dart';
+import 'package:toden_flutter/src/config/theme.dart';
+import 'package:toden_flutter/src/screens/address/address_review_card.dart';
 
 // The band under the review map clears the entrance thumbnail hanging over
 // it, and on a 360dp phone (the S24, the commonest Android width) that

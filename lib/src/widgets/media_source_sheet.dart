@@ -19,6 +19,7 @@ enum MediaSource { photoLibrary, camera, files }
 Future<MediaSource?> showMediaSourceSheet(
   BuildContext context, {
   bool allowFiles = true,
+  bool allowCamera = true,
   String filesLabel = 'Choose a file',
   String filesSubtitle = 'PDF or image from Files',
 }) {
@@ -40,12 +41,13 @@ Future<MediaSource?> showMediaSourceSheet(
               onTap: () =>
                   Navigator.of(sheetContext).pop(MediaSource.photoLibrary),
             ),
-            _SourceTile(
-              icon: UiIcons.camera,
-              title: 'Take Photo',
-              subtitle: 'Use the camera',
-              onTap: () => Navigator.of(sheetContext).pop(MediaSource.camera),
-            ),
+            if (allowCamera)
+              _SourceTile(
+                icon: UiIcons.camera,
+                title: 'Take Photo',
+                subtitle: 'Use the camera',
+                onTap: () => Navigator.of(sheetContext).pop(MediaSource.camera),
+              ),
             if (allowFiles)
               _SourceTile(
                 icon: UiIcons.fileText,
@@ -103,11 +105,10 @@ class _SourceTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title,
-                      style:
-                          text.label.copyWith(fontWeight: FontWeight.w600)),
+                      style: text.label.copyWith(fontWeight: FontWeight.w600)),
                   Text(subtitle,
-                      style: text.bodySmall
-                          .copyWith(color: colors.textSecondary)),
+                      style:
+                          text.bodySmall.copyWith(color: colors.textSecondary)),
                 ],
               ),
             ),

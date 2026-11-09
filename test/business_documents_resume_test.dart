@@ -1,9 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/business_application.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/submit_recovery.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/session_progress.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/session_restore.dart';
+import 'package:toden_flutter/src/config/business.dart';
+import 'package:toden_flutter/src/config/business_application.dart';
+import 'package:toden_flutter/src/config/business_document_groups.dart';
+import 'package:toden_flutter/src/config/submit_recovery.dart';
+import 'package:toden_flutter/src/providers/verification_state.dart';
+import 'package:toden_flutter/src/providers/session_progress.dart';
+import 'package:toden_flutter/src/providers/session_restore.dart';
 
 // Reported 2026-09-29: a KYB applicant closed the SDK during their own ID
 // check, came back, finished, and the submission was refused because the
@@ -39,6 +41,75 @@ void main() {
       expect(doc.isPdf, isTrue);
       // A preview is a local file and never rides progress.
       expect(doc.previewPath, isNull);
+    });
+
+    test('a group upload keeps its group and size', () {
+      const before = VerificationState(
+        currentStep: VerificationStep.idType,
+        businessDocuments: [
+          BusinessDocumentUpload(
+            type: 'incorporation_certificate',
+            group: 'legal_presence',
+            mediaId: 'med_group',
+            fileName: 'legal_presence.jpg',
+            size: 2048,
+          ),
+        ],
+      );
+      final progress = progressFromState(before);
+      final saved = ((progress['data'] as Map)['businessApplication'] as Map)['documents'] as List;
+      expect(saved.single, {
+        'type': 'incorporation_certificate',
+        'group': 'legal_presence',
+        'mediaId': 'med_group',
+        'fileName': 'legal_presence.jpg',
+        'size': 2048,
+      });
+      final doc = restoredState(const VerificationState(), progress).businessDocuments.single;
+      expect(doc.group, 'legal_presence');
+      expect(doc.size, 2048);
+      expect(doc.toJson(), {'group': 'legal_presence', 'mediaId': 'med_group'});
+    });
+
+    test('an entry saved before groups maps to its group and is sent by type', () {
+      final after = restoredState(const VerificationState(), {
+        'step': 'id-type',
+        'data': {
+          'businessApplication': {
+            'documents': [
+              {'type': 'registry_extract', 'mediaId': 'med_old', 'fileName': 'x.pdf'},
+            ],
+          },
+        },
+      });
+      final doc = after.businessDocuments.single;
+      expect(doc.group, isNull);
+      final legal = businessDocumentGroups(WorkflowBusinessConfig.fromJson({
+        'country': 'NG',
+        'documents': {
+          'enabled': true,
+          'types': [
+            {'key': 'incorporation_certificate', 'required': true},
+            {'key': 'registry_extract'},
+          ],
+        },
+      })).single;
+      expect(groupUpload(legal, after.businessDocuments), same(doc));
+      expect(doc.toJson(), {'type': 'registry_extract', 'mediaId': 'med_old'});
+    });
+
+    test('an upload restored without a name is still uploaded, never skipped', () {
+      final after = restoredState(const VerificationState(), {
+        'step': 'id-type',
+        'data': {
+          'businessApplication': {
+            'documents': [
+              {'type': 'memart', 'group': 'company_details', 'mediaId': 'med_x'},
+            ],
+          },
+        },
+      });
+      expect(after.businessDocuments.single.fileName, '');
     });
 
     test('an entry without an upload is not restored', () {

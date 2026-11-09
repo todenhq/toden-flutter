@@ -30,7 +30,6 @@ const _completed =
 /// Customisable texts this SDK has no spot for, with the reason. A workflow's
 /// copy for these is simply never drawn here.
 const Map<String, String> kNotShownTexts = {
-  'welcome.process.uploadDocument': 'The consent list names document capture only; no upload-only line.',
   'contact.code.label': 'The code boxes carry no label above them.',
   'uploadDocument.camera.havingTrouble': 'The camera shows its upload link without a lead-in line.',
   'uploadDocument.upload.addFromGallery': 'The upload card is titled with the side being added.',

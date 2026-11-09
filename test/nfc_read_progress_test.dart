@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/nfc_reader.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/nfc_read_progress.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/ui_spinner.dart';
+import 'package:toden_flutter/src/services/nfc_reader.dart';
+import 'package:toden_flutter/src/widgets/nfc_read_progress.dart';
+import 'package:toden_flutter/src/widgets/ui_spinner.dart';
 
 // The chip read is the one step with no shutter and no preview, and on Android
 // no system NFC UI either — so what the user sees IS the progress list. These

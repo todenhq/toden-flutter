@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/map_frame.dart';
-import 'package:myaza_kyc_sdk_flutter/src/utils/map_tiles.dart';
+import 'package:toden_flutter/src/config/map_frame.dart';
+import 'package:toden_flutter/src/utils/map_tiles.dart';
 
 // The framed map's protocol, mirrored from the web and RN SDKs: no origin on
 // an app URL (the page proves it has no embedder instead), validate-and-drop

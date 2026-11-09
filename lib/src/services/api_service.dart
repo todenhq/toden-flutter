@@ -1,3 +1,5 @@
+import '../config/address_book.dart';
+import '../config/business_search.dart' show businessSearchQueryParameters;
 import '../config/signature.dart';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -14,11 +16,13 @@ import 'api_business.dart';
 export 'api_business.dart';
 export 'sdk_branding.dart';
 import 'sdk_branding.dart';
+import '../config/ownership_pending.dart' show summaryOwnershipPending;
 
 // The Address Intelligence surface. Parts rather than sibling libraries
 // because the calls need the private Dio client and error mapper.
 part 'api_address.dart';
 part 'api_address_calls.dart';
+part 'api_address_book.dart';
 part 'api_device.dart';
 
 // ─── SDK version ─────────────────────────────────────────────────────────────
@@ -27,7 +31,7 @@ part 'api_device.dart';
 // which SDK versions are in the wild and gate breaking API changes by version.
 // Keep in sync with pubspec.yaml `version`.
 
-const String kSdkVersion = '3.7.0';
+const String kSdkVersion = '4.0.0';
 
 // ─── Exception ────────────────────────────────────────────────────────────────
 
@@ -91,10 +95,15 @@ class DocumentCaptureCheckResult {
   final bool? face;
   final bool? barcode;
 
+  /// The whole document, all four corners, is in the photo. Null from a
+  /// server that does not check it (before 2026-11-09).
+  final bool? complete;
+
   const DocumentCaptureCheckResult({
     required this.side,
     this.face,
     this.barcode,
+    this.complete,
   });
 
   factory DocumentCaptureCheckResult.fromJson(Map<String, dynamic> json) =>
@@ -103,6 +112,7 @@ class DocumentCaptureCheckResult {
         // Anything but a real boolean is "could not look", never a problem.
         face: json['face'] is bool ? json['face'] as bool : null,
         barcode: json['barcode'] is bool ? json['barcode'] as bool : null,
+        complete: json['complete'] is bool ? json['complete'] as bool : null,
       );
 }
 
@@ -206,8 +216,10 @@ class VerifyBusiness {
   final String? companyType;
   final String? natureOfBusiness;
 
-  /// Uploaded supporting documents (`[{ type, mediaId }]`) — only honored when
-  /// the workflow's `business.documents` block configures them.
+  /// Uploaded company documents (`[{ group, mediaId }]`, the server recognising
+  /// which document each is; an upload restored from before recognition sends
+  /// `{ type, mediaId }`). Only honoured when the workflow's
+  /// `business.documents` block configures them.
   final List<Map<String, dynamic>>? documents;
 
   /// Applicant-declared directors & owners (≤20; `email` drives auto-sent
@@ -392,6 +404,10 @@ class VerifyRequest {
   /// `mediaIds.proofOfAddress`.
   final String? proofOfAddressType;
 
+  /// ISO-2 of the country the proof of address is from (absent = the
+  /// verification's).
+  final String? proofOfAddressCountry;
+
   /// Supporting documents the org keeps ON FILE — `[{ type, mediaId }]`.
   /// Validated against the workflow's requested list: anything it did not ask
   /// for is dropped, a missing required one is a 422. The checks that follow
@@ -402,6 +418,11 @@ class VerifyRequest {
   /// + device fix), when the address-collection step gathered one. On a KYB
   /// submission the pin is the business premises. Built by `addressPayload`.
   final Map<String, dynamic>? address;
+
+  /// A saved address the person picked from their Toden address book instead
+  /// of entering one: the one-time grant and the address they chose. Sent
+  /// INSTEAD of [address].
+  final AddressBookReuse? addressBookReuse;
 
   /// Device Intelligence toggle — when false the server skips analysis + charge.
   final bool? deviceIntelligence;
@@ -434,8 +455,10 @@ class VerifyRequest {
     this.mediaIds,
     this.questionnaire,
     this.proofOfAddressType,
+    this.proofOfAddressCountry,
     this.supportingDocuments,
     this.address,
+    this.addressBookReuse,
     this.deviceIntelligence,
     this.contact,
     this.nfc,
@@ -460,9 +483,12 @@ class VerifyRequest {
           'questionnaire': questionnaire,
         if (proofOfAddressType != null)
           'proofOfAddressType': proofOfAddressType,
+        if (proofOfAddressCountry != null)
+          'proofOfAddressCountry': proofOfAddressCountry,
         if (supportingDocuments != null && supportingDocuments!.isNotEmpty)
           'supportingDocuments': supportingDocuments,
         if (address != null && address!.isNotEmpty) 'address': address,
+        if (addressBookReuse != null) 'addressBookReuse': addressBookReuse!.toWire(),
         if (deviceIntelligence != null)
           'deviceIntelligence': deviceIntelligence,
         if (contact != null && !contact!.isEmpty) 'contact': contact!.toJson(),
@@ -499,6 +525,9 @@ class AwaitingPerson {
   /// A company completes a KYB application, not a KYC — the list labels it so.
   final bool isCorporate;
 
+  /// Added from the company's own documents, not listed by the applicant.
+  final bool foundInDocuments;
+
   const AwaitingPerson({
     required this.id,
     required this.name,
@@ -509,6 +538,7 @@ class AwaitingPerson {
     this.inviteUrl,
     this.isApplicant = false,
     this.isCorporate = false,
+    this.foundInDocuments = false,
   });
 
   /// Still owes a check — drives whether the list keeps refreshing.
@@ -525,6 +555,7 @@ class AwaitingPerson {
         inviteUrl: json['inviteUrl'] as String?,
         isApplicant: json['isApplicant'] as bool? ?? false,
         isCorporate: json['isCorporate'] as bool? ?? false,
+        foundInDocuments: json['foundInDocuments'] as bool? ?? false,
       );
 }
 
@@ -536,9 +567,14 @@ class SessionSummaryResponse {
   final bool keyPeopleSettled;
   final List<AwaitingPerson> keyPeople;
 
+  /// Shareholders from the register are still on their way: they join
+  /// [keyPeople], with invite links, when they arrive. False when absent.
+  final bool keyPeopleOwnershipPending;
+
   const SessionSummaryResponse({
     required this.keyPeopleSettled,
     required this.keyPeople,
+    this.keyPeopleOwnershipPending = false,
   });
 
   factory SessionSummaryResponse.fromJson(Map<String, dynamic> json) =>
@@ -546,6 +582,7 @@ class SessionSummaryResponse {
         // Absent means an older server that never reconciled — treat as settled
         // rather than spinning forever on a field it will never send.
         keyPeopleSettled: json['keyPeopleSettled'] as bool? ?? true,
+        keyPeopleOwnershipPending: summaryOwnershipPending(json),
         keyPeople: ((json['keyPeople'] as List?) ?? const [])
             .whereType<Map>()
             .map((e) => AwaitingPerson.fromJson(e.cast<String, dynamic>()))
@@ -629,11 +666,15 @@ class VerifyResponse {
   /// Invite links minted for full-KYC key people (empty when none).
   final List<KeyPersonInvite> keyPeopleInvites;
 
+  /// Only when the submission captured an address. Sent with presence reports.
+  final String? presenceToken;
+
   const VerifyResponse({
     required this.verificationId,
     required this.status,
     this.applicantKeyPersonId,
     this.keyPeopleInvites = const [],
+    this.presenceToken,
   });
 
   factory VerifyResponse.fromJson(Map<String, dynamic> json) {
@@ -648,6 +689,7 @@ class VerifyResponse {
               .map((e) => KeyPersonInvite.fromJson(e.cast<String, dynamic>()))
               .toList(growable: false)
           : const [],
+      presenceToken: json['presenceToken'] as String?,
     );
   }
 }
@@ -660,10 +702,14 @@ class ContactSendResponse {
   final String? expiresAt;
   final String? deliveryChannel;
 
+  /// The length of the code actually sent. Older servers leave it out.
+  final int? codeLength;
+
   const ContactSendResponse({
     required this.challengeId,
     this.expiresAt,
     this.deliveryChannel,
+    this.codeLength,
   });
 
   factory ContactSendResponse.fromJson(Map<String, dynamic> json) =>
@@ -671,6 +717,7 @@ class ContactSendResponse {
         challengeId: json['challengeId'] as String,
         expiresAt: json['expiresAt'] as String?,
         deliveryChannel: json['deliveryChannel'] as String?,
+        codeLength: json['codeLength'] is int ? json['codeLength'] as int : null,
       );
 }
 
@@ -931,6 +978,11 @@ class SdkConfigResponse {
   /// project Play Integrity tokens are requested for. Null skips it.
   final String? playIntegrityCloudProjectNumber;
 
+  /// The Toden address book on this organisation: `save` offers the box that
+  /// saves the confirmed address to the person's own book, `reuse` the step
+  /// that lets them pick one they saved before. Null on an older server.
+  final AddressBookSwitches? addressBook;
+
   const SdkConfigResponse({
     required this.environment,
     required this.idTypes,
@@ -940,6 +992,7 @@ class SdkConfigResponse {
     this.addressSearchMode,
     this.mapsFrameUrl,
     this.playIntegrityCloudProjectNumber,
+    this.addressBook,
   });
 
   factory SdkConfigResponse.fromJson(Map<String, dynamic> json) =>
@@ -958,6 +1011,7 @@ class SdkConfigResponse {
         addressSearchMode: json['addressSearchMode'] as String?,
         mapsFrameUrl: json['mapsFrameUrl'] as String?,
         playIntegrityCloudProjectNumber: playIntegrityProjectOf(json),
+        addressBook: AddressBookSwitches.fromJson(json['addressBook']),
       );
 }
 
@@ -1058,6 +1112,7 @@ class WorkflowResolution {
   final String? addressSearchMode;
   final String? mapsFrameUrl;
   final String? playIntegrityCloudProjectNumber;
+  final AddressBookSwitches? addressBook;
 
   const WorkflowResolution({
     required this.flowId,
@@ -1073,6 +1128,7 @@ class WorkflowResolution {
     this.addressSearchMode,
     this.mapsFrameUrl,
     this.playIntegrityCloudProjectNumber,
+    this.addressBook,
   });
 
   factory WorkflowResolution.fromJson(Map<String, dynamic> json) {
@@ -1102,6 +1158,9 @@ class WorkflowResolution {
       addressSearchMode: json['addressSearchMode'] as String?,
       mapsFrameUrl: json['mapsFrameUrl'] as String?,
       playIntegrityCloudProjectNumber: playIntegrityProjectOf(json),
+      // Already narrowed by the workflow server-side (off when it turned reuse
+      // off or runs always-on presence monitoring).
+      addressBook: AddressBookSwitches.fromJson(json['addressBook']),
     );
   }
 }
@@ -1312,7 +1371,10 @@ class VerificationApiService {
       return result.side == side
           ? result
           : DocumentCaptureCheckResult(
-              side: side, face: result.face, barcode: result.barcode);
+              side: side,
+              face: result.face,
+              barcode: result.barcode,
+              complete: result.complete);
     } catch (_) {
       // Stops a request the timeout abandoned; harmless on one already done.
       cancel.cancel();
@@ -1419,26 +1481,66 @@ class VerificationApiService {
     }
   }
 
-  /// Find a business by name. FREE — no provider charge here or upstream, so
-  /// the applicant may look as many times as they need. Throws on a provider
-  /// failure so the caller can show "unavailable" rather than an empty list,
-  /// which would read as "this business is not registered".
+  /// Reads an uploaded company document for the people it names, so the
+  /// key-people step opens with them filled in. Never blocks the flow: a
+  /// `read: false` answer (with a reason) returns null, which callers ignore.
+  Future<List<RegistryOfficer>?> businessDocumentPeople({
+    required String sessionId,
+    required String mediaId,
+    required String country,
+    String? group,
+    String? type,
+    String? registrationNumber,
+    String? registrationName,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/api/v1/business/documents/people',
+        data: {
+          'sessionId': sessionId,
+          'mediaId': mediaId,
+          'country': country,
+          if (group != null) 'group': group,
+          if (type != null) 'type': type,
+          if (registrationNumber != null) 'registrationNumber': registrationNumber,
+          if (registrationName != null) 'registrationName': registrationName,
+        },
+        options: Options(contentType: 'application/json'),
+      );
+      final data = response.data ?? const {};
+      if (data['read'] != true) return null;
+      return ((data['people'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((m) => RegistryOfficer.fromJson(Map<String, dynamic>.from(m)))
+          .toList();
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+  }
+
+  /// Find a business by name. Free on most registers; where the register
+  /// charges per search the org pays, so the attempt session rides along (the
+  /// same id [businessSelect] sends) and the server may refuse
+  /// (config/business_search.dart). Throws on a provider failure so the caller
+  /// can show "unavailable" rather than an empty list, which would read as
+  /// "this business is not registered".
   Future<BusinessSearchResponse> businessSearch({
     required String country,
     required String query,
     String? subdivisionCode,
     int? limit,
+    String? sessionId,
   }) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/api/v1/business/search',
-        queryParameters: {
-          'country': country,
-          'query': query,
-          if (subdivisionCode != null && subdivisionCode.isNotEmpty)
-            'subdivisionCode': subdivisionCode,
-          if (limit != null) 'limit': limit,
-        },
+        queryParameters: businessSearchQueryParameters(
+          country: country,
+          query: query,
+          subdivisionCode: subdivisionCode,
+          limit: limit,
+          sessionId: sessionId,
+        ),
       );
       return BusinessSearchResponse.fromJson(response.data!);
     } on DioException catch (e) {
@@ -1551,6 +1653,7 @@ class VerificationApiService {
     String? via,
     int? codeLength,
     int? maxAttempts,
+    String? sessionId,
   }) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
@@ -1562,6 +1665,7 @@ class VerificationApiService {
           if (via != null) 'via': via,
           if (codeLength != null) 'codeLength': codeLength,
           if (maxAttempts != null) 'maxAttempts': maxAttempts,
+          if (sessionId != null) 'sessionId': sessionId,
         },
         options: Options(contentType: 'application/json'),
       );
@@ -1583,6 +1687,52 @@ class VerificationApiService {
         options: Options(contentType: 'application/json'),
       );
       return ContactCheckResponse.fromJson(response.data!);
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+  }
+
+  // ── Toden address book — reuse a saved address (api_address_book.dart) ──────
+
+  /// Whether the email has a saved address this flow could take. [presence]
+  /// says the flow runs a presence check, so only a recent verdict counts.
+  Future<bool> addressBookLookup(String email, {required bool presence}) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/api/v1/address-book/lookup',
+        data: {'email': email, 'presence': presence},
+        options: Options(contentType: 'application/json'),
+      );
+      return response.data?['recognised'] == true;
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+  }
+
+  /// Send a code to the email the person signs in to Toden with. Returns the
+  /// challenge.
+  Future<String> addressBookCode(String email) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/api/v1/address-book/code',
+        data: {'email': email},
+        options: Options(contentType: 'application/json'),
+      );
+      return response.data?['challengeId'] as String? ?? '';
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+  }
+
+  /// Check the code: the person's saved addresses and the one-time grant.
+  Future<AddressBookListing> addressBookAddresses(String challengeId, String code) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/api/v1/address-book/addresses',
+        data: {'challengeId': challengeId, 'code': code},
+        options: Options(contentType: 'application/json'),
+      );
+      return AddressBookListing.fromJson(response.data ?? const {});
     } on DioException catch (e) {
       throw _mapDioError(e);
     }
@@ -1650,7 +1800,13 @@ Map<String, dynamic>? errorDetailsFrom(int statusCode, Map<String, dynamic> data
   }
   // 422 contact_verification_required carries `missing` (email | phone): what
   // submit recovery routes on.
-  if (statusCode == 422 && data['missing'] is List) return {'missing': data['missing']};
+  // 422 missing_documents also names the missing document GROUPS.
+  if (statusCode == 422 && data['missing'] is List) {
+    return {
+      'missing': data['missing'],
+      if (data['missingGroups'] is List) 'missingGroups': data['missingGroups'],
+    };
+  }
   // 400 invalid_media names the capture it refused (`mediaKey`), which is
   // where Go back lands (config/submit_recovery.dart). Dropped, a bad upload
   // always fell back to the step before submission.

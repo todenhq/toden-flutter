@@ -262,6 +262,9 @@ class WorkflowKeyPeopleConfig {
   /// Explicit override of WHICH roles must carry an email.
   final List<KeyPersonRole> requireEmailRoles;
 
+  /// Shareholders and beneficial owners must give a percentage (absent = yes).
+  final bool requireOwnership;
+
   const WorkflowKeyPeopleConfig({
     this.enabled = false,
     this.collect = false,
@@ -274,6 +277,7 @@ class WorkflowKeyPeopleConfig {
     this.inviteChannel,
     this.requireEmail = false,
     this.requireEmailRoles = const [],
+    this.requireOwnership = true,
   });
 
   /// Nested KYB: a corporate shareholder is invited into its OWN business
@@ -325,6 +329,7 @@ class WorkflowKeyPeopleConfig {
           : null,
       requireEmail: json['requireEmail'] as bool? ?? false,
       requireEmailRoles: roleList(json['requireEmailRoles']),
+      requireOwnership: json['requireOwnership'] as bool? ?? true,
     );
   }
 }
@@ -335,12 +340,23 @@ class WorkflowKeyPeopleConfig {
 /// back to a humanized label so a new server type still renders.
 const Map<String, String> kBusinessDocumentLabels = {
   'incorporation_certificate': 'Certificate of incorporation',
-  'memart': 'MEMART / articles of association',
+  'memart': 'Memorandum and articles / company constitution',
   'proof_of_address': 'Proof of business address',
-  'tax_document': 'Tax document',
-  'regulatory_license': 'Regulatory license',
+  'tax_document': 'Tax registration or clearance certificate',
+  'regulatory_license': 'Regulatory licence or permit',
   'board_resolution': 'Board resolution',
   'other': 'Other document',
+  'business_registration': 'Business registration certificate',
+  'good_standing_certificate': 'Certificate of good standing',
+  'registry_extract': 'Official company extract or profile from the registrar',
+  'annual_return': 'Latest annual return',
+  'register_of_directors': 'Register of directors',
+  'shareholder_register': 'Register of shareholders',
+  'share_certificate': 'Share certificate',
+  'ubo_declaration': 'Beneficial ownership declaration',
+  'power_of_attorney': 'Power of attorney',
+  'authorization_letter': 'Letter of authorisation',
+  'financial_statements': 'Financial statements or audited accounts',
 };
 
 String businessDocumentLabel(String key) =>
@@ -356,10 +372,15 @@ class WorkflowBusinessDocumentType {
   /// Submission is blocked (422 `missing_documents`) until this slot is filled.
   final bool required;
 
+  /// How recent it must be, in months. Null = any date. Checked after
+  /// submission; the step only says it.
+  final int? maxAgeMonths;
+
   const WorkflowBusinessDocumentType({
     required this.key,
     this.label,
     this.required = false,
+    this.maxAgeMonths,
   });
 
   String get displayLabel => label ?? businessDocumentLabel(key);
@@ -369,6 +390,9 @@ class WorkflowBusinessDocumentType {
         key: (json['key'] ?? '').toString(),
         label: json['label']?.toString(),
         required: json['required'] as bool? ?? false,
+        maxAgeMonths: json['maxAgeMonths'] is num
+            ? (json['maxAgeMonths'] as num).toInt()
+            : null,
       );
 }
 
@@ -429,6 +453,10 @@ class WorkflowBusinessConfig {
   /// Whether the registered name field is required (else optional).
   final bool requireRegistrationName;
 
+  /// Offer search by company name on the details step (absent = on). False
+  /// opens the step on registration-number entry and never searches.
+  final bool nameSearch;
+
   /// Collect the company profile on the business-details step. Default ON;
   /// false hides the whole section.
   final bool collectCompanyInfo;
@@ -450,6 +478,7 @@ class WorkflowBusinessConfig {
     this.countries,
     this.products,
     this.requireRegistrationName = false,
+    this.nameSearch = true,
     this.collectCompanyInfo = true,
     this.companyInfo = const {},
     this.keyPeople,
@@ -538,6 +567,7 @@ class WorkflowBusinessConfig {
           ?.map((e) => e.toString())
           .toList(growable: false),
       requireRegistrationName: json['requireRegistrationName'] as bool? ?? false,
+      nameSearch: json['nameSearch'] as bool? ?? true,
       collectCompanyInfo: json['collectCompanyInfo'] as bool? ?? true,
       companyInfo: companyInfo,
       keyPeople:

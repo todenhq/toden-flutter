@@ -7,6 +7,7 @@ import '../config/theme.dart';
 import 'country_flag.dart';
 import 'key_people_await_pill.dart';
 import 'key_people_await_row.dart';
+import 'key_people_await_tags.dart';
 import 'icons/icons.dart';
 
 // One person on the KYB success screen's list: who they are, where their check
@@ -101,41 +102,11 @@ class KeyPeopleAwaitCardState extends State<KeyPeopleAwaitCard> {
                                 .copyWith(color: colors.textSecondary),
                           ),
                         if (row.isCorporate)
-                          WidgetSpan(
+                          const WidgetSpan(
                             alignment: PlaceholderAlignment.middle,
                             child: Padding(
-                              padding: const EdgeInsets.only(left: 6),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: colors.background,
-                                  border: Border.all(color: colors.border),
-                                  borderRadius:
-                                      BorderRadius.circular(UiRadius.full),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    UiIcon(
-                                      UiIcons.building2,
-                                      size: 12,
-                                      color: colors.textDark,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Company',
-                                      style: text.bodySmall.copyWith(
-                                        color: colors.textDark,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              padding: EdgeInsets.only(left: 6),
+                              child: AwaitCompanyChip(),
                             ),
                           ),
                       ]),
@@ -143,10 +114,7 @@ class KeyPeopleAwaitCardState extends State<KeyPeopleAwaitCard> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
-                    // ONE line of text, the flag inline: two Flexibles split
-                    // the row in half, so the role line was cut mid-way
-                    // ("Beneficial owner (UBO) · …") while the country kept
-                    // its half. Truncating at the end keeps role and share.
+                    // ONE line, flag inline: two Flexibles cut the role mid-way.
                     Text.rich(
                       TextSpan(children: [
                         TextSpan(
@@ -169,6 +137,7 @@ class KeyPeopleAwaitCardState extends State<KeyPeopleAwaitCard> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    if (row.foundInDocuments) const AwaitFoundInDocuments(),
                   ],
                 ),
               ),

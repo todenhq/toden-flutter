@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/document_framing_gate.dart'
+import 'package:toden_flutter/src/services/document_framing_gate.dart'
     show DocumentHint;
-import 'package:myaza_kyc_sdk_flutter/src/services/document_identity.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/document_type_signals.dart';
+import 'package:toden_flutter/src/services/document_identity.dart';
+import 'package:toden_flutter/src/services/document_type_signals.dart';
 
 // ─── Identifying a voter's card ───────────────────────────────────────────────
 //

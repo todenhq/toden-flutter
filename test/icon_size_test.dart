@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/icons/icons.dart';
+import 'package:toden_flutter/src/widgets/icons/icons.dart';
 
 /// An icon is the size the call site asked for, whatever box it is handed.
 ///

@@ -1,4 +1,4 @@
-group 'co.myazahq.kyc'
+group 'co.toden.flutter'
 version '1.0.0'
 
 buildscript {
@@ -29,15 +29,18 @@ apply plugin: 'kotlin-android'
 // second read of the same property is how one model ends up bundled and the
 // other fetched, a build that is neither small nor offline.
 //
-// A host sets it in its root android/build.gradle (`ext.myazaKycBundledMlKit =
-// true`), its root build.gradle.kts (`extra["myazaKycBundledMlKit"] = true`), or
-// android/gradle.properties (`myazaKycBundledMlKit=true`).
-def bundledMlKit = (rootProject.ext.has('myazaKycBundledMlKit')
-        ? rootProject.ext.get('myazaKycBundledMlKit')
-        : (project.findProperty('myazaKycBundledMlKit') ?: false)).toString().toBoolean()
+// A host sets it in its root android/build.gradle (`ext.todenBundledMlKit =
+// true`), its root build.gradle.kts (`extra["todenBundledMlKit"] = true`), or
+// android/gradle.properties (`todenBundledMlKit=true`). The earlier name,
+// `myazaKycBundledMlKit`, is still read, in the same places, when the new one
+// is not set at all, so an app that already sets it keeps its bundled models.
+// Each name is looked up in the root `ext` first, then as a project property.
+def bundledMlKit = (['todenBundledMlKit', 'myazaKycBundledMlKit']
+        .collect { name -> rootProject.ext.has(name) ? rootProject.ext.get(name) : project.findProperty(name) }
+        .find { it != null } ?: false).toString().toBoolean()
 
 android {
-    namespace 'co.myazahq.kyc'
+    namespace 'co.toden.flutter'
     // 36, not 34. flutter_tts, flutter_nfc_kit and flutter_plugin_android_lifecycle
     // declare they must be compiled against 36, and AGP checks that on THIS module
     // during a host's release build (checkReleaseAarMetadata), so 34 failed every
@@ -56,6 +59,9 @@ android {
 
     defaultConfig {
         minSdk 21
+        // Keep rules every host app's release build applies (WorkManager's
+        // Room database, which R8 otherwise breaks at launch).
+        consumerProguardFiles 'consumer-rules.pro'
 
         // Read by MlKitModelReadiness: on a bundled build the model is already
         // here, and asking Play Services whether it holds the OPTIONAL module
@@ -92,7 +98,7 @@ dependencies {
     //
     // The trade is real, which is why the flag exists: the unbundled variants need
     // Google Play Services, so they do not work on Huawei or bare AOSP builds. An
-    // org shipping to those devices sets `myazaKycBundledMlKit = true` and gets the
+    // org shipping to those devices sets `todenBundledMlKit = true` and gets the
     // fully-offline models back.
     //
     // Availability is checked explicitly, never inferred per frame, because an

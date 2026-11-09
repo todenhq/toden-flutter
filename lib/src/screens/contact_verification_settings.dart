@@ -11,6 +11,15 @@ import '../config/verification_config.dart';
 /// Server-side minimum code length (the server clamps codeLength to 4–8).
 const int kMinCodeLength = 4;
 
+/// Server-side maximum code length.
+const int kMaxCodeLength = 8;
+
+/// The length to size the code field to once a code is out. The server decides
+/// it from the pinned workflow and says so; anything but a length it could have
+/// sent (an older server sends nothing) falls back to the configured one.
+int sentCodeLength(int? sent, int configured) =>
+    sent != null && sent >= kMinCodeLength && sent <= kMaxCodeLength ? sent : configured;
+
 final _emailRe = RegExp(r'.+@.+\..+');
 
 /// Deliberately permissive: the real proof of an address is that a code sent to
@@ -35,6 +44,9 @@ class ContactChannelSettings {
   /// The visitor's IP country, pinned to the top of the dial-code picker.
   final String? geoCountry;
 
+  /// The dial-code countries the phone field offers (empty = every country).
+  final List<String> dialCountries;
+
   const ContactChannelSettings({
     required this.isPhone,
     required this.codeLength,
@@ -44,6 +56,7 @@ class ContactChannelSettings {
     required this.maxAttempts,
     required this.defaultCountry,
     this.geoCountry,
+    this.dialCountries = const [],
   });
 
   /// The channel used until the user picks otherwise. Null for email.
@@ -88,6 +101,7 @@ class ContactChannelSettings {
       defaultCountry:
           phone?.defaultCountry ?? config.country ?? geoCountry ?? '',
       geoCountry: geoCountry,
+      dialCountries: isPhone ? (phone?.countries ?? const []) : const [],
     );
   }
 }

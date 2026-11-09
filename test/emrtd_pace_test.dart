@@ -3,11 +3,11 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_card_access.dart';
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_cipher.dart';
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_pace.dart';
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_pace_params.dart';
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_tlv.dart';
+import 'package:toden_flutter/src/nfc/emrtd_card_access.dart';
+import 'package:toden_flutter/src/nfc/emrtd_cipher.dart';
+import 'package:toden_flutter/src/nfc/emrtd_pace.dart';
+import 'package:toden_flutter/src/nfc/emrtd_pace_params.dart';
+import 'package:toden_flutter/src/nfc/emrtd_tlv.dart';
 
 import 'emrtd_pace_chip.dart';
 

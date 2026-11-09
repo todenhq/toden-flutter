@@ -4,13 +4,16 @@ import 'package:flutter/widgets.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../config/address_collection.dart';
+import '../../config/photo_mode.dart';
 import '../../config/upload_limits.dart';
 import '../../widgets/media_source_sheet.dart';
+import '../photo_camera.dart';
 
 // ─── Getting the entrance photo off the device ───────────────────────────────
 //
 // Camera or photo library only: the entrance photo is a PICTURE of a place, so
-// there is no PDF or Files case. Mirrors the RN SDK's address photo picker.
+// there is no PDF or Files case. The camera is the SDK's own. Mirrors the RN
+// SDK's address photo picker.
 
 /// What came back from the picker: the bytes to upload, their type, and the
 /// local path the review step renders as a preview.
@@ -39,17 +42,48 @@ String _mimeFor(String? name) =>
     };
 
 /// Ask for an entrance photo: pick a source, then read and vet the file.
+///
+/// "Take a photo" is the SDK's own camera (screens/photo_camera.dart); its
+/// Upload is the photo library, the sheet's other option.
 Future<AddressPhotoPickResult> pickAddressPhoto(BuildContext context) async {
   final source = await showMediaSourceSheet(context, allowFiles: false);
   if (source == null) return const AddressPhotoPickResult();
-  try {
-    final picked = await ImagePicker().pickImage(
-      source: source == MediaSource.camera
-          ? ImageSource.camera
-          : ImageSource.gallery,
-      imageQuality: 90,
+  if (source == MediaSource.camera) {
+    if (!context.mounted) return const AddressPhotoPickResult();
+    final shot = await openPhotoCamera(
+      context,
+      title: PhotoCopy.entranceTitle,
+      instruction: PhotoCopy.fitEntrance,
     );
-    if (picked == null) return const AddressPhotoPickResult();
+    switch (shot.exit) {
+      case PhotoCameraExit.cancelled:
+        return const AddressPhotoPickResult();
+      case PhotoCameraExit.photo:
+        return _vet(shot.photo!);
+      case PhotoCameraExit.upload:
+        return _pickFromLibrary();
+    }
+  }
+  return _pickFromLibrary();
+}
+
+Future<AddressPhotoPickResult> _pickFromLibrary() async {
+  final XFile? picked;
+  try {
+    picked = await ImagePicker()
+        .pickImage(source: ImageSource.gallery, imageQuality: 90);
+  } catch (_) {
+    return const AddressPhotoPickResult(error: _kPhotoReadError);
+  }
+  if (picked == null) return const AddressPhotoPickResult();
+  return _vet(picked);
+}
+
+const String _kPhotoReadError = 'Could not read that photo. Please try another.';
+
+/// Reads a picked or taken photo and checks it is one we take.
+Future<AddressPhotoPickResult> _vet(XFile picked) async {
+  try {
     final bytes = await picked.readAsBytes();
     final mime = picked.mimeType ?? _mimeFor(picked.name);
     // The picker's media filter is advisory on some platforms, so what came
@@ -65,7 +99,6 @@ Future<AddressPhotoPickResult> pickAddressPhoto(BuildContext context) async {
     return AddressPhotoPickResult(
         photo: PickedAddressPhoto(bytes, mime, picked.path));
   } catch (_) {
-    return const AddressPhotoPickResult(
-        error: 'Could not read that photo. Please try another.');
+    return const AddressPhotoPickResult(error: _kPhotoReadError);
   }
 }

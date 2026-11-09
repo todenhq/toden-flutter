@@ -74,64 +74,81 @@ class UiAlert extends StatelessWidget {
     final accent = variant.accentColor;
     final bg     = variant.bgColor(colors);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(UiRadius.sm),
-        border: Border.all(color: accent.withValues(alpha: 0.25)),
-      ),
-      clipBehavior: Clip.hardEdge,
-      child: IntrinsicHeight(
+    // Drawn as the dashboard's publish advisories are: a tinted card with a
+    // faint edge in the variant's colour, a round icon tile carrying the
+    // meaning, the title in the foreground colour and the message one step
+    // quieter. The colour sits in the icon and the edge, so the words stay
+    // readable on every surface.
+    final hasMessage = message != null && message!.isNotEmpty;
+    return Semantics(
+      liveRegion: variant == UiAlertVariant.error || variant == UiAlertVariant.warning,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: bg.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(UiRadius.sm),
+          border: Border.all(color: accent.withValues(alpha: 0.2)),
+        ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Colored left accent bar ──────────────────────────────────────
-            Container(width: 4, color: accent),
-
-            // ── Content ──────────────────────────────────────────────────────
+            Container(
+              width: 28,
+              height: 28,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: UiIcon(variant.icon, size: 14, color: accent),
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: UiSpacing.md,
-                  vertical: UiSpacing.sm + 2,
-                ),
-                child: Row(
+                padding: const EdgeInsets.only(top: 4),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    UiIcon(variant.icon, size: 18, color: accent),
-                    const SizedBox(width: UiSpacing.sm),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            title,
-                            style: text.label.copyWith(color: accent),
-                          ),
-                          if (message != null && message!.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              message!,
-                              style: text.bodySmall.copyWith(
-                                color: accent.withValues(alpha: 0.85),
-                              ),
-                            ),
-                          ],
-                        ],
+                    Text(
+                      title,
+                      style: text.label.copyWith(
+                        color: colors.textDark,
+                        fontWeight: FontWeight.w600,
+                        height: 20 / 14,
                       ),
                     ),
-                    if (onDismiss != null) ...[
-                      const SizedBox(width: UiSpacing.sm),
-                      GestureDetector(
-                        onTap: onDismiss,
-                        child: UiIcon(UiIcons.x, size: 16, color: accent),
+                    if (hasMessage) ...[
+                      const SizedBox(height: UiSpacing.xs),
+                      Text(
+                        message!,
+                        style: text.bodySmall.copyWith(
+                          fontSize: 13,
+                          height: 20 / 13,
+                          color: colors.textSecondary,
+                        ),
                       ),
                     ],
                   ],
                 ),
               ),
             ),
+            if (onDismiss != null) ...[
+              const SizedBox(width: UiSpacing.sm),
+              Semantics(
+                button: true,
+                label: 'Dismiss',
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onDismiss,
+                  child: SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: Center(child: UiIcon(UiIcons.x, size: 16, color: colors.textSecondary)),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

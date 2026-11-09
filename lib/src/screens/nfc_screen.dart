@@ -231,7 +231,7 @@ class _NfcScreenState extends ConsumerState<NfcScreen> {
     if (_phase == _Phase.checking) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: UiSpacing.xl),
-        child: Center(child: UiSpinner()),
+        child: Center(child: SizedBox.square(dimension: 24, child: UiSpinner())),
       );
     }
 

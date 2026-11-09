@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
-import 'package:myaza_kyc_sdk_flutter/src/screens/address/address_review_map.dart';
-import 'package:myaza_kyc_sdk_flutter/src/utils/map_tiles.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/map_pin_marker.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/map_pin_picker.dart';
+import 'package:toden_flutter/src/config/theme.dart';
+import 'package:toden_flutter/src/screens/address/address_review_map.dart';
+import 'package:toden_flutter/src/utils/map_tiles.dart';
+import 'package:toden_flutter/src/widgets/map_pin_marker.dart';
+import 'package:toden_flutter/src/widgets/map_pin_picker.dart';
 
 // The review card's map falls back in the SAME order as the web and RN cards:
 // the picture, then the framed Google map the pin step drew, then the built-in

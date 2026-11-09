@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/device_attestation.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/device_intel_platform.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/services/device_attestation.dart';
+import 'package:toden_flutter/src/services/device_intel_platform.dart';
 
 // Shared fakes for the device-intel tests: the native half and the challenge
 // endpoint, so the Dart side can be pinned without a device.

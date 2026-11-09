@@ -14,7 +14,7 @@ import 'package:flutter/services.dart';
 // of any ML Kit dependency so the core SDK builds on every platform/architecture
 // — including Apple-Silicon iOS simulators, where GoogleMLKit ships no arm64
 // slice. The actual on-device detector lives behind [FaceDetectorService] and is
-// provided by an optional companion package (e.g. myaza_kyc_sdk_flutter_mlkit).
+// provided by an optional companion package (e.g. toden_flutter_mlkit).
 
 class LivenessFaceData {
   /// Head pitch: positive = looking up, negative = looking down.

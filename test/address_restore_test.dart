@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/session_progress.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/session_restore.dart';
+import 'package:toden_flutter/src/providers/verification_state.dart';
+import 'package:toden_flutter/src/providers/session_progress.dart';
+import 'package:toden_flutter/src/providers/session_restore.dart';
 
 // ─── Restoring a smart address from a session snapshot ───────────────────
 //

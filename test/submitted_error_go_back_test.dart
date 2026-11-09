@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/verification_config.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
-import 'package:myaza_kyc_sdk_flutter/src/screens/submitted_error_view.dart';
+import 'package:toden_flutter/src/config/verification_config.dart';
+import 'package:toden_flutter/src/config/theme.dart';
+import 'package:toden_flutter/src/screens/submitted_error_view.dart';
 
 // A refused submission offered only Close, while its message said "go back".
 

@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_secure_messaging.dart';
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_session.dart';
+import 'package:toden_flutter/src/nfc/emrtd_secure_messaging.dart';
+import 'package:toden_flutter/src/nfc/emrtd_session.dart';
 
 // ─── The ICAO 9303 Part 11 Appendix D trace, replayed ─────────────────────────
 //

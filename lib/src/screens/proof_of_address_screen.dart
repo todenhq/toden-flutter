@@ -4,33 +4,43 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../config/poa_country_gate.dart';
+import '../config/photo_mode.dart';
 import '../config/proof_of_address.dart';
 import '../config/scope.dart';
 import '../config/theme.dart';
 import '../config/upload_limits.dart';
+import '../i18n/business_variants.dart';
+import '../providers/poa_step.dart';
 import '../providers/verification_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/address_country_control.dart';
 import '../widgets/media_source_sheet.dart';
 import '../widgets/ui_button.dart';
+import 'proof_of_address_accepted.dart';
 import 'proof_of_address_kinds.dart';
 import 'proof_of_address_parts.dart';
 import 'proof_of_address_pick.dart';
+import 'photo_camera.dart';
 import '../i18n/text_scope.dart';
 
 part 'proof_of_address_upload.dart';
 
 // ─── Proof of Address screen ──────────────────────────────────────────────────
 //
-// Collects a proof-of-address document (image or PDF) after capture. A soft
-// server-side check — it never changes the verification's own status. The user
-// picks from the photo library, the camera, or Files (jpg/png/webp/pdf): the
-// native equivalent of the web SDK's `<input type=file accept=image/*,pdf>`.
+// The applicant says which country the document is from, picks its kind,
+// and takes a photo or uploads a file (image or PDF). The server reads it
+// asynchronously, recognises which document within the kind it is, and checks
+// the name, address and date: a soft check that never changes the
+// verification's own status. The SDK only collects it. Mirrors the web SDK's
+// steps/ProofOfAddressStep and the RN twin.
 //
-// The UI mirrors the web SDK: a DASHED drop zone that names the document being
-// asked for ("Upload your utility bill") and what's accepted, replaced after
-// upload by a row showing the file, its kind, and an X to remove it.
+//   country   on EVERY scope (config/poa_country_gate.dart): the address
+//             scope's declared country, else the document's own, starting
+//             from the ID's.
+//   kind      a radio list, shown only when more than one kind is offered;
+//             "See accepted documents" opens what each kind takes.
+//   capture   the tiles `proofOfAddress.capture` asks for, then the uploaded
+//             card with Replace / Remove, then Continue.
 
 class ProofOfAddressScreen extends ConsumerStatefulWidget {
   final void Function(Object error)? onError;
@@ -42,12 +52,11 @@ class ProofOfAddressScreen extends ConsumerStatefulWidget {
 }
 
 class _ProofOfAddressScreenState extends ConsumerState<ProofOfAddressScreen> {
-  PoaDocumentType? _type;
   bool _uploading = false;
   String? _fileName;
   String? _error;
 
-  // Kept so the uploaded row can show the user what they actually picked —
+  // Kept so the uploaded card can show the user what they actually picked:
   // the only way to catch "wrong photo from the camera roll" before submitting.
   Uint8List? _previewBytes;
   bool _previewIsPdf = false;
@@ -56,132 +65,111 @@ class _ProofOfAddressScreenState extends ConsumerState<ProofOfAddressScreen> {
       ref.read(verificationConfigProvider).proofOfAddress ??
       const ProofOfAddressConfig(enabled: true);
 
-  /// The country the document is for — on the address scope the control at
-  /// the top of this screen changes it, and an org may accept different
-  /// papers per market.
-  String? get _country =>
-      ref.read(kYCNotifierProvider).selectedCountry ??
-      ref.read(verificationConfigProvider).country;
-
-  @override
-  void initState() {
-    super.initState();
-    final offered = _cfg.offeredTypesFor(_country);
-    _type = offered.isNotEmpty ? offered.first : PoaDocumentType.other;
-  }
-
-  String get _typeLabel =>
-      _cfg.labelFor(_type ?? PoaDocumentType.other, context.verificationText);
+  /// The kind picked, as the header and the upload read it (poa_step.dart).
+  PoaDocumentType get _type => poaStepKind(
+      ref.read(verificationConfigProvider), ref.read(kYCNotifierProvider));
 
   /// `setState` for the upload ops in the part file: a protected member may
   /// only be called from the State itself, so the extension goes through this.
   void _rebuild(VoidCallback fn) => setState(fn);
 
-  Future<void> _pick() async {
-    setState(() => _error = null);
-    final source = await showMediaSourceSheet(context);
-    if (source == null || !mounted) return;
-    try {
-      final picked = switch (source) {
-        MediaSource.photoLibrary => await pickPoaImage(ImageSource.gallery),
-        MediaSource.camera => await pickPoaImage(ImageSource.camera),
-        MediaSource.files => await pickPoaFile(),
-      };
-      if (picked == null || !mounted) return; // cancelled
-      await _upload(picked.bytes, picked.mime, picked.name);
-    } on PoaPickException catch (e) {
-      _failUpload(e.message);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final text = context.myazaText;
-    final selectedCountry = ref.watch(kYCNotifierProvider).selectedCountry;
+    final t = context.verificationText;
     final config = ref.watch(verificationConfigProvider);
-    final offered = _cfg.offeredTypesFor(selectedCountry ?? config.country);
-    // The flag on the attachment area: on the address scope only a country the
-    // applicant picked (the scope has no seeded country to show), else the
-    // flow's effective country.
-    final flagCountry = configScope(config.scope) == 'address'
-        ? selectedCountry
-        : (selectedCountry ?? config.country);
-    // A country change can withdraw the picked kind; fall back to the first
-    // offered rather than submitting a label that country does not accept.
-    ref.listen(kYCNotifierProvider.select((s) => s.selectedCountry), (_, __) {
-      final now = _cfg.offeredTypesFor(_country);
-      if (_type != null && !now.contains(_type)) {
-        setState(() =>
-            _type = now.isNotEmpty ? now.first : PoaDocumentType.other);
-      }
-    });
-    final uploaded =
-        ref.watch(kYCNotifierProvider).mediaIds.proofOfAddress != null;
-    // The address scope's country is the applicant's declaration and drives
-    // the document's market; Continue holds until it is made (the control
-    // above asks for it). Never bites elsewhere. See poa_country_gate.dart.
-    final countryDeclared = poaCountryDeclared(
-      scope: configScope(config.scope),
-      selectedCountry: selectedCountry,
-      offered: poaOfferedCountries(config.proofOfAddress?.countries ?? const []),
-    );
+    final state = ref.watch(kYCNotifierProvider);
+    final notifier = ref.read(kYCNotifierProvider.notifier);
+    final cfg = _cfg;
+    final scoped = configScope(config.scope) == 'address';
+
+    // Where the document is from; Continue holds while null.
+    final poaCountry = poaStepCountry(config, state);
+    // Per-country overrides narrow the offer.
+    final offered = cfg.offeredTypesFor(poaCountry);
+    final selected = poaStepKind(config, state);
+    String labelFor(PoaDocumentType kind) => cfg.labelFor(kind, t);
+    final uploaded = state.mediaIds.proofOfAddress != null;
+    final business = context.scopedBusinessFlow;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // The declared-country picker — renders nothing outside the address
-        // scope.
-        const AddressCountryControl(),
+        // Every scope: where the document is from. On the address scope it is
+        // the flow's declared country; elsewhere the document's own.
+        AddressCountryControl(
+          value: poaCountry,
+          label: t(businessKey('proofOfAddress.country.residence', business)),
+          onPick: (code) => scoped
+              ? notifier.setCountry(code)
+              : notifier.setPoaCountry(code),
+        ),
+        const SizedBox(height: 20),
 
-        // ── Document type picker (only when >1 offered) ──────────────────────
-        //
         // Locked once a file is attached: switching the kind afterwards would
         // mislabel the document already uploaded.
         if (offered.length > 1) ...[
-          Text(context.verificationText('proofOfAddress.documentType'), style: text.label),
-          const SizedBox(height: UiSpacing.xs),
-          PoaDocumentTypeList(
-            options: offered,
-            value: _type,
+          PoaKindList(
+            kinds: offered,
+            value: selected,
             enabled: !uploaded && !_uploading,
-            labelFor: (kind) => _cfg.labelFor(kind, context.verificationText),
-            onChanged: (v) => setState(() => _type = v),
+            poa: cfg,
+            labelFor: labelFor,
+            language: config.language,
+            onChanged: (kind) => notifier.setPoaDocumentType(kind.key),
           ),
-          const SizedBox(height: UiSpacing.lg),
+          const SizedBox(height: 4),
         ],
 
-        // ── Drop zone / uploaded row ─────────────────────────────────────────
+        PoaAcceptedLink(
+          kinds: offered,
+          selected: selected,
+          poa: cfg,
+          labelFor: labelFor,
+        ),
+        const SizedBox(height: 8),
+
         if (uploaded && !_uploading)
-          PoaUploadedRow(
-            fileName: _fileName ?? context.verificationText('proofOfAddress.uploaded'),
-            typeLabel: _typeLabel,
+          PoaUploadedCard(
+            fileName: _fileName,
+            typeLabel: labelFor(selected),
             previewBytes: _previewBytes,
             isPdf: _previewIsPdf,
-            country: flagCountry,
+            country: poaCountry,
+            onReplace: () => cfg.capture == PoaCapture.camera ? _takePhoto() : _pickFile(),
             onRemove: _remove,
           )
         else
-          PoaDropzone(
+          PoaUploadActions(
+            capture: cfg.capture,
             uploading: _uploading,
-            typeLabel: _typeLabel,
-            country: flagCountry,
-            onTap: _pick,
+            onCamera: _takePhoto,
+            onFile: _pickFile,
           ),
 
         if (_error != null) ...[
           const SizedBox(height: UiSpacing.sm),
-          Text(_error!,
-              style: text.bodySmall.copyWith(color: UiColors.error)),
+          Text(_error!, style: text.bodySmall.copyWith(color: UiColors.error)),
         ],
 
-        const SizedBox(height: UiSpacing.xl),
-        UiButton(
-          label: context.verificationText('common.continue'),
-          onPressed: uploaded && !_uploading && countryDeclared
-              ? () => ref.read(kYCNotifierProvider.notifier).nextStep()
-              : null,
-        ),
+        // Continue arrives with the document: before it, the tiles are the
+        // action.
+        if (uploaded) ...[
+          const SizedBox(height: 20),
+          UiButton(
+            label: context.verificationText('common.continue'),
+            onPressed: !_uploading && poaCountry != null
+                ? () {
+                    // Pinned for the submission, which sends it as the
+                    // document's country.
+                    notifier.setPoaCountry(poaCountry);
+                    notifier.nextStep();
+                  }
+                : null,
+          ),
+        ],
       ],
     );
   }
 }
+

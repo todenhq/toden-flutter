@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/address_field_modes.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
-import 'package:myaza_kyc_sdk_flutter/src/screens/address/address_area_fields.dart';
-import 'package:myaza_kyc_sdk_flutter/src/screens/address/address_detail_fields.dart';
+import 'package:toden_flutter/src/config/address_field_modes.dart';
+import 'package:toden_flutter/src/config/theme.dart';
+import 'package:toden_flutter/src/screens/address/address_area_fields.dart';
+import 'package:toden_flutter/src/screens/address/address_detail_fields.dart';
 
 // ─── The edit-details fields honour their workflow modes ─────────────────────
 //

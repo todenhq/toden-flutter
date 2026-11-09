@@ -20,6 +20,7 @@ import 'address_location_row.dart';
 import 'address_map_stub.dart';
 import 'address_pin_summary.dart';
 import '../../i18n/text_scope.dart';
+import '../../widgets/fill_remaining.dart';
 
 // ─── The PIN step (wire name 'address-collection') ───────────────────────────
 //
@@ -145,25 +146,30 @@ class _AddressPinStepState extends ConsumerState<AddressPinStep>
           buildSkip(context),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      // The map takes whatever height the rest leaves, never less than its
+      // usual size (fill_remaining.dart): on a tall phone it runs down to
+      // Continue instead of leaving an empty band above it.
+      body: FillRemainingColumn(
+        flexIndex: 0,
+        minFlexHeight: mapHeight,
         children: [
           // The framed Google picker when the platform serves one; the OSM
           // picker otherwise (and whenever the page never says ready). A
           // SANDBOX mount loads neither: the placeholder stands in, and the
           // pin lands on the default centre so the flow still walks.
-          if (flow.vendorsStubbed)
-            AddressMapStub(hasPin: pin != null, onLand: flow.setPin, defaultCenter: flow.view.center, height: mapHeight)
-          else
-            FramedMapPicker(
-              frameUrl: ref.watch(kYCNotifierProvider.select((s) => s.serverConfig.mapsFrameUrl)),
-              value: pin,
-              onChange: flow.setPin,
-              defaultCenter: flow.view.center,
-              defaultZoom: flow.view.zoom,
-              height: mapHeight,
-              overlay: pin == null ? null : LocateOnMapButton(locating: flow.locating, onTap: flow.locateToPin),
-            ),
+          LayoutBuilder(
+            builder: (context, box) => flow.vendorsStubbed
+                ? AddressMapStub(hasPin: pin != null, onLand: flow.setPin, defaultCenter: flow.view.center, height: box.maxHeight)
+                : FramedMapPicker(
+                    frameUrl: ref.watch(kYCNotifierProvider.select((s) => s.serverConfig.mapsFrameUrl)),
+                    value: pin,
+                    onChange: flow.setPin,
+                    defaultCenter: flow.view.center,
+                    defaultZoom: flow.view.zoom,
+                    height: box.maxHeight,
+                    overlay: pin == null ? null : LocateOnMapButton(locating: flow.locating, onTap: flow.locateToPin),
+                  ),
+          ),
           const SizedBox(height: UiSpacing.md),
           AddressPinSummary(
             address: address,

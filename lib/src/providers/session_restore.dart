@@ -111,13 +111,21 @@ VerificationState restoredState(
   // The company documents. Restored as uploaded, without a thumbnail: the
   // snapshot carries ids, never preview bytes. The server has already dropped
   // any whose upload expired, so each one here can still be submitted.
+  // An entry saved before uploads named their group carries only its type; the
+  // step still finds its group by that type, and it is submitted by type.
   final businessDocuments = <BusinessDocumentUpload>[
     for (final row in (app['documents'] as List?) ?? const [])
-      if (row is Map && row['type'] is String && row['mediaId'] is String && (row['mediaId'] as String).isNotEmpty)
+      if (row is Map &&
+          (row['type'] is String || row['group'] is String) &&
+          row['mediaId'] is String &&
+          (row['mediaId'] as String).isNotEmpty)
         BusinessDocumentUpload(
-          type: row['type'] as String,
+          type: row['type'] is String ? row['type'] as String : '',
+          group: row['group'] is String ? row['group'] as String : null,
           mediaId: row['mediaId'] as String,
-          fileName: (row['fileName'] as String?) ?? 'Uploaded document',
+          // No name: '' (shown as Uploaded, never as Skipped).
+          fileName: row['fileName'] is String ? row['fileName'] as String : '',
+          size: row['size'] is num ? (row['size'] as num).toInt() : null,
           isPdf: row['isPdf'] == true,
         ),
   ];
@@ -158,7 +166,7 @@ VerificationState restoredState(
   // workflow was republished with address collection off), the applicant is
   // routed past the region to [addressExit], the step they would have reached
   // had they finished, never left on a screen the order cannot place.
-  final inFlow = kAddressFlowOrder.contains(target)
+  final inFlow = isAddressFlowStep(target)
       ? resumeAddressStep(target, offeredAddressSteps) ?? addressExit ?? target
       : target;
   final safeStep = idType == null && _needsIdType.contains(inFlow) ? VerificationStep.idType : inFlow;

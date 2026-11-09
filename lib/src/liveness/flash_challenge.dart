@@ -77,6 +77,7 @@ Future<FlashResult?> runFlashChallenge({
 Map<String, dynamic> livenessIntegrityClaim({
   required String mode,
   List<String>? challenges,
+  List<Map<String, Object>>? promptTimes,
   FlashResult? flash,
   int faceGlitches = 0,
   Map<String, dynamic>? video,
@@ -85,6 +86,8 @@ Map<String, dynamic> livenessIntegrityClaim({
     'mode': mode,
     // The prompts this run used, in order (e.g. ['turn', 'blink', 'flash']).
     if (challenges != null) 'challenges': challenges,
+    // When each gesture prompt appeared and passed (prompt_timeline.dart).
+    if (promptTimes != null) 'promptTimes': promptTimes,
     'faceGlitches': faceGlitches,
     // Whether the recording reached the server, and why not: add-only codes
     // shared with the web and React Native SDKs.

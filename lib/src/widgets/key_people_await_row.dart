@@ -29,6 +29,9 @@ class AwaitRow {
   /// Company tag and its pending pill reads "KYB PENDING".
   final bool isCorporate;
 
+  /// Added from the company's own documents, not listed by the applicant.
+  final bool foundInDocuments;
+
   const AwaitRow({
     required this.name,
     required this.role,
@@ -38,6 +41,7 @@ class AwaitRow {
     this.inviteUrl,
     this.isApplicant = false,
     this.isCorporate = false,
+    this.foundInDocuments = false,
   });
 }
 

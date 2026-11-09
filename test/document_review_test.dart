@@ -2,9 +2,9 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/document_review.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/document_review_side.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/icons/icons.dart';
+import 'package:toden_flutter/src/widgets/document_review.dart';
+import 'package:toden_flutter/src/widgets/document_review_side.dart';
+import 'package:toden_flutter/src/widgets/icons/icons.dart';
 import 'icon_finder.dart';
 
 // ─── Two-sided review ─────────────────────────────────────────────────────────

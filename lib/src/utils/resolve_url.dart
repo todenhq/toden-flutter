@@ -17,9 +17,10 @@ import '../config/verification_config.dart';
 /// Canonical base URLs for the non-development environments
 /// (see the kyc-dashboard environments docs).
 const _baseUrls = <VerificationEnvironment, String>{
-  // Sandbox and production share the same host; the key prefix selects the env.
-  VerificationEnvironment.sandbox: 'https://trust.myaza.app',
-  VerificationEnvironment.production: 'https://trust.myaza.app',
+  // Each environment has its own host (docs: Get started > Environments); a
+  // key works only on its own environment's host.
+  VerificationEnvironment.sandbox: 'https://sandbox-api.toden.co',
+  VerificationEnvironment.production: 'https://api.toden.co',
 };
 
 /// Default base URL for development keys when no [devUrl] is provided.

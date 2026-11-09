@@ -29,6 +29,7 @@ const Map<VerificationStep, String> kStepWireNames = {
   VerificationStep.liveness: 'liveness',
   VerificationStep.proofOfAddress: 'proof-of-address',
   VerificationStep.supportingDocuments: 'supporting-documents',
+  VerificationStep.addressBook: 'address-book',
   VerificationStep.addressSearch: 'address-search',
   VerificationStep.addressCollection: 'address-collection',
   VerificationStep.addressEntrance: 'address-entrance',

@@ -7,12 +7,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../config/address_book.dart';
 import '../config/address_collection.dart';
 import '../config/business.dart';
 import '../config/business_application.dart';
+import '../config/business_document_groups.dart';
+import '../config/document_people.dart';
+import '../config/document_people_sources.dart';
 import '../config/country_id_types.dart';
+import '../config/chosen_only_ids.dart';
 import '../config/id_types.dart';
 import '../config/verification_config.dart';
+import '../presence/presence_auto_report.dart';
 import '../config/selfie_upload_wait.dart';
 import '../config/session_cancelled.dart';
 import '../config/silent_capture.dart';
@@ -34,6 +40,7 @@ import '../utils/address_current_location.dart';
 import '../utils/resolve_url.dart';
 import '../utils/step_log.dart';
 import 'verification_state.dart';
+import 'address_book_provider.dart';
 import 'address_step_order.dart';
 import 'resubmit_kept_id.dart';
 import 'step_order.dart';
@@ -185,7 +192,9 @@ class VerificationNotifier extends _$VerificationNotifier {
       final response = await api.config();
       final ready = ServerSdkConfig(
         status: ServerConfigStatus.ready,
-        idTypes: response.idTypes,
+        // Never a retired type; on a workflow mount never a chosen-only one
+        // the workflow does not list (config/chosen_only_ids.dart).
+        idTypes: servedIdTypes(response.idTypes, _config),
         environment: response.environment,
         branding: response.branding,
         geoCountry: response.geoCountry,
@@ -193,6 +202,7 @@ class VerificationNotifier extends _$VerificationNotifier {
         addressSearchMode: response.addressSearchMode,
         mapsFrameUrl: response.mapsFrameUrl,
         playIntegrityCloudProjectNumber: response.playIntegrityCloudProjectNumber,
+        addressBook: response.addressBook,
       );
       // The facts that just landed can add a step AHEAD of the one the flow
       // opened on (the address search step, on a consent-less address flow).
@@ -533,7 +543,10 @@ class VerificationNotifier extends _$VerificationNotifier {
   /// raised flag that the shell hid (it also gates on the step) until the
   /// applicant came back, at which point the chrome-free layout applied to a
   /// screen with no camera: no header, content under the status bar.
-  void _moveToStep(VerificationStep next) {
+  void _moveToStep(VerificationStep requested) {
+    // A picked saved address replaces the capture steps: anything landing on
+    // one lands on the address book step instead (config/address_book.dart).
+    final next = reusedAddressStep(requested, state.addressBookReuse != null);
     state = state.copyWith(
       currentStep: next,
       // Only a move WITHIN document capture keeps it. The liveness camera
@@ -805,22 +818,66 @@ class VerificationNotifier extends _$VerificationNotifier {
     state = state.copyWith(uboUnidentifiable: value);
   }
 
-  /// Records one uploaded supporting document, replacing any prior upload for
-  /// the same slot (re-picking a file must not submit both).
-  void setBusinessDocument(BusinessDocumentUpload upload) {
-    state = state.copyWith(
-      businessDocuments: [
-        ...state.businessDocuments.where((d) => d.type != upload.type),
-        upload,
-      ],
-    );
+  /// Replaces the company documents. The business-documents step works out
+  /// the list (one upload per group, a new one replacing the group's earlier
+  /// one) with withGroupUpload / withoutGroupUpload.
+  void setBusinessDocuments(List<BusinessDocumentUpload> documents) {
+    // The people of a document taken back come out of the key-people list
+    // with it (config/document_people_sources.dart).
+    final pruned = withoutRemovedDocuments(
+        state.keyPeople, {for (final d in documents) d.mediaId});
+    state =
+        state.copyWith(businessDocuments: documents, keyPeople: pruned.rows);
   }
 
-  /// Drops the upload for one document slot.
-  void removeBusinessDocument(String type) {
-    state = state.copyWith(
-      businessDocuments:
-          state.businessDocuments.where((d) => d.type != type).toList(),
+  /// Reads an uploaded company document for the people it names, in the
+  /// background, and merges them into the key-people list when they arrive
+  /// (config/document_people.dart). Best-effort: any failure leaves the list
+  /// as it was, and the document is checked again at submission.
+  Future<void> readDocumentPeople(
+      BusinessDocumentGroup group, String mediaId) async {
+    final s = state;
+    final sessionId = s.sessionId;
+    final country = s.businessCountry ?? _config.business?.country;
+    if (sessionId == null ||
+        country == null ||
+        country.isEmpty ||
+        !readsDocumentPeople(_config.business, group)) {
+      return;
+    }
+    state = s.copyWith(
+        documentPeopleReading: [...s.documentPeopleReading, mediaId]);
+    List<RegistryOfficer>? people;
+    try {
+      final number = (s.registrationNumber ?? '').trim();
+      final name = (s.registrationName ?? '').trim();
+      people = await api.businessDocumentPeople(
+        sessionId: sessionId,
+        mediaId: mediaId,
+        group: group.key,
+        country: country,
+        registrationNumber: number.isEmpty ? null : number,
+        registrationName: name.isEmpty ? null : name,
+      );
+    } catch (_) {
+      people = null;
+    }
+    final now = state;
+    final reading =
+        now.documentPeopleReading.where((m) => m != mediaId).toList();
+    // A read that finished after its document was removed or replaced is
+    // dropped: the people of a file the applicant took back must not appear.
+    final stillUploaded = now.businessDocuments.any((d) => d.mediaId == mediaId);
+    if (people == null || people.isEmpty || !stillUploaded) {
+      state = now.copyWith(documentPeopleReading: reading);
+      return;
+    }
+    final merged =
+        mergeDocumentPeople(now.keyPeople, people, country, mediaId);
+    state = now.copyWith(
+      documentPeopleReading: reading,
+      keyPeople: merged.rows,
+      documentPeople: {...now.documentPeople, mediaId: people},
     );
   }
 
@@ -866,6 +923,20 @@ class VerificationNotifier extends _$VerificationNotifier {
     );
   }
 
+  /// The document kind picked on the PoA step (a kind key, e.g.
+  /// `utility_bill`). The server recognises the document within it.
+  void setPoaDocumentType(String typeKey) {
+    if (state.poaDocumentType == typeKey) return;
+    state = state.copyWith(poaDocumentType: typeKey);
+  }
+
+  /// Pins the country the proof of address is from (submitted as
+  /// `proofOfAddressCountry`); the PoA step sets it as it continues.
+  void setPoaCountry(String country) {
+    if (state.poaCountry == country) return;
+    state = state.copyWith(poaCountry: country);
+  }
+
   void setProofOfAddress(String mediaId, String typeKey) {
     state = state.copyWith(
       mediaIds: state.mediaIds.copyWith(proofOfAddress: mediaId),
@@ -882,6 +953,31 @@ class VerificationNotifier extends _$VerificationNotifier {
 
   void setAddress(AddressState address) {
     state = state.copyWith(address: address);
+  }
+
+  /// The answer to the save sheet that follows the review step.
+  void setAddressBookSave(AddressBookSaveChoice choice) {
+    final address = state.address;
+    if (address == null) return;
+    state = state.copyWith(address: address.copyWith(book: choice));
+  }
+
+  /// Keep a saved address picked from the person's Toden address book (null
+  /// to drop it). Picking one clears a standing refusal.
+  void setAddressBookReuse(AddressBookReuse? reuse) {
+    state = state.copyWith(
+      addressBookReuse: reuse,
+      clearAddressBookReuse: reuse == null,
+    );
+  }
+
+  /// The server refused the picked saved address at submit (grant spent or
+  /// expired, or too old for this flow's presence check): the offer comes back
+  /// over the address step, saying why, rather than ending on an error.
+  void addressBookReuseRefused() {
+    state = state.copyWith(clearAddressBookReuse: true);
+    ref.read(addressBookProvider.notifier).refused();
+    _moveToStep(VerificationStep.addressCollection);
   }
 
   /// Records the uploaded door photo's mediaId.
@@ -1074,9 +1170,15 @@ class VerificationNotifier extends _$VerificationNotifier {
         applicant: applicant,
       ),
       // The premises pin, when the address step gathered one (a KYB flow's pin
-      // is the BUSINESS PREMISES, checked against the registry address).
+      // is the BUSINESS PREMISES), and beside it the entrance photo: the
+      // server claims it with the application's media.
       address: state.address != null
-          ? addressPayload(state.address!, config: _config.addressCollection)
+          ? addressPayload(state.address!,
+              config: _config.addressCollection,
+              hasPhoto: state.mediaIds.addressPhoto != null)
+          : null,
+      mediaIds: state.address != null && state.mediaIds.addressPhoto != null
+          ? VerifyMediaIds(addressPhoto: state.mediaIds.addressPhoto)
           : null,
       questionnaire: state.questionnaireAnswers.isNotEmpty
           ? state.questionnaireAnswers
@@ -1103,6 +1205,9 @@ class VerificationNotifier extends _$VerificationNotifier {
 
     try {
       final response = await withRetry(() => api.verify(request), onRetry: onRetry);
+      // Before anything can report: the first report starts when the submitted
+      // screen sees this result.
+      await keepPresenceToken(_config, response.presenceToken);
       final result = VerificationSubmissionResult(
         verificationId: response.verificationId,
         status: response.status,
@@ -1238,7 +1343,9 @@ class VerificationNotifier extends _$VerificationNotifier {
   Future<VerificationSubmissionResult> submitAsync({
     void Function(int attempt, int total)? onRetry,
   }) async {
-    if (_config.subjectType == 'business') {
+    // The KYB application only: a scoped business workflow submits its
+    // scope's marker like any scoped flow.
+    if (isBusinessApplication(_config.subjectType, _config.scope)) {
       return _submitBusiness(onRetry: onRetry);
     }
 
@@ -1313,6 +1420,9 @@ class VerificationNotifier extends _$VerificationNotifier {
         withSilentCaptureDevice(await _collectDeviceMetadata(), silentFrames);
 
     final mediaIds = state.mediaIds;
+    // Only while this mount still offers reuse: a pick made under switches the
+    // flow no longer has would be a credential for a step that is gone.
+    final reuse = addressBookOfferFor(_config, state).reuse ? state.addressBookReuse : null;
 
     // Multi-ID: every check was committed as a slot, and the whole run submits
     // as ONE verification the server judges by the pass policy. The FIRST slot
@@ -1366,14 +1476,20 @@ class VerificationNotifier extends _$VerificationNotifier {
               documentBackVideo: carried ? null : mediaIds.documentBackVideo,
               livenessVideo: mediaIds.livenessVideo,
               proofOfAddress: mediaIds.proofOfAddress,
-              addressPhoto: mediaIds.addressPhoto,
+              // A picked saved address carries no photo: the book keeps its own.
+              addressPhoto: reuse != null ? null : mediaIds.addressPhoto,
             )
           : null,
       questionnaire: state.questionnaireAnswers.isNotEmpty
           ? state.questionnaireAnswers
           : null,
+      // The kind the applicant picked (the server recognises the document
+      // within it). The document's country is its own: the applicant may not
+      // live in the country that issued their ID.
       proofOfAddressType:
           mediaIds.proofOfAddress != null ? state.poaDocumentType : null,
+      proofOfAddressCountry:
+          mediaIds.proofOfAddress != null ? state.poaCountry : null,
       // Artefacts kept on file. The server drops anything the workflow did not
       // ask for, so sending what the step collected is always safe.
       supportingDocuments: state.supportingDocuments.isNotEmpty
@@ -1381,9 +1497,13 @@ class VerificationNotifier extends _$VerificationNotifier {
           : null,
       // The smart address, when the step gathered one — the server validates
       // it against the workflow either way. Mirrors the RN buildVerifyRequest.
-      address: state.address != null
-          ? addressPayload(state.address!, config: _config.addressCollection)
+      // A saved address picked from the Toden address book replaces it.
+      address: reuse == null && state.address != null
+          ? addressPayload(state.address!,
+              config: _config.addressCollection,
+              hasPhoto: mediaIds.addressPhoto != null)
           : null,
+      addressBookReuse: reuse,
       deviceIntelligence: _config.deviceIntelligence,
       contact: (state.emailToken != null || state.phoneToken != null)
           ? VerifyContact(
@@ -1411,6 +1531,9 @@ class VerificationNotifier extends _$VerificationNotifier {
       // Retry the submission on transient failures (network / timeout / 5xx);
       // terminal errors (401/402/403/validation) surface immediately.
       final response = await withRetry(() => api.verify(request), onRetry: onRetry);
+      // Before anything can report: the first report starts when the submitted
+      // screen sees this result.
+      await keepPresenceToken(_config, response.presenceToken);
       final result = VerificationSubmissionResult(
         verificationId: response.verificationId,
         status: response.status,
@@ -1461,6 +1584,12 @@ class VerificationNotifier extends _$VerificationNotifier {
           // order actually contains. Computed from the order, never guessed.
           addressExit: _addressExitFor(state),
         );
+        // A run saved on the country step, resumed where the ID-type step now
+        // carries the country (the combined layout): the ID-type step.
+        if (state.currentStep == VerificationStep.countrySelect &&
+            !buildStepOrder(_config, state).contains(VerificationStep.countrySelect)) {
+          state = state.copyWith(currentStep: VerificationStep.idType);
+        }
       }
       // A KYB application whose business half already committed. The business
       // submission replays its request id (the server answers from the row it
@@ -1534,6 +1663,8 @@ class VerificationNotifier extends _$VerificationNotifier {
     resetCurrentFix();
     // A reset is a new verification: its silent frames start from none.
     _silent.reset();
+    // And its saved address offer starts from nothing.
+    ref.read(addressBookProvider.notifier).reset();
     _progressTimer?.cancel();
     _lastSavedProgress = '';
     state = start;
@@ -1619,7 +1750,11 @@ class VerificationNotifier extends _$VerificationNotifier {
 
     state = s.copyWith(
       businessCheck:
-          check.copyWith(status: 'checking', checkedNumber: normalized),
+          check.copyWith(
+            status: 'checking',
+            checkedNumber: normalized,
+            ownershipPending: false,
+          ),
     );
     try {
       final registrationName = (s.registrationName ?? '').trim();
@@ -1666,6 +1801,9 @@ class VerificationNotifier extends _$VerificationNotifier {
           status: 'found',
           company: company,
           officers: res.officers,
+          // The register is still sending the shareholders: the prefill has
+          // no owners yet, and the key-people step says so.
+          ownershipPending: res.ownershipPending,
         ),
       );
       // Start the key-people step from the register's own officer list, so it

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
+import 'package:toden_flutter/src/config/theme.dart';
 
 // The sheet grab handle must be visible. On dark themes it was drawn in
 // #302D53, about 1.4:1 against the dark sheet surfaces, and all but vanished.

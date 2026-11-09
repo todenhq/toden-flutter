@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/business.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/session_progress.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/session_restore.dart';
+import 'package:toden_flutter/src/config/business.dart';
+import 'package:toden_flutter/src/providers/verification_state.dart';
+import 'package:toden_flutter/src/providers/session_progress.dart';
+import 'package:toden_flutter/src/providers/session_restore.dart';
 
 // A resumed session's stored progress hydrates the state — the Flutter mirror
 // of web's RESTORE_PROGRESS. Round-trips through progressFromState so the

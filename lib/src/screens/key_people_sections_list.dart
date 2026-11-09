@@ -5,6 +5,8 @@ import '../config/business_application.dart';
 import '../config/key_people_section_defs.dart';
 import '../config/key_people_sections.dart';
 import '../config/theme.dart';
+import '../config/ownership_pending.dart';
+import '../widgets/key_people_ownership_note.dart';
 import 'key_people_section.dart';
 import 'key_people_ubo_exemption.dart';
 
@@ -22,6 +24,7 @@ class KeyPeopleSectionsList extends StatelessWidget {
     required this.threshold,
     required this.emailRequiredFor,
     required this.uboUnidentifiable,
+    this.ownershipPending = false,
     required this.canAdd,
     required this.onRows,
     required this.onAdd,
@@ -34,6 +37,10 @@ class KeyPeopleSectionsList extends StatelessWidget {
   final double threshold;
   final Set<KeyPersonRole> emailRequiredFor;
   final bool uboUnidentifiable;
+
+  /// The register is still sending the shareholders
+  /// (config/ownership_pending.dart).
+  final bool ownershipPending;
   final bool canAdd;
   final void Function(List<KeyPersonEntry> next) onRows;
   final void Function(KeyPeopleSection section) onAdd;
@@ -58,6 +65,9 @@ class KeyPeopleSectionsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
     final members = sectionMembers(rows, threshold);
+    final noteIn = ownershipPending
+        ? ownershipNoteSection([for (final d in sections) d.key])
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -85,6 +95,9 @@ class KeyPeopleSectionsList extends StatelessWidget {
                   ? const []
                   : quickAddCandidates(rows, def.key, threshold),
               emailRequiredFor: emailRequiredFor,
+              notice: def.key == noteIn
+                  ? const KeyPeopleOwnershipNote(submitted: false)
+                  : null,
               addLabel: def.addLabel,
               canAdd: canAdd && !suppressed,
               onAdd: () => onAdd(def.key),

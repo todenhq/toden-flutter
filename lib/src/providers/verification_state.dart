@@ -1,3 +1,4 @@
+import '../config/address_book.dart';
 import '../config/address_collection.dart';
 import '../config/business.dart';
 import '../config/business_application.dart';
@@ -38,7 +39,10 @@ enum VerificationStep {
   // The address flow: find it → confirm it → show it → commit it.
   // `addressCollection` is the PIN step and keeps its original wire name even
   // though it is now the second screen, so progress saved by older builds
-  // restores cleanly. See config/address_flow.dart.
+  // restores cleanly. See config/address_flow.dart. `addressBook` leads the
+  // flow when the organisation has address book reuse on: pick an address
+  // saved with Toden instead of capturing one (config/address_book.dart).
+  addressBook,
   addressSearch,
   addressCollection,
   addressEntrance,
@@ -161,6 +165,10 @@ class ServerSdkConfig {
   /// (`deviceAttestation.playIntegrityCloudProjectNumber`). Null skips it.
   final String? playIntegrityCloudProjectNumber;
 
+  /// The Toden address book on this organisation (the save box and the reuse
+  /// step). Null when the server sent none: both off.
+  final AddressBookSwitches? addressBook;
+
   const ServerSdkConfig({
     required this.status,
     this.idTypes = const [],
@@ -174,6 +182,7 @@ class ServerSdkConfig {
     this.addressSearchMode,
     this.mapsFrameUrl,
     this.playIntegrityCloudProjectNumber,
+    this.addressBook,
   });
 
   static const ServerSdkConfig loading =
@@ -290,7 +299,7 @@ class VerificationState {
 
   /// Review phase communicated by DocumentCaptureScreen so the parent
   /// (_VerificationFlowWidget) can update the step header title dynamically.
-  /// Values: 'camera' | 'front_preview' | 'camera_back' | 'review'
+  /// Values: 'camera' | 'front_preview' | 'camera_back' | 'review' | 'checking'
   final String docReviewPhase;
 
   /// What the contact step is currently doing, so _VerificationFlowWidget can caption it
@@ -327,6 +336,11 @@ class VerificationState {
   /// `utility_bill`). Submitted as `proofOfAddressType`.
   final String? poaDocumentType;
 
+  /// The country the proof of address is from, pinned when the PoA step
+  /// continues. Not the ID's country (`selectedCountry`): people live outside
+  /// the country that issued their ID. Submitted as `proofOfAddressCountry`.
+  final String? poaCountry;
+
   /// Artefacts uploaded on the supporting-documents step, keyed by their
   /// catalogue type. Held ON FILE rather than checked: the verification is
   /// already decided by the time they are asked for, so an unreadable upload
@@ -337,6 +351,11 @@ class VerificationState {
   /// + optional device fix). On a KYB flow this is the business premises.
   /// Submitted under `address` on /verify. Null until placed.
   final AddressState? address;
+
+  /// A saved address picked from the person's Toden address book instead of
+  /// capturing one. Replaces [address] on the submission. Never saved to
+  /// session progress: the grant behind it is a short-lived credential.
+  final AddressBookReuse? addressBookReuse;
 
   /// Local file path of the uploaded entrance photo, so the review step can
   /// show it. A display artefact: never serialised, and never restored (a
@@ -431,6 +450,13 @@ class VerificationState {
   /// Uploaded supporting documents (business-documents step).
   final List<BusinessDocumentUpload> businessDocuments;
 
+  /// The people each uploaded company document named, by mediaId, read as it
+  /// was uploaded and already merged into [keyPeople] (config/document_people.dart).
+  final Map<String, List<RegistryOfficer>> documentPeople;
+
+  /// Uploads still being read for the people they name.
+  final List<String> documentPeopleReading;
+
   /// The applicant's declared role + optional name (applicant-role step). Their
   /// own identity verification runs as a second, ordinary individual
   /// submission linked back via `metadata.userId`.
@@ -474,8 +500,10 @@ class VerificationState {
     this.questionnaireAnswers = const {},
     this.integrity = const {},
     this.poaDocumentType,
+    this.poaCountry,
     this.supportingDocuments = const [],
     this.address,
+    this.addressBookReuse,
     this.addressPhotoPreview,
     this.addressIntroSeen = false,
     this.addressEntranceFraming = false,
@@ -506,6 +534,8 @@ class VerificationState {
     this.keyPeople = const [],
     this.uboUnidentifiable = false,
     this.businessDocuments = const [],
+    this.documentPeople = const {},
+    this.documentPeopleReading = const [],
     this.applicantRole,
     this.applicantName,
     this.applicantKeyPersonIndex,
@@ -540,11 +570,14 @@ class VerificationState {
     Map<String, dynamic>? questionnaireAnswers,
     Map<String, dynamic>? integrity,
     String? poaDocumentType,
+    String? poaCountry,
     List<SupportingDocumentUpload>? supportingDocuments,
     AddressState? address,
     // Starting the address over must null the pin, which `?? this` cannot
     // express — the same explicit-flag pattern as clearSelectedIdType.
     bool clearAddress = false,
+    AddressBookReuse? addressBookReuse,
+    bool clearAddressBookReuse = false,
     String? addressPhotoPreview,
     bool clearAddressPhotoPreview = false,
     bool? addressIntroSeen,
@@ -579,6 +612,8 @@ class VerificationState {
     List<KeyPersonEntry>? keyPeople,
     bool? uboUnidentifiable,
     List<BusinessDocumentUpload>? businessDocuments,
+    Map<String, List<RegistryOfficer>>? documentPeople,
+    List<String>? documentPeopleReading,
     ApplicantRole? applicantRole,
     String? applicantName,
     int? applicantKeyPersonIndex,
@@ -633,8 +668,12 @@ class VerificationState {
         integrity: integrity ?? this.integrity,
         poaDocumentType:
             clearPoaDocumentType ? null : (poaDocumentType ?? this.poaDocumentType),
+        poaCountry: poaCountry ?? this.poaCountry,
         supportingDocuments: supportingDocuments ?? this.supportingDocuments,
         address: clearAddress ? null : (address ?? this.address),
+        addressBookReuse: clearAddressBookReuse
+            ? null
+            : (addressBookReuse ?? this.addressBookReuse),
         addressPhotoPreview: clearAddressPhotoPreview
             ? null
             : (addressPhotoPreview ?? this.addressPhotoPreview),
@@ -674,6 +713,9 @@ class VerificationState {
         keyPeople: keyPeople ?? this.keyPeople,
         uboUnidentifiable: uboUnidentifiable ?? this.uboUnidentifiable,
         businessDocuments: businessDocuments ?? this.businessDocuments,
+        documentPeople: documentPeople ?? this.documentPeople,
+        documentPeopleReading:
+            documentPeopleReading ?? this.documentPeopleReading,
         applicantRole: applicantRole ?? this.applicantRole,
         applicantName: applicantName ?? this.applicantName,
         applicantKeyPersonIndex: clearApplicantKeyPersonIndex
@@ -701,6 +743,11 @@ class BusinessCheckState {
   /// The officers on file — what makes the key-people question a confirmation.
   final List<RegistryOfficer> officers;
 
+  /// The register has not sent the shareholders yet, so [officers] has no
+  /// owners. The server adds them to the application when they arrive; the
+  /// key-people step says so (config/ownership_pending.dart).
+  final bool ownershipPending;
+
   /// Which company was checked (normalised uppercase), so a changed number
   /// re-runs it and a repeat press does not pay to be told again.
   final String? checkedNumber;
@@ -719,6 +766,7 @@ class BusinessCheckState {
     this.status = 'idle',
     this.company,
     this.officers = const [],
+    this.ownershipPending = false,
     this.checkedNumber,
     this.prefilled = const [],
   });
@@ -727,6 +775,7 @@ class BusinessCheckState {
     String? status,
     BusinessCompanyRecord? company,
     List<RegistryOfficer>? officers,
+    bool? ownershipPending,
     String? checkedNumber,
     List<String>? prefilled,
     bool clearCompany = false,
@@ -735,6 +784,7 @@ class BusinessCheckState {
         status: status ?? this.status,
         company: clearCompany ? null : (company ?? this.company),
         officers: officers ?? this.officers,
+        ownershipPending: ownershipPending ?? this.ownershipPending,
         checkedNumber: checkedNumber ?? this.checkedNumber,
         prefilled: prefilled ?? this.prefilled,
       );

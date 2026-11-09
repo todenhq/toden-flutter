@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/address_collection.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/verification_config.dart';
-import 'package:myaza_kyc_sdk_flutter/src/presence/background_presence.dart';
-import 'package:myaza_kyc_sdk_flutter/src/presence/presence_auto_report.dart';
-import 'package:myaza_kyc_sdk_flutter/src/presence/presence_reporter.dart';
+import 'package:toden_flutter/src/config/address_collection.dart';
+import 'package:toden_flutter/src/config/verification_config.dart';
+import 'package:toden_flutter/src/presence/background_presence.dart';
+import 'package:toden_flutter/src/presence/presence_auto_report.dart';
+import 'package:toden_flutter/src/presence/presence_reporter.dart';
 
 // ─── The SDK reports presence itself ─────────────────────────────────────────
 //
@@ -95,6 +95,24 @@ void main() {
         report: ({required apiKey, required externalUserId, devUrl}) async => _reported,
       );
       expect(armed, isFalse);
+    });
+
+    test('leaves the background ask to the explanation screen when told to', () async {
+      // The "allow all the time" screen makes the OS prompt itself, after it
+      // has given the person their reasons (screens/background_ask_screen.dart).
+      var armed = false;
+      final outcome = await autoReportPresence(
+        _config(userId: 'user_42'),
+        askForBackground: false,
+        enableBackground: ({required apiKey, required externalUserId, devUrl}) async {
+          armed = true;
+          return _armed;
+        },
+        report: ({required apiKey, required externalUserId, devUrl}) async => _reported,
+      );
+      expect(armed, isFalse);
+      expect(outcome?.background, isNull);
+      expect(outcome?.report, _reported);
     });
 
     test('does nothing when it should not act', () async {

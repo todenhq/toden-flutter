@@ -76,6 +76,9 @@ class DeviceSignals {
     };
   }
 
+  /// The id that survives a reinstall, or null. Presence reports name it.
+  Future<String?> stableId() => _readStableId();
+
   Future<String?> _readStableId() async {
     if (_stableId != null) return _stableId;
     final raw = await _bounded(_native.stableId());

@@ -113,6 +113,14 @@ List<TilePlacement> visibleTiles(
   return tiles;
 }
 
+/// OpenStreetMap's tile servers refuse generic client libraries, answering with
+/// an "Access blocked" tile at HTTP 200, so nothing can tell it from a real one.
+/// Their usage policy asks an app to identify itself. Dart's own agent still
+/// gets real tiles today; this keeps the Flutter SDK off that list too.
+const Map<String, String> kTileHeaders = {
+  'User-Agent': 'TodenVerification/1.0 (+https://toden.co)',
+};
+
 /// The centre after a drag of (dx, dy) viewport pixels.
 MapLatLng panCenter(MapLatLng center, int zoom, double dx, double dy) {
   final world = latLngToWorld(center, zoom);

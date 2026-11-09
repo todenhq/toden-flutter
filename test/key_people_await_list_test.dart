@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/key_people_await_card.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/key_people_await_list.dart';
+import 'package:toden_flutter/src/config/theme.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/widgets/key_people_await_card.dart';
+import 'package:toden_flutter/src/widgets/key_people_await_list.dart';
 
 // ─── The KYB success screen's people list ────────────────────────────────────
 //

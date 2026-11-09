@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
+import 'package:toden_flutter/toden_flutter.dart';
 
 // Mirrors the web SDK's biometric-copy.test.ts and the RN biometricCopy test;
 // the resolution rules are a contract the three keep.

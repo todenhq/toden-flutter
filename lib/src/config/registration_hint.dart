@@ -52,11 +52,17 @@ String _countryName(String code) {
 }
 
 const _countryExamples = {
+  // Ghana's Office of the Registrar of Companies: CS (company), BN (business
+  // name), PL (public company).
+  'GH': 'CS043840225',
   'KE': 'PVT-JZUA6Z663',
   'ZA': '201133333323',
 };
 
 const _countryTips = {
+  'GH': 'Your registration number from the Office of the Registrar of '
+      'Companies: CS for a company, BN for a business name or PL for a public '
+      'company, followed by the digits, e.g. CS043840225.',
   'KE': 'Your registration number as it appears on your certificate of '
       'incorporation, e.g. PVT-JZUA6Z663.',
   'ZA': 'Your CIPC registration number — printed as 2011/333333/23 on your '

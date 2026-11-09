@@ -7,6 +7,7 @@ import '../widgets/ui_input.dart';
 import '../widgets/otp_input.dart';
 import '../widgets/phone_number_input.dart';
 import 'contact_verification_channel.dart';
+import '../i18n/business_variants.dart';
 import '../i18n/text_scope.dart';
 
 // ─── Contact verification — presentational parts ──────────────────────────────
@@ -37,7 +38,11 @@ class ContactDestinationField extends StatelessWidget {
     required this.onEmailChanged,
     required this.onPhoneChanged,
     this.geoCountry,
+    this.dialCountries = const [],
   });
+
+  /// The dial-code countries the phone field offers (empty = every country).
+  final List<String> dialCountries;
 
   @override
   Widget build(BuildContext context) {
@@ -46,13 +51,17 @@ class ContactDestinationField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(context.verificationText(isPhone ? 'contact.phone.label' : 'contact.email.label'),
+        Text(
+            context.verificationText(businessKey(
+                isPhone ? 'contact.phone.label' : 'contact.email.label',
+                context.scopedBusinessFlow)),
             style: text.label),
         const SizedBox(height: UiSpacing.xs),
         if (isPhone)
           PhoneNumberInput(
             defaultCountry: defaultCountry,
             geoCountry: geoCountry,
+            countries: dialCountries,
             onChanged: onPhoneChanged,
           )
         else

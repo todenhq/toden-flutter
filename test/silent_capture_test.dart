@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/silent_capture.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/silent_capture_session.dart';
+import 'package:toden_flutter/src/config/silent_capture.dart';
+import 'package:toden_flutter/src/services/silent_capture_session.dart';
 
 // ─── Silent capture: the pure rules, and one verification's session ─────────
 //

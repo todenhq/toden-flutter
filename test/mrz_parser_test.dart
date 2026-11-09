@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/mrz_extract.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/mrz_parser.dart';
+import 'package:toden_flutter/src/services/mrz_extract.dart';
+import 'package:toden_flutter/src/services/mrz_parser.dart';
 
 // The canonical TD3 specimen from ICAO 9303 Part 3 (Utopia / ANNA MARIA
 // ERIKSSON). Using the spec's own example means the check-digit maths is

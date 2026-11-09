@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../config/key_person_stake.dart';
+import '../providers/verification_provider.dart';
 import 'package:flutter/services.dart';
 
 import '../config/business.dart';
@@ -25,7 +28,7 @@ import 'key_person_owners.dart';
 String _fmtPct(double v) =>
     v == v.roundToDouble() ? v.round().toString() : v.toString();
 
-class KeyPersonForm extends StatelessWidget {
+class KeyPersonForm extends ConsumerWidget {
   final KeyPersonEntry entry;
   final TextEditingController nameCtrl;
   final TextEditingController titleCtrl;
@@ -76,7 +79,9 @@ class KeyPersonForm extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stakeRequired =
+        keyPeopleRequireOwnership(ref.watch(verificationConfigProvider).business) && rowNeedsStake(entry);
     final colors = context.myazaColors;
     final text = context.myazaText;
 
@@ -167,10 +172,12 @@ class KeyPersonForm extends StatelessWidget {
 
         Text.rich(TextSpan(children: [
           TextSpan(text: 'Ownership %', style: text.label),
-          TextSpan(
-            text: ' (optional)',
-            style: text.bodySmall.copyWith(color: colors.textSecondary),
-          ),
+          stakeRequired
+              ? TextSpan(text: ' *', style: text.label.copyWith(color: UiColors.error))
+              : TextSpan(
+                  text: ' (optional)',
+                  style: text.bodySmall.copyWith(color: colors.textSecondary),
+                ),
         ])),
         const SizedBox(height: UiSpacing.xs),
         UiInput(
@@ -197,12 +204,16 @@ class KeyPersonForm extends StatelessWidget {
                       : 'A company is never a beneficial owner. We check it '
                           'against sanctions lists, and the people who own it '
                           'are reviewed separately.')
-                  : null,
+                  : stakeRequired && pct.isEmpty
+                      ? 'Required. The percentage decides who is a beneficial '
+                          'owner and must verify their identity.'
+                      : null,
           onChanged: (v) => onChange(entry.copyWith(ownershipPct: v)),
         ),
         // The fast coarse gesture beside the exact box. It rests at 0 for an
         // undeclared stake, so an untouched slider still submits "not
-        // declared" rather than a confident zero.
+        // declared" rather than a confident zero. RN's xs gap above it.
+        const SizedBox(height: UiSpacing.xs),
         OwnershipSlider(
           value: pctValue ?? 0,
           onChanged: (next) {

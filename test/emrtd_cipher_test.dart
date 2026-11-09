@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pointycastle/export.dart' as pc;
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_cipher.dart';
+import 'package:toden_flutter/src/nfc/emrtd_cipher.dart';
 
 // ─── AES cipher suite, against published vectors ──────────────────────────────
 //

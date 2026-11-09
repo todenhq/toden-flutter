@@ -1,5 +1,6 @@
 import '../config/address_collection.dart';
 import '../config/business_application.dart';
+import '../config/id_selection_layout.dart';
 import 'address_step_order.dart';
 import '../config/verification_config.dart';
 import '../config/scope.dart';
@@ -26,9 +27,24 @@ String effectiveCountry(VerificationConfig config, VerificationState state) =>
     config.business?.country ??
     '';
 
-/// Whether the flow offers more than one country (→ a country-select step).
+/// Whether the flow has a country-select step of its own: it offers more
+/// than one country AND keeps the `separate` layout. The default `combined`
+/// layout picks the country on the ID-type step (id_selection_layout.dart).
 bool hasCountrySelectStep(VerificationConfig config) =>
-    (config.countries?.length ?? 0) > 1;
+    (config.countries?.length ?? 0) > 1 && !countryOnIdStep(config.idSelectionLayout);
+
+/// Whether the ID-type step carries the country row right now: the combined
+/// layout, more than one country to pick from, and the country not already
+/// answered (a KYB applicant who named theirs on the key-people step, or a
+/// later check of a multi-ID run, whose country the first check settled).
+/// Read by the screen and its header, so the two agree. Mirrors the web SDK's
+/// `countryHere` in IdTypeStep.
+bool countryOnIdTypeStep(VerificationConfig config, VerificationState state) =>
+    countryOnIdStep(config.idSelectionLayout) &&
+    countrySelectOptions(config, state).length > 1 &&
+    !(isBusinessApplication(config.subjectType, config.scope) &&
+        applicantSelfCountry(state) != null) &&
+    state.multiIdSlots.isEmpty;
 
 /// The self-selected key person's ID-issuing country (uppercase ISO-2), when
 /// the applicant picked themselves AND that entry carries one. The applicant
@@ -154,61 +170,12 @@ List<VerificationStep> _fullStepOrder(VerificationConfig config, VerificationSta
   final hasEmailVerify = config.emailVerification?.enabled ?? false;
   final hasPhoneVerify = config.phoneVerification?.enabled ?? false;
 
-  // Business (KYB) flow: the registry details plus whatever application
-  // sections the workflow configures — no capture/liveness of its own. When the
-  // workflow requires applicant verification, the ordinary individual capture
-  // leg runs afterwards for the SUBMITTER's identity.
   final hasAddressCollection =
       hasAddressCollectionStep(config.addressCollection);
 
-  if (config.subjectType == 'business') {
-    final business = config.business;
-    return [
-      if (config.consentStep) VerificationStep.consent,
-      if (hasEmailVerify) VerificationStep.contactEmail,
-      if (hasPhoneVerify) VerificationStep.contactPhone,
-      VerificationStep.businessDetails,
-      // The premises pin right after the details: it is about the place the
-      // applicant has just identified, before the application moves on to
-      // documents and people. Mirrors the web and RN SDKs.
-      //
-      // Spliced through `addressStepsFor` like the individual branch below,
-      // rather than naming the pin step here: that function is what collapses
-      // KYB to the single premises screen, and stating the collapse twice
-      // would be two places to keep agreeing.
-      if (hasAddressCollection) ...addressStepsFor(config, state),
-      // Documents BEFORE key people: they are about the company the applicant
-      // has just identified, so they follow that thread, and the register's
-      // officer list — which the key-people step is a confirmation of — is what
-      // should still be in mind when they get to naming people.
-      if (hasBusinessDocumentsStep(business)) VerificationStep.businessDocuments,
-      // The questionnaire BEFORE key people: its questions are about the
-      // COMPANY (volumes, source of funds), so they belong with the company
-      // section — and naming the directors hands the application over to other
-      // people, so the applicant's own questions must not trail that. Mirrors
-      // the web and RN SDKs.
-      if (hasQuestionnaire) VerificationStep.questionnaire,
-      if (hasKeyPeopleCollection(business)) VerificationStep.businessKeyPeople,
-      if (hasApplicantVerification(business)) ...[
-        VerificationStep.applicantRole,
-        // The applicant may hold an ID issued anywhere the org can verify —
-        // more than one granted country means they pick theirs first, exactly
-        // like a multi-region individual flow. Mirrors the web SDK. EXCEPT
-        // when they picked themselves from the key people and that entry
-        // carries a country — already answered, so the step is skipped.
-        if (countrySelectOptions(config, state).length > 1 &&
-            applicantSelfCountry(state) == null)
-          VerificationStep.countrySelect,
-        VerificationStep.idType,
-        if (requiresCapture) VerificationStep.documentCapture else VerificationStep.idInput,
-        if (hasNfcStep(config, state)) VerificationStep.nfc,
-        if (hasLiveness) VerificationStep.liveness,
-      ],
-      VerificationStep.submitted,
-    ];
-  }
-
-  // Scoped flows: the scope's headline section IS the flow.
+  // Scoped flows: the scope's headline section IS the flow, whoever it is
+  // about. A scoped BUSINESS workflow (address, questionnaire, contact) runs
+  // these steps and never the KYB application below.
   final scope = configScope(config.scope);
   if (scope == 'address') {
     return [
@@ -245,6 +212,59 @@ List<VerificationStep> _fullStepOrder(VerificationConfig config, VerificationSta
       if (config.consentStep) VerificationStep.consent,
       if (hasEmailVerify) VerificationStep.contactEmail,
       if (hasPhoneVerify) VerificationStep.contactPhone,
+      VerificationStep.submitted,
+    ];
+  }
+
+  // Business (KYB) flow: the registry details plus whatever application
+  // sections the workflow configures — no capture/liveness of its own. When the
+  // workflow requires applicant verification, the ordinary individual capture
+  // leg runs afterwards for the SUBMITTER's identity.
+  if (isBusinessApplication(config.subjectType, config.scope)) {
+    final business = config.business;
+    return [
+      if (config.consentStep) VerificationStep.consent,
+      if (hasEmailVerify) VerificationStep.contactEmail,
+      if (hasPhoneVerify) VerificationStep.contactPhone,
+      VerificationStep.businessDetails,
+      // The premises pin right after the details: it is about the place the
+      // applicant has just identified, before the application moves on to
+      // documents and people. Mirrors the web and RN SDKs.
+      //
+      // Spliced through `addressStepsFor` like the individual branch below,
+      // rather than naming the pin step here: that function is what collapses
+      // KYB to the single premises screen, and stating the collapse twice
+      // would be two places to keep agreeing.
+      if (hasAddressCollection) ...addressStepsFor(config, state),
+      // Documents BEFORE key people: they are about the company the applicant
+      // has just identified, so they follow that thread, and the register's
+      // officer list — which the key-people step is a confirmation of — is what
+      // should still be in mind when they get to naming people.
+      if (hasBusinessDocumentsStep(business)) VerificationStep.businessDocuments,
+      // The questionnaire BEFORE key people: its questions are about the
+      // COMPANY (volumes, source of funds), so they belong with the company
+      // section — and naming the directors hands the application over to other
+      // people, so the applicant's own questions must not trail that. Mirrors
+      // the web and RN SDKs.
+      if (hasQuestionnaire) VerificationStep.questionnaire,
+      if (hasKeyPeopleCollection(business)) VerificationStep.businessKeyPeople,
+      if (hasApplicantVerification(business)) ...[
+        VerificationStep.applicantRole,
+        // The applicant may hold an ID issued anywhere the org can verify —
+        // more than one granted country means they pick theirs first, exactly
+        // like a multi-region individual flow. Mirrors the web SDK. EXCEPT
+        // when they picked themselves from the key people and that entry
+        // carries a country — already answered, so the step is skipped.
+        // The combined layout asks on the ID-type step instead.
+        if (countrySelectOptions(config, state).length > 1 &&
+            applicantSelfCountry(state) == null &&
+            !countryOnIdStep(config.idSelectionLayout))
+          VerificationStep.countrySelect,
+        VerificationStep.idType,
+        if (requiresCapture) VerificationStep.documentCapture else VerificationStep.idInput,
+        if (hasNfcStep(config, state)) VerificationStep.nfc,
+        if (hasLiveness) VerificationStep.liveness,
+      ],
       VerificationStep.submitted,
     ];
   }

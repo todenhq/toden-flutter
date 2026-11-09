@@ -139,6 +139,9 @@ VerificationConfig mergeWorkflowIntoConfig(
     // flows are untouched.
     idTypes: flow.idTypes,
     clearIdTypes: flow.idTypes == null && countries != null && countries.isNotEmpty,
+    // Where a multi-country flow picks the country (id_selection_layout.dart).
+    // Absent leaves the prop (combined when neither sets it).
+    idSelectionLayout: IdSelectionLayout.tryParse(flow.raw['idSelectionLayout']),
     // Multi-ID policy comes from the FLOW only — there is no consumer prop for
     // it, and the server is the authority on how many checks a run carries.
     multiId: MultiIdConfig.fromJson(
@@ -148,6 +151,9 @@ VerificationConfig mergeWorkflowIntoConfig(
     enableDocumentCapture: flow.enableDocumentCapture,
     allowDocumentUpload: flow.allowDocumentUpload,
     allowDocumentScan: flow.allowDocumentScan,
+    documentReview: flow.raw['documentReview'] as bool?,
+    documentAudio: flow.raw['documentAudio'] as bool?,
+    livenessAudio: flow.raw['livenessAudio'] as bool?,
     enableLiveness: flow.enableLiveness,
     showThemeToggle: flow.showThemeToggle,
     progressStyle: flow.progressStyle == null
@@ -202,6 +208,8 @@ VerificationConfig overlayApplicantWorkflow(
     country: flow.country,
     countries: countries,
     idTypes: flow.idTypes,
+    // The applicant leg picks its ID's country the mapped workflow's way.
+    idSelectionLayout: IdSelectionLayout.tryParse(flow.raw['idSelectionLayout']),
     // The applicant leg runs the mapped workflow's own capture template, so it
     // carries that workflow's multi-ID policy too.
     multiId: MultiIdConfig.fromJson(
@@ -211,6 +219,9 @@ VerificationConfig overlayApplicantWorkflow(
     enableDocumentCapture: flow.enableDocumentCapture,
     allowDocumentUpload: flow.allowDocumentUpload,
     allowDocumentScan: flow.allowDocumentScan,
+    documentReview: flow.raw['documentReview'] as bool?,
+    documentAudio: flow.raw['documentAudio'] as bool?,
+    livenessAudio: flow.raw['livenessAudio'] as bool?,
     enableLiveness: flow.enableLiveness,
     livenessMode: flow.raw['livenessMode'] as String?,
     flashSequenceLength: (flow.raw['flashSequenceLength'] as num?)?.toInt(),

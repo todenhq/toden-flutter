@@ -4,17 +4,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/business.dart';
 import '../config/business_details_validity.dart';
 import '../config/business_prefill.dart';
+import '../config/business_search.dart';
 import '../config/registration_hint.dart';
 import '../config/theme.dart';
 import '../providers/verification_provider.dart';
 import '../providers/step_order.dart' show effectiveCountry;
-import '../widgets/country_field.dart';
 import '../widgets/ui_button.dart';
 import '../widgets/ui_select.dart';
 import 'business_check_panel.dart';
+import 'business_details_parts.dart' show BusinessCountryRow;
 import 'business_details_fields.dart';
 import 'business_picked_section.dart';
+import 'business_number_entry.dart';
+import 'business_region_select.dart';
 import 'business_search.dart';
+import '../services/api_service.dart' show BusinessRegion;
 import '../i18n/text_scope.dart';
 
 // ─── Business (KYB) registry details — two screens in one step ────────────────
@@ -36,6 +40,15 @@ class BusinessDetailsScreen extends ConsumerStatefulWidget {
 
 class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
   String _phase = 'pick'; // 'pick' | 'details'
+  // No search by name (the workflow switched it off, or the server refused it
+  // for this attempt) asks for the registration number on the first screen;
+  // Continue still checks the register and fills the second. Never "no
+  // matches", which reads as "not registered".
+  String? _searchRefused;
+  bool _manualEntry = false;
+  // The search carries the region picker; without it number entry has to.
+  List<BusinessRegion> _regions = const [];
+  String? _regionsCountry;
   final _regCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   final _contactEmailCtrl = TextEditingController();
@@ -46,14 +59,29 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
   WorkflowBusinessConfig get _cfg =>
       ref.read(verificationConfigProvider).business ??
       WorkflowBusinessConfig(
-        country: effectiveCountry(
-            ref.read(verificationConfigProvider), ref.read(kYCNotifierProvider)),
+        country: effectiveCountry(ref.read(verificationConfigProvider),
+            ref.read(kYCNotifierProvider)),
       );
 
   @override
   void initState() {
     super.initState();
     _syncFromState();
+  }
+
+  bool get _searchOn => nameSearchOffered(_cfg) && _searchRefused == null;
+
+  /// Regions for number entry, loaded once per country when no search is
+  /// carrying the picker.
+  void _ensureRegions(String country, bool numberEntry) {
+    if (!numberEntry || _regionsCountry == country) return;
+    _regionsCountry = country;
+    _regions = const [];
+    loadBusinessRegions(ref, country).then((regions) {
+      if (mounted && _regionsCountry == country) {
+        setState(() => _regions = regions);
+      }
+    });
   }
 
   @override
@@ -134,9 +162,8 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
     final stored = s.businessProduct;
     // Re-derived per country rather than remembered: a product the picked
     // country does not offer would be rejected at submit.
-    final product = (stored != null && products.contains(stored))
-        ? stored
-        : products.first;
+    final product =
+        (stored != null && products.contains(stored)) ? stored : products.first;
     final productDef = businessProduct(product);
     final regHint = registrationNumberHint(country, productDef);
 
@@ -154,6 +181,15 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
         formatCheck == null || regNumber.isEmpty || formatCheck(regNumber);
     final numberValid = regNumber.length >= 2 && formatOk;
 
+    // Read on every build, so a config changing while mounted lands right.
+    final view = businessPickView(
+      searchOffered: nameSearchOffered(cfg),
+      refused: _searchRefused != null,
+      manualEntry: _manualEntry,
+      picked: picked,
+    );
+    _ensureRegions(country, view.numberEntry);
+    final regions = view.numberEntry ? _regions : const <BusinessRegion>[];
     final isFormValid = businessDetailsValid(
       phase: _phase,
       values: businessFieldValues(s),
@@ -162,6 +198,8 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
       numberValid: numberValid,
       nameRequired: cfg.requireRegistrationName,
       showContactEmail: showContactEmail,
+      regionMissing:
+          regions.isNotEmpty && (s.businessSubdivisionCode ?? '').isEmpty,
     );
     final checking = s.businessCheck.status == 'checking';
     // Production never shows the test-result toggle, and never honours a pin.
@@ -170,13 +208,15 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // The summary row the PoA and ID steps use (CountrySummarySelect),
+        // the visitor's own country pinned in its list: a guess, tagged as
+        // one, and the register they pick is what counts.
         if (countries.length > 1) ...[
-          Text(context.verificationText('business.details.countryLabel'), style: text.label),
-          const SizedBox(height: UiSpacing.xs),
-          CountryField(
+          BusinessCountryRow(
+            countries: countries,
             country: country,
-            codes: countries,
-            onChanged: (code) {
+            geoCountry: s.serverConfig.geoCountry,
+            onPick: (code) {
               _set('country', code);
               // The product list narrows per country, so a stale pick is
               // cleared rather than carried into a refused submission.
@@ -203,21 +243,25 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
         // HIDDEN, not unmounted, once a company is chosen: unmounting threw
         // away the query and results, so "Change" dropped somebody back to an
         // empty box. Hiding keeps the picker alive, which makes Change cheap.
-        Offstage(
-          offstage: !(_phase == 'pick' && country.isNotEmpty && !picked),
-          child: BusinessSearch(
-            country: country,
-            onPicked: (hit) {
-              // Names the company and nothing more: the register is asked on
-              // Continue, and the fields it fills live on the screen after.
-              _set('registrationNumber', hit.registrationNumber);
-              _set('registrationName', hit.name);
-            },
-            onManualEntry: () => setState(() => _phase = 'details'),
+        if (_searchOn)
+          Offstage(
+            offstage: !(_phase == 'pick' && country.isNotEmpty && view.search),
+            child: BusinessSearch(
+              country: country,
+              onRefused: (message) => setState(() {
+                _searchRefused = message ?? kSearchRefusedFallback;
+              }),
+              onPicked: (hit) {
+                // Names the company and nothing more: the register is asked on
+                // Continue, and the fields it fills live on the screen after.
+                _set('registrationNumber', hit.registrationNumber);
+                _set('registrationName', pickedBusinessName(hit.name));
+              },
+              onManualEntry: () => setState(() => _manualEntry = true),
+            ),
           ),
-        ),
 
-        if (_phase == 'pick' && picked)
+        if (_phase == 'pick' && view.card)
           BusinessPickedSection(
             country: country,
             name: s.registrationName ?? '',
@@ -232,6 +276,26 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
             },
           ),
 
+        // No search: the number is the whole first screen. The name is asked
+        // only when the workflow requires it; the register supplies it on
+        // Continue, which then fills the details screen.
+        if (_phase == 'pick' && view.numberEntry)
+          BusinessNumberEntry(
+            notice: _searchRefused,
+            regions: regions,
+            productDef: productDef,
+            regHint: regHint,
+            numberValid: numberValid,
+            formatOk: formatOk,
+            requireName: cfg.requireRegistrationName,
+            regCtrl: _regCtrl,
+            nameCtrl: _nameCtrl,
+            country: country,
+            name: s.registrationName ?? '',
+            isSandbox: isSandbox,
+            onChanged: _set,
+          ),
+        if (_phase == 'details') BusinessRegionSelect(regions: regions),
         if (_phase == 'details')
           BusinessDetailsFields(
             productDef: productDef,
@@ -267,8 +331,9 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                   ? context.verificationText('business.details.confirm')
                   : context.verificationText('common.continue'),
           isLoading: checking,
-          onPressed:
-              !isFormValid || checking ? null : () => _persistAndContinue(country, product),
+          onPressed: !isFormValid || checking
+              ? null
+              : () => _persistAndContinue(country, product),
         ),
       ],
     );

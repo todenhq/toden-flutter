@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/liveness/face_detection.dart';
-import 'package:myaza_kyc_sdk_flutter/src/liveness/passive_hold.dart';
+import 'package:toden_flutter/src/liveness/face_detection.dart';
+import 'package:toden_flutter/src/liveness/passive_hold.dart';
 
 // Passive Liveness passes on its own after about two seconds of a steady,
 // centred face, and the two seconds must be CONSECUTIVE.

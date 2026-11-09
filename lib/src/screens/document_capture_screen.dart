@@ -10,18 +10,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../config/capture_config.dart';
+import '../config/capture_hints.dart';
 import '../config/document_capture_check.dart';
 import '../config/document_capture_methods.dart';
 import '../config/document_guide.dart';
+import '../config/document_specimen.dart';
+import '../config/document_turn.dart' show screenGuideAspect;
 import '../config/id_types.dart';
 import '../config/verification_config.dart';
 import '../config/silent_capture.dart';
 import '../config/theme.dart';
 import '../providers/camera_provider.dart';
 import '../providers/step_order.dart' show effectiveCountry;
+import '../services/document_corner_gate.dart';
+import '../services/document_corners.dart';
 import '../services/document_detection.dart';
+import '../services/document_quad_crop.dart';
 import '../services/document_framing_gate.dart';
 import '../services/document_identity.dart';
+import '../services/document_open_passport.dart';
 import '../services/document_text_gate.dart';
 import '../services/mrz_extract.dart';
 import '../services/native_document_camera.dart';
@@ -34,7 +41,10 @@ import '../services/media_compress_service.dart';
 import '../services/retry.dart';
 import '../services/silent_front_camera.dart';
 import '../utils/permissions.dart';
+import 'document_handover.dart';
+import 'document_turn_reading.dart';
 import '../widgets/document_capture_check_notice.dart';
+import '../widgets/document_ghost.dart' show DocumentSpecimenSubject;
 import '../widgets/document_review.dart';
 import '../widgets/document_upload_only_view.dart';
 import '../widgets/camera_permission_view.dart';
@@ -44,11 +54,14 @@ import '../widgets/ready_primer_content.dart';
 import '../widgets/ui_alert.dart';
 import '../widgets/document_cropper.dart';
 import '../widgets/document_viewfinder.dart';
+import '../widgets/turn_over_prompt.dart';
+import '../config/same_face.dart';
 import '../widgets/ui_button.dart';
 import '../services/model_readiness.dart';
 import '../widgets/icons/icons.dart';
 import '../i18n/text_scope.dart';
 import '../widgets/ui_spinner.dart';
+import '../config/scope.dart';
 
 // ─── Scan phase ───────────────────────────────────────────────────────────────
 //
@@ -109,6 +122,19 @@ class _DocumentCaptureScreenState
   String? _frontVideoPath;
   String? _backVideoPath;
 
+  // How each side's photo came to be: the review can only be skipped for a
+  // camera scan (config/document_capture_methods.dart).
+  DocumentSideSource? _frontSource;
+  DocumentSideSource? _backSource;
+
+  // A scan moving straight on: the upload runs behind a loading screen, and a
+  // problem drops back to the review.
+  bool _handingOver = false;
+
+  // Asked once for the screen: a retake or the next side reuses the answer.
+  bool _microphoneAsked = false;
+  bool _recordAudio = false;
+
   bool _isCapturing = false;
 
   // Android's native CameraX camera (see NativeDocumentCamera). Null on iOS and
@@ -125,6 +151,11 @@ class _DocumentCaptureScreenState
   // Latest identity verdict from text recognition (iOS path). Null means it
   // could not be established this frame — never a reason to block a capture.
   DocumentIdentity? _identity;
+
+  // When a check-digit-valid MRZ was last read on the front (iOS path): it is
+  // what lets an open passport's data page stand in the guide while the
+  // detector finds the whole booklet (services/document_open_passport.dart).
+  DateTime? _mrzReadAt;
 
   // The viewfinder's actual laid-out size, recorded during build. The crop maps
   // the guide rect back into the still against exactly this box, and in
@@ -144,8 +175,8 @@ class _DocumentCaptureScreenState
   final _detector = DocumentDetectionService();
   late final DocumentFramingGate _gate = DocumentFramingGate(
     // Shape is what stops auto-capture firing on a book or a receipt, so the
-    // gate is built per ID type: a card is 1.586, a passport page 1.42. The
-    // card aspect is the fallback — every document ID uses one of the two, and
+    // gate is built per ID type: a card is 1.586, a passport page 1.42, a NIN
+    // slip 2.07. The card aspect is the fallback, and
     // the guide the user is aiming at already shows which.
     expectedAspect: () {
       final idType = ref.read(kYCNotifierProvider).selectedIdType;
@@ -156,6 +187,20 @@ class _DocumentCaptureScreenState
   // recognition instead (see _detectFrameText / DocumentTextGate).
   final _textRecognizer = TextRecognitionService();
   final _textGate = DocumentTextGate();
+
+  // A NIN slip framed upright on a phone held upright, read with an extra
+  // quarter turn and turned back after the shutter (config/document_turn.dart).
+  final _turn = DocumentTurnReading();
+
+  // The free band between the top controls and the bottom bar, which an
+  // upright guide fills. Recorded during build beside _viewfinderSize, so the
+  // crop uses exactly the band the overlay drew.
+  DocumentGuideBand? _guideBand;
+
+  // All four corners must be in view, with space past each, before a photo is
+  // taken (auto or manual): a passport captured with its bottom edge cut loses
+  // the MRZ. Only blocks once the device has shown it can find corners.
+  final _corners = DocumentCornerGate();
 
   DocumentFraming _framing = DocumentFraming.none;
   DocumentHint _hint = DocumentHint.searching;
@@ -219,6 +264,7 @@ class _DocumentCaptureScreenState
 
   @override
   void dispose() {
+    _turnOverTimer?.cancel();
     _silentCancelled = true;
     WidgetsBinding.instance.removeObserver(this);
     // The plugin controller is released by the camera provider's onDispose; the
@@ -282,17 +328,24 @@ class _DocumentCaptureScreenState
           return;
         }
         if (_permissionDenied) setState(() => _permissionDenied = false);
+        await _askForMicrophone();
+        if (!mounted) return;
 
         // The native camera is Android's normal path; the plugin below is the
         // fallback if it can't start.
         if (!_nativeFailed && await _startNativeCamera()) return;
       }
 
+      // Before the camera opens: the plugin fails to start with sound on and
+      // the microphone refused, and the answer sets how it is configured.
+      await _askForMicrophone();
+      if (!mounted) return;
       await ref.read(cameraNotifierProvider.notifier).initialize(
         direction: CameraLensDirection.back,
         // Kept high (not medium) so the OCR still stays sharp — the document
         // video is shrunk by VideoCompress at encode time instead.
         resolution: CaptureConfig.documentResolution,
+        enableAudio: _recordAudio,
       );
       if (!mounted) return;
       setState(() =>
@@ -301,6 +354,15 @@ class _DocumentCaptureScreenState
     } finally {
       _initializing = false;
     }
+  }
+
+  /// Asks for the microphone when the workflow records sound. A refusal leaves
+  /// the clips silent, and nothing else changes.
+  Future<void> _askForMicrophone() async {
+    if (_microphoneAsked) return;
+    _microphoneAsked = true;
+    if (!recordsDocumentAudio(ref.read(verificationConfigProvider))) return;
+    _recordAudio = await requestDocumentMicrophone();
   }
 
   /// Starts the Android native camera + its first side clip. Returns false when
@@ -326,7 +388,7 @@ class _DocumentCaptureScreenState
         _nativeFailed = true;
         return false;
       }
-      await camera.startRecording();
+      await camera.startRecording(audio: _recordAudio);
       if (!mounted) {
         unawaited(camera.dispose());
         return true;
@@ -343,6 +405,9 @@ class _DocumentCaptureScreenState
         _nativePreviewW = camera.previewWidth;
         _nativePreviewH = camera.previewHeight;
       });
+      // A new camera reads upright until told otherwise.
+      _turn.forgetNativeTurns();
+      _turn.syncNative(camera);
       return true;
     } catch (_) {
       unawaited(camera.dispose());
@@ -413,7 +478,7 @@ class _DocumentCaptureScreenState
       // capturing; stopping first is a no-op when there isn't one.
       await native.stopRecording();
       if (!mounted) return;
-      await native.startRecording();
+      await native.startRecording(audio: _recordAudio);
     } finally {
       _restartingClip = false;
     }
@@ -471,8 +536,9 @@ class _DocumentCaptureScreenState
   Future<void> _updateIdentity(CameraImage image) async {
     final controller = ref.read(cameraNotifierProvider.notifier).controller;
     final sensor = controller?.description.sensorOrientation ?? 0;
-    final lines =
-        await _textRecognizer.recognize(image, sensorOrientation: sensor);
+    final read =
+        await _turn.read(_textRecognizer, image, sensorOrientation: sensor);
+    final lines = read.lines;
     if (!mounted) return;
 
     // Nothing readable this frame — leave the verdict UNKNOWN rather than
@@ -489,9 +555,12 @@ class _DocumentCaptureScreenState
     if (mrz != null && wantsMrz && state.mrzScan == null) {
       ref.read(kYCNotifierProvider.notifier).setMrzScan(mrz);
     }
+    if (mrz != null && _phase == _ScanPhase.cameraFront) {
+      _mrzReadAt = DateTime.now();
+    }
     final idType = state.selectedIdType;
     if (idType == null) return;
-    _identity = verifyDocumentIdentity(
+    final identity = verifyDocumentIdentity(
       lines,
       country: effectiveCountry(ref.read(verificationConfigProvider), state),
       idType: idType.key,
@@ -502,18 +571,41 @@ class _DocumentCaptureScreenState
       hasValidMrz: mrz != null,
       mrzAlreadyCaptured: state.mrzScan != null,
     );
+    _identity = identity;
+    _turn.observe(read.turn, identified: identity.identified);
+  }
+
+  /// Whether a turned read's [lines] identify the document, for the turn
+  /// reader (null when nothing was readable). Same bar as the text gate's.
+  bool? _identifiedBy(List<String> lines) {
+    if (lines.isEmpty) return null;
+    final state = ref.read(kYCNotifierProvider);
+    final idType = state.selectedIdType;
+    if (idType == null) return null;
+    return verifyDocumentIdentity(
+      lines,
+      country: effectiveCountry(ref.read(verificationConfigProvider), state),
+      idType: idType.key,
+      isBack: _phase == _ScanPhase.cameraBack,
+    ).identified;
   }
 
   /// Android auto-capture: recognize text on the frame, read the MRZ live (for
   /// passports — it both stores the chip key and triggers capture), and let the
   /// text gate decide when a document is framed steadily enough to shoot.
   Future<void> _detectFrameText(CameraImage image) async {
+    // The camera-plugin fallback has no corner detector (only the native
+    // camera runs one), so capture keeps its old rules here.
+    if (_corners.markUnavailable()) setState(() {});
     final controller = ref.read(cameraNotifierProvider.notifier).controller;
     final sensor = controller?.description.sensorOrientation ?? 0;
-    final lines =
-        await _textRecognizer.recognize(image, sensorOrientation: sensor);
+    final read =
+        await _turn.read(_textRecognizer, image, sensorOrientation: sensor);
     if (!mounted || _isCapturing) return;
-    await _applyTextLines(lines);
+    if (read.turn != 0) {
+      _turn.observe(read.turn, identified: _identifiedBy(read.lines));
+    }
+    await _applyTextLines(read.lines);
   }
 
   /// Same auto-capture decision, fed by the NATIVE camera — which runs ML Kit on
@@ -522,7 +614,76 @@ class _DocumentCaptureScreenState
   void _onNativeText(RecognizedFrame frame) {
     if (!mounted || _isCapturing || _isUploading || _restartingClip) return;
     if (!_inCameraPhase) return;
+    final cornersChanged = frame.quadSupported
+        ? _corners.update(
+            frame.quad,
+            frame: frame.frameSize,
+            visible: _visibleRegion(frame.frameSize),
+            guide: _cornerGuide(frame.frameSize),
+          )
+        : _corners.markUnknown();
+    if (cornersChanged) setState(() {});
+    // A frame read at a turn other than the one that found the slip was in
+    // flight before it was found: it is not evidence against the slip.
+    if (!_turn.counts(frame.turn)) return;
+    if (frame.turn != 0) {
+      _turn.observe(frame.turn, identified: _identifiedBy(frame.lines));
+      _turn.syncNative(_nativeCamera);
+    }
     unawaited(_applyTextLines(frame.lines, bounds: frame.bounds));
+  }
+
+  /// The part of an analysed frame the cover-fitted preview shows.
+  Rect _visibleRegion(Size frame) =>
+      visibleFrameRegion(frame, _viewfinderSize ?? Size.zero);
+
+  /// The guide the corner gate bounds the document's size by: only a turned
+  /// guide, as the React Native SDK passes it. There a slip far bigger than
+  /// the guide is running off the picture while the detector finds the table
+  /// printed on it. Applied to every document, it also refused an open
+  /// passport (the booklet is twice the data page's height) and a card found
+  /// with the wallet or hand around it.
+  Rect? _cornerGuide(Size frame) =>
+      _turn.turned ? _guideInFrame(frame) : null;
+
+  /// The guide as drawn, in an analysed frame's normalised space. Null before
+  /// the first layout.
+  Rect? _guideInFrame(Size frame) {
+    final view = _viewfinderSize;
+    final idType = ref.read(kYCNotifierProvider).selectedIdType;
+    if (view == null || idType == null) return null;
+    final guide = documentGuideRect(
+      view,
+      _screenGuideAspect(idType),
+      band: _guideBand,
+    );
+    return guideInFrame(guide, view, _visibleRegion(frame));
+  }
+
+  /// Applies the corners rule to a gate's verdict, then decides whether to
+  /// shoot. A ready verdict that is not acted on releases the gate's latch:
+  /// left latched, every later frame read as ready and the first armed one
+  /// fired at whatever was in view, framed or not.
+  Future<void> _settleGuidance(
+    DocumentGuidance guidance, {
+    required void Function() resetDwell,
+    required void Function() release,
+  }) async {
+    final gateReady = guidance.framing == DocumentFraming.ready;
+    guidance = _corners.apply(guidance, resetDwell: resetDwell);
+    if (guidance.framing != _framing || guidance.hint != _hint) {
+      setState(() {
+        _framing = guidance.framing;
+        _hint = guidance.hint;
+      });
+    }
+    // Armed check LAST, so the gates still guide the user during the settle
+    // window — they simply may not shoot yet.
+    final fire = guidance.framing == DocumentFraming.ready &&
+        !_isCapturing &&
+        _autoCaptureArmed;
+    if (gateReady && !fire) release();
+    if (fire) await _onCapture();
   }
 
   /// Turns one frame's recognized lines into framing guidance, storing a valid
@@ -530,6 +691,20 @@ class _DocumentCaptureScreenState
   /// says the document has been held steady enough.
   Future<void> _applyTextLines(List<String> lines, {Rect? bounds}) async {
     final state = ref.read(kYCNotifierProvider);
+    final onBack = _phase == _ScanPhase.cameraBack;
+    if (!onBack) {
+      final words = wordsOf(lines);
+      if (words.length >= (_frontWords?.length ?? 0) * 0.7) _frontWords = words;
+    } else if (stillSameFace(_frontWords, lines)) {
+      // Asked for the back and still shown the front: say so, never shoot it.
+      _textGate.reset();
+      await _settleGuidance(
+        const DocumentGuidance(DocumentFraming.adjust, DocumentHint.showBack),
+        resetDwell: _textGate.reset,
+        release: _textGate.release,
+      );
+      return;
+    }
     final mrz = extractMrz(lines);
     final wantsMrz = _wantsMrz;
     if (mrz != null && wantsMrz && state.mrzScan == null) {
@@ -557,19 +732,11 @@ class _DocumentCaptureScreenState
       hasValidMrz: mrz != null,
       mrzAlreadyCaptured: state.mrzScan != null,
     );
-    if (guidance.framing != _framing || guidance.hint != _hint) {
-      setState(() {
-        _framing = guidance.framing;
-        _hint = guidance.hint;
-      });
-    }
-    // Armed check LAST, so the gates still guide the user during the settle
-    // window — they simply may not shoot yet.
-    if (guidance.framing == DocumentFraming.ready &&
-        !_isCapturing &&
-        _autoCaptureArmed) {
-      await _onCapture();
-    }
+    await _settleGuidance(
+      guidance,
+      resetDwell: _textGate.reset,
+      release: _textGate.release,
+    );
   }
 
   /// True when the selected ID carries an MRZ we want to read (a chip-capable
@@ -584,8 +751,46 @@ class _DocumentCaptureScreenState
   Future<void> _detectFrame(CameraImage image) async {
     final detection = await _detector.detect(image);
     if (!mounted) return;
+    var quad = detection?.quad;
+    var box = detection?.box;
+    // An open passport: the detector finds the whole booklet, and a fresh MRZ
+    // says the data page is the one in the guide. Judge the page, not the
+    // booklet (services/document_open_passport.dart).
+    if (detection != null) {
+      final guide = _guideInFrame(detection.frameSize);
+      final page = openPassportPage(
+        idType: ref.read(kYCNotifierProvider).selectedIdType?.key ?? '',
+        isBack: _phase == _ScanPhase.cameraBack,
+        found: quad,
+        guide: guide,
+        mrzReadAt: _mrzReadAt,
+        identified: _identity?.identified == true,
+        now: DateTime.now(),
+      );
+      if (page != null) {
+        quad = quadOfRect(page);
+        box = boxOfRect(
+          page,
+          aspect: _gate.expectedAspect,
+          confidence: box?.confidence ?? 1,
+        );
+      }
+    }
+    final cornersChanged = detection == null
+        ? (_detector.isUnsupported
+            ? _corners.markUnavailable()
+            : _corners.markUnknown())
+        : detection.quadSupported
+            ? _corners.update(
+                quad,
+                frame: detection.frameSize,
+                visible: _visibleRegion(detection.frameSize),
+                guide: _cornerGuide(detection.frameSize),
+              )
+            : _corners.markUnknown();
+    if (cornersChanged) setState(() {});
     var guidance = _gate.update(
-      detection?.box,
+      box,
       brightness: detection?.brightness ?? 0.5,
     );
 
@@ -602,21 +807,15 @@ class _DocumentCaptureScreenState
             : DocumentFraming.adjust,
         identity.hint,
       );
+      // The gate latched on its ready verdict, which is not being acted on.
+      _gate.release();
     }
 
-    if (guidance.framing != _framing || guidance.hint != _hint) {
-      setState(() {
-        _framing = guidance.framing;
-        _hint = guidance.hint;
-      });
-    }
-    // Armed check LAST, so the gates still guide the user during the settle
-    // window — they simply may not shoot yet.
-    if (guidance.framing == DocumentFraming.ready &&
-        !_isCapturing &&
-        _autoCaptureArmed) {
-      await _onCapture();
-    }
+    await _settleGuidance(
+      guidance,
+      resetDwell: _gate.reset,
+      release: _gate.release,
+    );
   }
 
   /// Stops the active recording and stores the file path for the side
@@ -663,11 +862,21 @@ class _DocumentCaptureScreenState
 
   DateTime? _armedAt;
 
+  /// The back followed the front with no tap: waiting for it to be turned over.
+  bool _turningOver = false;
+  // The prompt has shown the back, so the guide need not show it again.
+  bool _backAnnounced = false;
+  Timer? _turnOverTimer;
+
+  /// What the front said, so a back that reads the same can be told from it.
+  Set<String>? _frontWords;
+
   /// False while the camera is still settling — the gates keep measuring and
   /// guiding, they just may not pull the trigger yet.
   bool get _autoCaptureArmed {
     final armed = _armedAt;
-    return armed != null &&
+    return !_turningOver &&
+        armed != null &&
         DateTime.now().difference(armed) >= _settleDelay;
   }
 
@@ -675,6 +884,10 @@ class _DocumentCaptureScreenState
     _armedAt = DateTime.now();
     _gate.reset();
     _textGate.reset();
+    _corners.reset();
+    _mrzReadAt = null;
+    _turn.reset();
+    _turn.syncNative(_nativeCamera);
     if (_framing != DocumentFraming.none || _hint != DocumentHint.searching) {
       setState(() {
         _framing = DocumentFraming.none;
@@ -690,7 +903,7 @@ class _DocumentCaptureScreenState
       _ScanPhase.cameraFront => 'camera',
       _ScanPhase.frontPreview => 'front_preview',
       _ScanPhase.cameraBack   => 'camera_back',
-      _ScanPhase.review       => 'review',
+      _ScanPhase.review       => _handingOver ? 'checking' : 'review',
     };
     ref.read(kYCNotifierProvider.notifier).setDocReviewPhase(phaseStr);
     if (phase == _ScanPhase.review) unawaited(_takeSilentFrontFrame());
@@ -751,6 +964,13 @@ class _DocumentCaptureScreenState
 
   Future<void> _onCapture() async {
     if (_isCapturing) return;
+    // Read at press time too: a shutter drawn enabled a frame ago must not take
+    // a document whose corners have since gone out of view.
+    if (_corners.blocksCapture) return;
+    // The corners that allowed this photo, taken now: frames keep arriving
+    // while the still is being taken.
+    final cropQuad = _corners.cropQuad;
+    final cropFrame = _corners.cropFrame;
     setState(() => _isCapturing = true);
 
     try {
@@ -788,15 +1008,33 @@ class _DocumentCaptureScreenState
       // It mirrors the full-screen layout, so even that path crops the region
       // the user actually framed.
       final view = _viewfinderSize ?? MediaQuery.of(context).size;
-      final croppedRaw = await cropCardRegionBytes(
+      // With the corners known, crop to the document itself plus the bleed,
+      // so nothing past a corner (the MRZ) is lost to the guide rectangle.
+      Uint8List? quadCrop;
+      if (cropQuad != null && cropFrame != null) {
+        try {
+          quadCrop = await cropToDocumentQuad(bytes, cropQuad, frameSize: cropFrame);
+        } catch (_) {
+          quadCrop = null; // the guide crop below
+        }
+        if (!mounted) return;
+      }
+      final framedRaw = quadCrop ?? await cropCardRegionBytes(
         bytes,
         viewW: view.width,
         viewH: view.height,
-        // Mirror the guide aspect so the crop matches what the user framed —
-        // taller for passports so the bottom MRZ band isn't cut off.
-        aspect: documentGuideAspect(idType),
+        // Mirror the guide as drawn so the crop matches what the user framed —
+        // taller for passports so the bottom MRZ band isn't cut off, upright
+        // in its band for a turned NIN slip.
+        aspect: _screenGuideAspect(idType),
+        band: _guideBand,
         maxBytes: 1 << 24, // 16 MB — effectively "don't degrade while cropping"
       );
+      if (!mounted) return;
+      // A slip framed upright is turned back to landscape here, so the review,
+      // the upload and the server all see an ordinary slip.
+      final croppedRaw =
+          await rotateJpegClockwise(framedRaw, _turn.captureUndoDegrees);
       if (!mounted) return;
       final cropped = await compressDocumentImage(croppedRaw);
       if (!mounted) return;
@@ -804,18 +1042,20 @@ class _DocumentCaptureScreenState
       if (_phase == _ScanPhase.cameraFront) {
         setState(() {
           _frontBytes = cropped;
+          _frontSource = DocumentSideSource.camera;
           _isCapturing = false;
         });
         _maybeReadMrz([bytes, cropped]);
         _resetAutoCapture();
-        _setPhase(_needsBack ? _ScanPhase.frontPreview : _ScanPhase.review);
+        _afterSide(isBack: false);
       } else {
         setState(() {
           _backBytes = cropped;
+          _backSource = DocumentSideSource.camera;
           _isCapturing = false;
         });
         _resetAutoCapture();
-        _setPhase(_ScanPhase.review);
+        _afterSide(isBack: true);
       }
     } catch (_) {
       if (mounted) _abortCapture();
@@ -837,7 +1077,9 @@ class _DocumentCaptureScreenState
     // a capture that failed because the screen was leaving would otherwise open
     // a clip nothing will ever record into.
     final native = _nativeCamera;
-    if (native != null && _inCameraPhase) unawaited(native.startRecording());
+    if (native != null && _inCameraPhase) {
+      unawaited(native.startRecording(audio: _recordAudio));
+    }
   }
 
   // ── MRZ (chip key) read off the captured photo ──────────────────────────────
@@ -951,12 +1193,17 @@ class _DocumentCaptureScreenState
     // Theme (the workflow's colours) and scope (its texts).
     final flowTheme = Theme.of(context);
     final flowScope = flowScopeOf(context);
+    final idType = ref.read(kYCNotifierProvider).selectedIdType;
     final cropped = await Navigator.of(context).push<Uint8List>(
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (_) => inFlowScope(
           flowScope,
-          Theme(data: flowTheme, child: DocumentCropperScreen(imageBytes: rawBytes)),
+          Theme(data: flowTheme, child: DocumentCropperScreen(
+            imageBytes: rawBytes,
+            aspect: idType == null ? kCardGuideAspect : documentGuideAspect(idType),
+            documentLabel: idType?.label,
+          )),
         ),
       ),
     );
@@ -985,20 +1232,22 @@ class _DocumentCaptureScreenState
       if (_phase == _ScanPhase.cameraFront) {
         setState(() {
           _frontBytes = compressed;
+          _frontSource = DocumentSideSource.upload;
           _frontVideoPath = null;
           _isCapturing = false;
         });
         _maybeReadMrz([compressed]);
         _resetAutoCapture();
-        _setPhase(_needsBack ? _ScanPhase.frontPreview : _ScanPhase.review);
+        _afterSide(isBack: false);
       } else {
         setState(() {
           _backBytes = compressed;
+          _backSource = DocumentSideSource.upload;
           _backVideoPath = null;
           _isCapturing = false;
         });
         _resetAutoCapture();
-        _setPhase(_ScanPhase.review);
+        _afterSide(isBack: true);
       }
     } catch (_) {
       if (mounted) {
@@ -1012,6 +1261,63 @@ class _DocumentCaptureScreenState
   }
 
   // ── Navigation between phases ──────────────────────────────────────────────
+
+  /// Where a captured side leads. `documentReview` decides whether a scan stops
+  /// on a screen first; see config/document_capture_methods.dart.
+  void _afterSide({required bool isBack}) {
+    final next = afterDocumentCapture(
+      documentReview: ref.read(verificationConfigProvider).documentReview,
+      isBack: isBack,
+      twoSided: _needsBack,
+      front: _frontSource,
+      back: _backSource,
+      hasBack: _backBytes != null,
+    );
+    switch (next) {
+      case AfterDocumentCapture.previewFront:
+        _setPhase(_ScanPhase.frontPreview);
+      case AfterDocumentCapture.scanBack:
+        // Nothing was tapped, so they are still holding up the front.
+        _beginTurnOver();
+        _proceedToBack();
+      case AfterDocumentCapture.review:
+        _setPhase(_ScanPhase.review);
+      case AfterDocumentCapture.handOver:
+        _handingOver = true;
+        _setPhase(_ScanPhase.review);
+        unawaited(_onContinue());
+    }
+  }
+
+  /// Something needs the person after all, so the review comes back.
+  void _stopHandover() {
+    if (!_handingOver) return;
+    _handingOver = false;
+    ref.read(kYCNotifierProvider.notifier).setDocReviewPhase('review');
+  }
+
+  String? _specimenCountry() {
+    final code = effectiveCountry(ref.read(verificationConfigProvider),
+        ref.read(kYCNotifierProvider));
+    return code.isEmpty ? null : countryLabel(code);
+  }
+
+  /// Holds auto-capture and asks for the back. See TurnOverPrompt.
+  void _beginTurnOver() {
+    _turnOverTimer?.cancel();
+    _turnOverTimer = Timer(kTurnOverHold, _endTurnOver);
+    setState(() {
+      _turningOver = true;
+      _backAnnounced = true;
+    });
+  }
+
+  void _endTurnOver() {
+    _turnOverTimer?.cancel();
+    if (!mounted) return;
+    setState(() => _turningOver = false);
+    _resetAutoCapture();
+  }
 
   void _proceedToBack() {
     _setPhase(_ScanPhase.cameraBack);
@@ -1040,6 +1346,8 @@ class _DocumentCaptureScreenState
     setState(() {
       _frontBytes = null;
       _backBytes = null;
+      _frontSource = null;
+      _backSource = null;
       _frontVideoPath = null;
       _backVideoPath = null;
       _uploadError = null;
@@ -1052,6 +1360,7 @@ class _DocumentCaptureScreenState
   void _retakeBack() {
     setState(() {
       _backBytes = null;
+      _backSource = null;
       _backVideoPath = null;
       _uploadError = null;
       _captureProblems = const [];
@@ -1150,6 +1459,7 @@ class _DocumentCaptureScreenState
       if (problems.isNotEmpty) {
         // Stay on the review. The uploads are kept: "Continue anyway" advances
         // without sending them again.
+        _stopHandover();
         setState(() {
           _isUploading = false;
           _uploadRetryInfo = null;
@@ -1162,6 +1472,7 @@ class _DocumentCaptureScreenState
       if (!mounted) return;
       // Retries exhausted — show the inline error AND report a typed error.
       final verificationError = mapToVerificationError(e, context: ErrorContext.upload);
+      _stopHandover();
       setState(() {
         _isUploading = false;
         _uploadRetryInfo = null;
@@ -1171,6 +1482,7 @@ class _DocumentCaptureScreenState
     } catch (e) {
       if (!mounted) return;
       final verificationError = mapToVerificationError(e, context: ErrorContext.upload);
+      _stopHandover();
       setState(() {
         _isUploading = false;
         _uploadRetryInfo = null;
@@ -1195,7 +1507,7 @@ class _DocumentCaptureScreenState
     // submission carries the mapped applicant workflow and no session (the
     // session belongs to the business application). The check mirrors it, so
     // the photo is judged by the workflow that will decide it.
-    final applicantLeg = config.subjectType == 'business';
+    final applicantLeg = isBusinessApplication(config.subjectType, config.scope);
     return api.checkDocumentCapture(
       mediaId: mediaId,
       side: side,
@@ -1360,7 +1672,8 @@ class _DocumentCaptureScreenState
           error: error,
           isBack: isBack,
           isProcessing: _isCapturing,
-          guideAspect: documentGuideAspect(idTypeConfig),
+          guideAspect: _screenGuideAspect(idTypeConfig),
+          guideBand: _guideBand,
           torchOn: _torchOn,
           onToggleTorch:
               _hasTorch && isReady ? () => unawaited(_toggleTorch()) : null,
@@ -1375,8 +1688,14 @@ class _DocumentCaptureScreenState
           idType: idTypeConfig,
           country: effectiveCountry(ref.read(verificationConfigProvider),
               ref.read(kYCNotifierProvider)),
-          showMrzBand: idTypeConfig.key == 'passport',
-          onCapture: isReady && !_isCapturing ? _onCapture : null,
+          showSpecimen: !(isBack && _backAnnounced),
+          // The corners rule holds the manual shutter too, saying why.
+          onCapture: isReady && !_isCapturing && !_corners.blocksCapture
+              ? _onCapture
+              : null,
+          shutterDisabledReason: _corners.hint == null
+              ? null
+              : documentHintText(_corners.hint!, label: idTypeConfig.label),
           onBack: _onImmersiveBack,
           onUpload: documentCaptureMethodsFor(ref.read(verificationConfigProvider)).upload
               ? _onUpload
@@ -1394,10 +1713,48 @@ class _DocumentCaptureScreenState
     return LayoutBuilder(
       builder: (context, constraints) {
         _viewfinderSize = constraints.biggest;
-        return viewfinder();
+        // Same view padding the viewfinder places its controls with.
+        final insets = MediaQueryData.fromView(View.of(context)).viewPadding;
+        _guideBand = documentGuideBand(
+          topInset: insets.top,
+          bottomInset: insets.bottom,
+        );
+        if (_turn.update(
+            documentGuideAspect(idTypeConfig), constraints.biggest)) {
+          // The detector measures the slip as framed, so the shape it must
+          // match turns with the guide.
+          _gate.expectedAspect = _screenGuideAspect(idTypeConfig);
+          _gate.reset();
+          _textGate.reset();
+          _turn.syncNative(_nativeCamera);
+        }
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            viewfinder(),
+            if (_turningOver)
+              TurnOverPrompt(
+                aspect: _screenGuideAspect(idTypeConfig),
+                band: _guideBand,
+                accent: context.myazaColors.primary,
+                subject: DocumentSpecimenSubject(
+                  idType: idTypeConfig.key,
+                  title: specimenTitle(idTypeConfig.key, idTypeConfig.label),
+                  country: _specimenCountry(),
+                  side: SpecimenSide.back,
+                ),
+                onDone: _endTurnOver,
+              ),
+          ],
+        );
       },
     );
   }
+
+  /// The guide's on-screen shape: the document's own, or upright for a NIN
+  /// slip on a phone held upright (config/document_turn.dart).
+  double _screenGuideAspect(IdTypeConfig idType) =>
+      screenGuideAspect(documentGuideAspect(idType), _turn.turned);
 
   /// Back from the full-screen camera. The sheet's own back control is hidden,
   /// so this stands in for it: leave the camera, and let the shell restore its
@@ -1526,6 +1883,7 @@ class _DocumentCaptureScreenState
   // ── Review ─────────────────────────────────────────────────────────────────
 
   Widget _buildReview(IdTypeConfig idTypeConfig) {
+    if (_handingOver) return DocumentHandover(retryInfo: _uploadRetryInfo);
     final busyOverlay = _isUploading
         ? DecoratedBox(
             decoration: BoxDecoration(

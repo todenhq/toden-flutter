@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/liveness/capture_ring.dart';
-import 'package:myaza_kyc_sdk_flutter/src/liveness/liveness_types.dart';
+import 'package:toden_flutter/src/liveness/capture_ring.dart';
+import 'package:toden_flutter/src/liveness/liveness_types.dart';
 
 // Mirror of the web and React Native ring tests. Two numbers: a target that
 // only moves forward, a display that eases toward it.

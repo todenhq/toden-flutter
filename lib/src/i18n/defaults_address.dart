@@ -32,6 +32,7 @@ const Map<String, String> kAddressTextDefaults = {
       "Location summaries are used only to confirm this address and are handled under your country's data protection rules.",
   'address.intro.start': 'Continue',
   'address.search.title': 'Find your address',
+  'address.search.title.business': 'Find the business premises',
   'address.search.description': 'Search it, use your current location, or place a pin on the map.',
   'address.currentLocation.title': 'Use my current location',
   'address.currentLocation.hint': 'Lands the pin right where you are',
@@ -53,6 +54,8 @@ const Map<String, String> kAddressTextDefaults = {
   'address.entrance.title': 'Show the entrance',
   'address.entrance.description.framing': 'Frame your entrance in the street imagery. No camera needed.',
   'address.entrance.description.photo': 'A picture of the gate or front door makes the address findable.',
+  'address.entrance.description.photo.business':
+      'A photo of the shop front, office entrance or signboard helps show the business trades here.',
   'address.entrance.framePill': 'Fit your entrance in the frame',
   'address.entrance.frameHint': 'Drag to look around until your gate or front door sits inside the frame.',
   'address.entrance.useView': 'Use this view',
@@ -78,4 +81,15 @@ const Map<String, String> kAddressTextDefaults = {
   'address.presence.step3.stage': 'Then',
   'address.presence.step3.title': 'Confirmed',
   'address.presence.step3.caption': 'You get a notification. That is it.',
+  // The success card once the "allow all the time" question was answered.
+  'address.presence.off.title': 'One more step to finish',
+  // The "allow all the time" screen (screens/background_ask_screen.dart).
+  'address.background.title': 'Confirm your address automatically',
+  'address.background.title.business': 'Confirm the premises automatically',
+  'address.background.description':
+      "Allow location all the time and your phone checks in on its own while you're at home.",
+  'address.background.description.business':
+      "Allow location all the time and your phone checks in on its own while you're at the premises.",
+  'address.background.allow': 'Continue with automatic checks',
+  'address.background.later': 'Not now',
 };

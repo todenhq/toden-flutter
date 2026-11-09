@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
 
 // A 400 invalid_media refusal names the capture it refused. The mapping kept
 // details only for 402/403/422, so Go back never reached the right step.

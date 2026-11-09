@@ -3,12 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/country_id_types.dart';
 import '../config/id_types.dart';
+import '../config/nin_slip.dart';
+import '../config/retired_id_types.dart';
 import '../config/theme.dart';
 import '../providers/verification_provider.dart';
 import '../providers/verification_state.dart';
 import '../providers/step_order.dart';
 import '../widgets/ui_pulse_loader.dart';
 import '../widgets/icons/icons.dart';
+import 'id_country_field.dart';
 
 // ─── ID type selection screen ─────────────────────────────────────────────────
 
@@ -51,8 +54,11 @@ class IdTypeScreen extends ConsumerWidget {
                 supportsNfc: row.supportsNfc,
               ),
         ],
-      ServerConfigStatus.error =>
-        curatedIdTypesForCountry(country).where((c) => allowed(c.key)).toList(),
+      // A retired type (BVN Premium, now BVN's premium option) is never
+      // offered, even from the local list used when the server config fails.
+      ServerConfigStatus.error => curatedIdTypesForCountry(country)
+          .where((c) => allowed(c.key) && !isRetiredIdType(country, c.key))
+          .toList(),
       ServerConfigStatus.loading => const <IdTypeConfig>[],
     };
 
@@ -61,9 +67,12 @@ class IdTypeScreen extends ConsumerWidget {
     // skipping its capture step: that produced a submission with no document
     // for an ID that needs one. "This ID cannot be verified in this flow" is a
     // fact about availability, not a step to skip. Mirrors the web SDK.
+    // A workflow from before NIN and its slip merged may list both: only the
+    // slip is offered then (config/nin_slip.dart).
+    final offered = withoutNinBesideSlip(country, available, (t) => t.key);
     final base = config.enableDocumentCapture
-        ? available
-        : available.where((t) => !t.requiresDocumentCapture).toList();
+        ? offered
+        : offered.where((t) => !t.requiresDocumentCapture).toList();
 
     // Multi-ID: this picker is for ONE check of several. It may only offer
     // picks that are still free AND leave every later check something to
@@ -74,39 +83,67 @@ class IdTypeScreen extends ConsumerWidget {
         ? base
         : base.where((t) => plan.safeOptions.contains(t.key)).toList();
 
+    // The combined layout picks the country here, above the IDs, rather than
+    // on a step of its own (config/id_selection_layout.dart).
+    final countryHere = countryOnIdTypeStep(config, state);
+    final countryField = countryHere
+        ? Padding(
+            padding: const EdgeInsets.only(bottom: UiSpacing.md),
+            child: IdCountryField(
+              options: [
+                for (final c in countrySelectOptions(config, state)) c.toUpperCase(),
+              ],
+            ),
+          )
+        : null;
+
     if (serverConfig.status == ServerConfigStatus.loading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: UiSpacing.xl),
-        child: Center(child: UiPulseLoader()),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (countryField != null) countryField,
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: UiSpacing.xl),
+            child: Center(child: UiPulseLoader()),
+          ),
+        ],
       );
     }
 
     if (serverConfig.status == ServerConfigStatus.ready && visible.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(UiSpacing.md),
-        child: Container(
-          padding: const EdgeInsets.all(UiSpacing.md),
-          decoration: BoxDecoration(
-            color: colors.errorBg,
-            borderRadius: BorderRadius.circular(UiRadius.md),
-            border: Border.all(color: UiColors.error.withValues(alpha: 0.3)),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (countryField != null) countryField,
+          Padding(
+            padding: const EdgeInsets.all(UiSpacing.md),
+            child: Container(
+              padding: const EdgeInsets.all(UiSpacing.md),
+              decoration: BoxDecoration(
+                color: colors.errorBg,
+                borderRadius: BorderRadius.circular(UiRadius.md),
+                border: Border.all(color: UiColors.error.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                'No ID types are enabled for your organization. Contact your administrator to request access.',
+                style: text.bodyMedium.copyWith(color: UiColors.error),
+              ),
+            ),
           ),
-          child: Text(
-            'No ID types are enabled for your organization. Contact your administrator to request access.',
-            style: text.bodyMedium.copyWith(color: UiColors.error),
-          ),
-        ),
+        ],
       );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (countryField != null) countryField,
         // ── ID type cards ────────────────────────────────────────────────────
         ...visible.map((idTypeConfig) {
           final isSelected = state.selectedIdType?.key == idTypeConfig.key;
           return Padding(
-            padding: const EdgeInsets.only(bottom: UiSpacing.sm),
+            // The web list's gap-3.
+            padding: const EdgeInsets.only(bottom: 12),
             child: _IdTypeCard(
               config: idTypeConfig,
               isSelected: isSelected,
@@ -130,6 +167,9 @@ class IdTypeScreen extends ConsumerWidget {
 
 // ─── Individual ID type card ──────────────────────────────────────────────────
 
+/// The ID glyph's size: drawn bare on the card, so larger than a tiled icon.
+const double kIdTypeIconSize = 40;
+
 class _IdTypeCard extends StatelessWidget {
   final IdTypeConfig config;
   final bool isSelected;
@@ -146,11 +186,12 @@ class _IdTypeCard extends StatelessWidget {
   static UiIconData _iconFor(String key) => switch (key) {
         'bvn' || 'bvn-premium' => UiIcons.landmark, // Bank Verification
         'tax-id' => UiIcons.receiptText, // Tax ID (NIN-keyed)
-        'nin' || 'vnin' => UiIcons.fingerprint,
+        'nin' || 'vnin' || 'nin-phone' => UiIcons.fingerprint,
+        'phone-number' => UiIcons.smartphone,
         'passport' => UiIcons.bookUser,
         'drivers-license' => UiIcons.idCard,
         'pvc' || 'voters' => UiIcons.contact, // Voter's Card
-        _ => UiIcons.idCard,
+        _ => UiIcons.fileText, // the web's FileText: the NIN slip and the rest
       };
 
   @override
@@ -164,11 +205,10 @@ class _IdTypeCard extends StatelessWidget {
       duration: const Duration(milliseconds: 150),
       decoration: BoxDecoration(
         color: isSelected ? colors.primary50 : colors.background,
-        borderRadius: BorderRadius.circular(UiRadius.md),
-        border: Border.all(
-          color: borderColor,
-          width: isSelected ? 1.5 : 1.0,
-        ),
+        // The web card: rounded-xl, p-4, a 1px border that turns primary
+        // when chosen.
+        borderRadius: BorderRadius.circular(UiRadius.sm),
+        border: Border.all(color: borderColor),
         boxShadow: [
           BoxShadow(
             color: colors.textDark.withValues(alpha: 0.05),
@@ -181,7 +221,7 @@ class _IdTypeCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(UiRadius.md),
+          borderRadius: BorderRadius.circular(UiRadius.sm),
           splashColor: colors.primary.withValues(alpha: 0.06),
           highlightColor: colors.primary.withValues(alpha: 0.04),
           child: Padding(
@@ -191,40 +231,28 @@ class _IdTypeCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // ── Icon container ───────────────────────────────────────────
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: isSelected ? colors.primary100 : colors.primary50,
-                    borderRadius: BorderRadius.circular(UiRadius.sm),
-                  ),
-                  child: UiIcon(
-                    _iconFor(config.key),
-                    size: 22,
-                    color: isSelected ? colors.primary : colors.textSecondary,
-                  ),
+                // ── Icon ─────────────────────────────────────────────────────
+                // The glyph alone, no tile behind it: the card is the frame.
+                // Larger than the web SDK's h-7 on a phone, by design.
+                UiIcon(
+                  _iconFor(config.key),
+                  size: kIdTypeIconSize,
+                  color: isSelected ? colors.primary : colors.textSecondary,
                 ),
-                const SizedBox(width: UiSpacing.md),
+                const SizedBox(width: 12),
 
                 // ── Label ────────────────────────────────────────────────────
+                // Tapping a row ADVANCES immediately (no Continue button), and
+                // like the web card it carries no chevron or radio beside it.
                 Expanded(
                   child: Text(
                     config.label,
-                    style: text.label.copyWith(fontWeight: FontWeight.w600),
+                    style: text.label.copyWith(
+                      fontSize: 18,
+                      height: 24 / 18,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-
-                const SizedBox(width: UiSpacing.md),
-
-                // ── Forward chevron ──────────────────────────────────────────
-                // Tapping a row ADVANCES immediately (no Continue button), so
-                // the affordance is a "go to next step" chevron — not a radio,
-                // which would imply a select-then-confirm the flow doesn't have.
-                UiIcon(
-                  UiIcons.chevronRight,
-                  size: 20,
-                  color: isSelected ? colors.primary : colors.gray400,
                 ),
               ],
             ),

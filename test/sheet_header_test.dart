@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/themed_sheet.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/icons/icons.dart';
+import 'package:toden_flutter/src/config/theme.dart';
+import 'package:toden_flutter/src/widgets/themed_sheet.dart';
+import 'package:toden_flutter/src/widgets/icons/icons.dart';
 import 'icon_finder.dart';
 
 // The sheet's close button, which is the half of this that can fail invisibly.

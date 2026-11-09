@@ -2,10 +2,10 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_pace_params.dart';
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_crypto.dart';
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_session.dart';
-import 'package:myaza_kyc_sdk_flutter/src/nfc/emrtd_tlv.dart';
+import 'package:toden_flutter/src/nfc/emrtd_pace_params.dart';
+import 'package:toden_flutter/src/nfc/emrtd_crypto.dart';
+import 'package:toden_flutter/src/nfc/emrtd_session.dart';
+import 'package:toden_flutter/src/nfc/emrtd_tlv.dart';
 
 import 'emrtd_pace_chip.dart';
 

@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config/scope.dart';
 import '../config/verification_config.dart';
 import '../providers/verification_provider.dart';
 import 'translate.dart';
@@ -52,6 +53,18 @@ extension VerificationTextContext on BuildContext {
           .read(verificationConfigProvider));
     } catch (_) {
       return defaultText;
+    }
+  }
+
+  /// Whether the flow is a SCOPED business workflow, whose screens name the
+  /// company (config/scope.dart isScopedBusiness). False outside a flow.
+  bool get scopedBusinessFlow {
+    try {
+      final config =
+          ProviderScope.containerOf(this, listen: false).read(verificationConfigProvider);
+      return isScopedBusiness(config.subjectType, config.scope);
+    } catch (_) {
+      return false;
     }
   }
 }

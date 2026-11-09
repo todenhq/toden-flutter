@@ -18,6 +18,17 @@ const Map<String, VerificationStep> _stepForCode = {
   'proof_of_address_required': VerificationStep.proofOfAddress,
   'address_collection_required': VerificationStep.addressCollection,
   'missing_address_fields': VerificationStep.addressCollection,
+  // A saved address the server could not take (spent or expired grant, or a
+  // presence verdict too old for this check): pick again, or enter one.
+  'address_book_reuse_invalid': VerificationStep.addressCollection,
+  'address_book_reuse_stale': VerificationStep.addressCollection,
+};
+
+/// Refusals of a picked saved address, which the flow recovers from in place by
+/// returning to the address book step rather than ending on an error.
+const Set<String> kAddressBookReuseRefusals = {
+  'address_book_reuse_invalid',
+  'address_book_reuse_stale',
 };
 
 /// A capture the server could not accept, by the key it names.

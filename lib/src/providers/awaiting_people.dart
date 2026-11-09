@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
+import '../config/ownership_pending.dart';
 import '../services/api_service.dart';
 
 // The SERVER's list of who a submitted KYB application is waiting on — the
@@ -16,7 +17,9 @@ import '../services/api_service.dart';
 // STATUS stays live: the people named go and verify after this screen is first
 // shown, so once settled the list re-reads slowly while anybody still owes a
 // check — and re-reads on foreground, which is exactly when a stale badge would
-// be noticed.
+// be noticed. Shareholders a slow register sends late
+// (`keyPeopleOwnershipPending`) join the list with their invite links, so the
+// re-reads go on while that is true and the screen says the links are coming.
 
 /// How often to re-ask while the server says it is still reconciling.
 const Duration _retryInterval = Duration(milliseconds: 1500);
@@ -48,6 +51,11 @@ class AwaitingPeopleController extends ChangeNotifier with WidgetsBindingObserve
 
   List<AwaitingPerson>? _people;
   List<AwaitingPerson>? get people => _people;
+
+  bool _ownershipPending = false;
+
+  /// Shareholders from the register are still on their way.
+  bool get ownershipPending => _ownershipPending;
 
   DateTime _startedAt = DateTime.now();
   Timer? _timer;
@@ -84,8 +92,14 @@ class AwaitingPeopleController extends ChangeNotifier with WidgetsBindingObserve
     if (summary != null && (summary.keyPeopleSettled || expired)) {
       _committed = true;
       _people = summary.keyPeople;
+      _ownershipPending = summary.keyPeopleOwnershipPending;
       notifyListeners();
-      if (summary.keyPeople.any((p) => p.stillOwes)) _schedule(_pollInterval);
+      // Still settling past the give-up (a slow document read adding
+      // people): keep reading so they appear, even if nobody else owes a check.
+      if (keepReadingSummary(summary.keyPeople, _ownershipPending) ||
+          !summary.keyPeopleSettled) {
+        _schedule(_pollInterval);
+      }
       return;
     }
     if (_committed) {

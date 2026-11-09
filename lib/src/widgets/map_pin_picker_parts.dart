@@ -39,6 +39,7 @@ class MapTileLayer extends StatelessWidget {
               height: kTileSize.toDouble(),
               child: Image.network(
                 tile.url,
+                headers: kTileHeaders,
                 gaplessPlayback: true,
                 errorBuilder: (_, __, ___) => const SizedBox.shrink(),
               ),

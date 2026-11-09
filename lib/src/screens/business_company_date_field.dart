@@ -35,6 +35,7 @@ class BusinessDateField extends StatelessWidget {
           initialDate: initial,
           firstDate: DateTime(1800),
           lastDate: now,
+          title: placeholder,
         );
         if (picked != null) {
           onChanged(picked.toIso8601String().split('T').first);

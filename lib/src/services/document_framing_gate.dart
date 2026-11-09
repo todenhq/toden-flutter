@@ -34,6 +34,9 @@ enum DocumentHint {
   /// Something is there but it isn't the expected document.
   wrongDocument,
 
+  /// Asked for the back, and the frame still reads like the front just taken.
+  showBack,
+
   /// Detected, but too small in frame.
   moveCloser,
 
@@ -49,6 +52,17 @@ enum DocumentHint {
   /// key and the proof the page is a passport), so saying "move closer" here —
   /// which is what a generic hint did — sends the user the wrong way.
   showMrz,
+
+  /// The document is not found by the corner detector, so its corners cannot
+  /// be checked (see document_corners.dart).
+  placeInFrame,
+
+  /// A corner is outside the visible frame or on its edge: the MRZ along a
+  /// passport's bottom edge is exactly what gets cut.
+  fitCorners,
+
+  /// Every corner is in view but one is too close to the edge.
+  spaceAround,
 
   /// Framed correctly, running out the stability dwell.
   holdStill,
@@ -83,15 +97,25 @@ enum DocumentFraming {
 }
 
 class DocumentFramingGate {
-  /// Expected width/height of the document (1.586 for ID cards, 1.42 for a
-  /// passport page).
-  final double expectedAspect;
+  /// Expected width/height of the document AS FRAMED (1.586 for ID cards, 1.42
+  /// for a passport page, 2.07 for a NIN slip, or 1 / 2.07 when the slip is
+  /// turned upright on a phone held upright: config/document_turn.dart).
+  /// Settable because whether the slip is turned is known only once the
+  /// viewfinder has been laid out. Compared as framed, not orientation-free,
+  /// so a card held sideways under a landscape guide still reads as the wrong
+  /// shape.
+  double expectedAspect;
 
   /// How far the detected aspect may stray, as a fraction of [expectedAspect].
   /// Generous enough for perspective, tight enough to reject a book or A4 page.
   final double aspectTolerance;
 
-  /// Minimum share of the frame the document must fill.
+  /// Minimum share of the frame the document must fill. 0.12, as the React
+  /// Native SDK: on the full-screen camera a document filling its guide covers
+  /// only about 0.18 (a card) to 0.28 (an upright NIN slip) of the frame, so
+  /// the old 0.22 held a card short of its guide and a slip held a little
+  /// inside its guide at "move closer". The corner gate and the text check
+  /// still have to agree.
   final double minArea;
 
   /// Maximum share — beyond this the document is overflowing and corners are
@@ -118,7 +142,7 @@ class DocumentFramingGate {
   DocumentFramingGate({
     required this.expectedAspect,
     this.aspectTolerance = 0.28,
-    this.minArea = 0.22,
+    this.minArea = 0.12,
     this.maxArea = 0.88,
     this.minEdgeMargin = 0.02,
     this.maxOffCentre = 0.14,
@@ -219,6 +243,12 @@ class DocumentFramingGate {
     return const DocumentGuidance(
         DocumentFraming.holding, DocumentHint.holdStill);
   }
+
+  /// Clears the fired latch but keeps the dwell. Call when a ready verdict was
+  /// NOT acted on (the camera still settling, the wrong document): left
+  /// latched, every later frame would report ready, framed or not, and the
+  /// next armed frame would shoot whatever was in view.
+  void release() => _fired = false;
 
   /// Clears the dwell and the fired latch — call when moving to the next side
   /// or after a retake.

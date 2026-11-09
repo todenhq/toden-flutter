@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/multi_id.dart';
+import 'package:toden_flutter/src/config/multi_id.dart';
 
 // These rules MIRROR the server's lib/multi-id.ts. The server validates the
 // pick sequence the client produced, so a client that computes options

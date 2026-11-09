@@ -1,4 +1,5 @@
 import '../services/api_service.dart' show AddressParts;
+import 'address_book.dart' show AddressBookSaveChoice, addressBookSaveBlock;
 import 'address_collection.dart' show AddressCollectionConfig;
 import 'address_field_modes.dart' show requiredPrefillSubmission;
 import 'address_state.dart';
@@ -28,8 +29,13 @@ import 'address_state.dart';
 /// and confirmed by continuing, and the server 422s a required field that
 /// never arrives). Session progress passes none and stays raw, so a resume
 /// never confuses a prefill with a claim.
+///
+/// [hasPhoto] says whether an entrance photo rides the submission, which the
+/// "save to my Toden address book" choice may share. Only the submission
+/// passes it: without it the `book` block is left out, so session progress
+/// stores the raw choice instead (see [addressProgressJson]).
 Map<String, dynamic> addressPayload(AddressState address,
-    {AddressCollectionConfig? config}) {
+    {AddressCollectionConfig? config, bool? hasPhoto}) {
   final hasDeviceFix = address.deviceLat != null && address.deviceLng != null;
   final label = address.label?.trim() ?? '';
   return {
@@ -63,8 +69,16 @@ Map<String, dynamic> addressPayload(AddressState address,
       'deviceLng': address.deviceLng,
       if (address.deviceAccuracy != null)
         'deviceAccuracy': address.deviceAccuracy,
+      if (address.deviceMocked != null) 'deviceMocked': address.deviceMocked,
       if (address.capturedAt != null) 'capturedAt': address.capturedAt,
     },
+    // "Save this address to my Toden address book" (unticked by default).
+    if (hasPhoto != null)
+      ...addressBookSaveBlock(
+        address.book,
+        hasPhoto: hasPhoto,
+        hasDirections: address.directions.trim().isNotEmpty,
+      ),
   };
 }
 
@@ -82,6 +96,7 @@ Map<String, dynamic> addressProgressJson(AddressState address) => {
           'lng': address.pickedAt!.lng,
         },
       if (address.labelKept) 'labelKept': true,
+      if (address.book != null) 'book': address.book!.toJson(),
     };
 
 double? _double(Object? value) => value is num ? value.toDouble() : null;
@@ -130,6 +145,7 @@ AddressState? addressFromProgressJson(Object? raw) {
     // the question has not been settled, and re-asking it is the safe side.
     labelKept: raw['labelKept'] == true,
     streetView: _streetViewFromJson(raw['streetView']),
+    book: AddressBookSaveChoice.fromJson(raw['book']),
   );
 }
 

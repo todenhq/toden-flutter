@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../config/signature.dart';
 import '../config/theme.dart';
 import 'dashed_border.dart';
+import 'icons/icons.dart';
 import 'signature_pad_parts.dart';
 
 // ─── A box to sign in with a finger ──────────────────────────────────────────
@@ -252,18 +253,24 @@ class _SignaturePadState extends State<SignaturePad> {
                         onTap: () => setState(() => _expanded = !_expanded),
                       ),
                     ),
+                    // Clear in the other top corner, once there is ink: on a
+                    // row of its own under the box it took a full button's
+                    // height from every signature card. Mirrors the web pad.
+                    if (!empty)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        child: SignaturePill(
+                          icon: UiIcons.refreshCcw,
+                          label: widget.clearLabel,
+                          semanticsLabel: widget.clearLabel,
+                          onTap: widget.enabled ? _clear : null,
+                        ),
+                      ),
                   ],
                 ),
               ),
             ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Align(
-          alignment: Alignment.centerRight,
-          child: SignatureTextAction(
-            label: widget.clearLabel,
-            onPressed: widget.enabled && !empty ? _clear : null,
           ),
         ),
       ],

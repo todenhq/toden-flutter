@@ -163,6 +163,10 @@ class DocumentTextGate {
     return null;
   }
 
+  /// Clears the fired latch but keeps the dwell, for a ready verdict the
+  /// screen did not act on (see DocumentFramingGate.release).
+  void release() => _fired = false;
+
   /// Clears the latch so the next side (or a retake) starts a fresh dwell.
   void reset() {
     _heldSince = null;

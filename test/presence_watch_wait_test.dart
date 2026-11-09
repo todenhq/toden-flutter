@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/presence/presence_watch_wait.dart';
+import 'package:toden_flutter/src/presence/presence_watch_wait.dart';
 
 // A submit-time report waits for its watch. The watch is minted seconds after
 // the submission is accepted and the ingest drops anything posted before it,

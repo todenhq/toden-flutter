@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../utils/resolve_url.dart';
 import 'background_presence.dart';
+import 'presence_report_proof.dart';
 import 'presence_store.dart';
 
 // ─── The Android FOREGROUND SERVICE tier — the OkHi reliability move ─────────
@@ -124,12 +125,15 @@ class PresenceService {
     try {
       final base = resolveBaseUrl(apiKey, devUrl: devUrl);
       final outcome = await _channel.invokeMethod<String>('enablePresenceService', {
+        if (pin.presenceToken != null) 'presenceToken': pin.presenceToken,
         'lat': pin.lat,
         'lng': pin.lng,
         'radius': kGeofenceRadiusMeters,
         'baseUrl': base,
         'apiKey': apiKey,
         'externalUserId': externalUserId,
+        'playIntegrityProject': pin.playIntegrityProject,
+        'emulator': await runningOnEmulator(),
         'notification': notification.toMap(),
       });
       switch (outcome) {

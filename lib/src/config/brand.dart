@@ -13,7 +13,7 @@ const String kProductUrl = 'https://toden.co';
 
 /// Package name — required by `Image.asset(..., package:)` so the wordmark
 /// resolves from THIS package's bundle rather than the host app's.
-const String kPackageName = 'myaza_kyc_sdk_flutter';
+const String kPackageName = 'toden_flutter';
 
 /// The Toden logo (the split-shield T beside "toden"). The ink flips with the
 /// surface and the shield's purple half steps lighter on dark, so there are two

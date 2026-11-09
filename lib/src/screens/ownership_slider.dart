@@ -88,15 +88,25 @@ class OwnershipSlider extends StatelessWidget {
         // Whole numbers WITHOUT the ruler: divisions is what draws 100 ticks.
         tickMarkShape: SliderTickMarkShape.noTickMark,
         showValueIndicator: ShowValueIndicator.never,
+        // The stock slider insets its track by the overlay radius each side,
+        // so it sat short of the field above it. No inset: the track runs the
+        // field's full width, as RN's does, and at 0 and 100 the thumb centres
+        // on the edge, over the form's own side padding.
+        padding: EdgeInsets.zero,
       ),
       child: Semantics(
         label: 'Ownership percentage',
         value: '${value.round()}%',
-        child: Slider(
-          value: value.clamp(0, 100),
-          max: 100,
-          divisions: 100,
-          onChanged: (next) => onChanged(next.roundToDouble()),
+        // RN's 32-high row around the 22 thumb. A fixed box, not vertical
+        // padding: with padding set the Slider grows to all the height given.
+        child: SizedBox(
+          height: 32,
+          child: Slider(
+            value: value.clamp(0, 100),
+            max: 100,
+            divisions: 100,
+            onChanged: (next) => onChanged(next.roundToDouble()),
+          ),
         ),
       ),
     );

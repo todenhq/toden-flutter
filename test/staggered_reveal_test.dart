@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/staggered_reveal.dart';
+import 'package:toden_flutter/src/widgets/staggered_reveal.dart';
 
 // Regression: the reveal gated its start on "the reduce-motion setting
 // CHANGED". Reduce-motion is off for almost everyone, so that guard was false

@@ -16,6 +16,9 @@ class ContactEntryPanel extends StatelessWidget {
   final TextEditingController emailController;
   final String defaultCountry;
   final String? geoCountry;
+
+  /// The dial-code countries the phone field offers (empty = every country).
+  final List<String> dialCountries;
   final bool enabled;
   final ValueChanged<String> onEmailChanged;
   final void Function(String e164, bool isValid) onPhoneChanged;
@@ -35,6 +38,7 @@ class ContactEntryPanel extends StatelessWidget {
     required this.pickedChannel,
     required this.onPickChannel,
     this.geoCountry,
+    this.dialCountries = const [],
   });
 
   @override
@@ -47,6 +51,7 @@ class ContactEntryPanel extends StatelessWidget {
           emailController: emailController,
           defaultCountry: defaultCountry,
           geoCountry: geoCountry,
+          dialCountries: dialCountries,
           enabled: enabled,
           onEmailChanged: onEmailChanged,
           onPhoneChanged: onPhoneChanged,

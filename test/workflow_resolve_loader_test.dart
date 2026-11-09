@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/theme.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/workflow_gate.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/ui_spinner.dart';
+import 'package:toden_flutter/toden_flutter.dart';
+import 'package:toden_flutter/src/config/theme.dart';
+import 'package:toden_flutter/src/widgets/workflow_gate.dart';
+import 'package:toden_flutter/src/widgets/ui_spinner.dart';
 
 // ─── The resolve loader wears the caller's brand ──────────────────────────────
 //

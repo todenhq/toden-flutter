@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/liveness_avatar_url.dart';
-import 'package:myaza_kyc_sdk_flutter/src/liveness/liveness_types.dart';
+import 'package:toden_flutter/src/config/liveness_avatar_url.dart';
+import 'package:toden_flutter/src/liveness/liveness_types.dart';
 
 // The gesture animations are FETCHED, not bundled — 5.7 MB of GIF used to ship
 // in every integrator's app for a badge the liveness step shows for seconds.
@@ -17,11 +17,11 @@ void main() {
   test('points at the served route, per gesture', () {
     expect(
       livenessAvatarUrl(LivenessChallenge.nod, live),
-      'https://trust.myaza.app/api/v1/assets/liveness/nod-transparent.webp',
+      'https://api.toden.co/api/v1/assets/liveness/nod-transparent.webp',
     );
     expect(
       livenessAvatarUrl(LivenessChallenge.smile, live),
-      'https://trust.myaza.app/api/v1/assets/liveness/smile-transparent.webp',
+      'https://api.toden.co/api/v1/assets/liveness/smile-transparent.webp',
     );
   });
 
@@ -44,7 +44,7 @@ void main() {
   test('precache covers all four, because the session picks at random', () {
     final urls = livenessAvatarUrls(live);
     expect(urls, hasLength(4));
-    expect(urls.every((u) => u.startsWith('https://trust.myaza.app/api/v1/')), isTrue);
+    expect(urls.every((u) => u.startsWith('https://api.toden.co/api/v1/')), isTrue);
   });
 
   test('the passive hold has no animation to fetch', () {

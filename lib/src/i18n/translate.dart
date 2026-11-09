@@ -1,4 +1,10 @@
+import 'business_variants.dart';
 import 'customisable_texts.dart';
+import 'defaults_address_book.dart';
+import 'defaults_business_documents.dart';
+import 'defaults_country_poa.dart';
+import 'defaults_presence_guidance.dart';
+import 'defaults_welcome_variants.dart';
 
 // ─── Custom texts ─────────────────────────────────────────────────────────────
 //
@@ -57,13 +63,27 @@ String resolveText(
   String? fallback,
 }) {
   final lang = language ?? kBaseTextLanguage;
-  String? pick(String l) =>
-      kCustomisableTextKeys.contains(key) ? _usable(texts?[l]?[key]) : null;
+  // A scoped business variant takes the org's words for the text it stands
+  // in for (i18n/business_variants.dart); otherwise only a customisable key
+  // reads them.
+  final base = businessVariantBase(key);
+  final source = kCustomisableTextKeys.contains(key)
+      ? key
+      : base != null && kCustomisableTextKeys.contains(base)
+          ? base
+          : null;
+  String? pick(String l) => source == null ? null : _usable(texts?[l]?[source]);
   final own = lang == kBaseTextLanguage ? null : pick(lang);
   final template = own ??
       _usable(legacy) ??
       pick(kBaseTextLanguage) ??
       kDefaultTexts[key] ??
+      kBusinessVariantTexts[key] ??
+      kAddressBookTexts[key] ??
+      kBusinessDocumentTexts[key] ??
+      kCountryPoaTexts[key] ??
+      kPresenceGuidanceTexts[key] ??
+      kWelcomeVariantTexts[key] ??
       fallback ??
       key;
   return fillPlaceholders(template, vars ?? const {})

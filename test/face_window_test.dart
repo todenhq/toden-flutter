@@ -1,8 +1,8 @@
 import 'dart:ui' show Size;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/liveness/face_window.dart';
-import 'package:myaza_kyc_sdk_flutter/src/screens/liveness_cutout.dart';
+import 'package:toden_flutter/src/liveness/face_window.dart';
+import 'package:toden_flutter/src/screens/liveness_cutout.dart';
 
 void main() {
   // An iPhone 16 Pro Max showing a 9:16 frame cover-fit, with the full-screen

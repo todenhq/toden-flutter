@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/upload_limits.dart';
+import 'package:toden_flutter/src/config/upload_limits.dart';
 
 // ─── The shared vectors (test/upload_limits_vectors.json) ─────────────────────
 //
@@ -30,13 +30,15 @@ void main() {
   }
 
   test('the drop zones read the hint from the one constant', () {
+    // The proof of address's tiles say "PDF or image" and no size, as the web
+    // SDK's do; none may hard-code the old limit.
     for (final rel in [
       'lib/src/screens/proof_of_address_parts.dart',
       'lib/src/screens/business_document_slot.dart',
     ]) {
-      final src = File(rel).readAsStringSync();
-      expect(src, contains('kUploadHint'));
-      expect(src, isNot(contains('up to 20MB')));
+      expect(File(rel).readAsStringSync(), isNot(contains('up to 20MB')));
     }
+    expect(File('lib/src/screens/business_document_slot.dart').readAsStringSync(),
+        contains('kUploadHint'));
   });
 }

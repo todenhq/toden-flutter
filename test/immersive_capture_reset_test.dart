@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:myaza_kyc_sdk_flutter/myaza_kyc_sdk_flutter.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/verification_provider.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/verification_flow_scope.dart';
+import 'package:toden_flutter/toden_flutter.dart';
+import 'package:toden_flutter/src/providers/verification_provider.dart';
+import 'package:toden_flutter/src/widgets/verification_flow_scope.dart';
 
 // ─── Leaving document capture hands the chrome back ──────────────────────────
 //

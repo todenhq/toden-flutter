@@ -100,7 +100,7 @@ class _SupportingDocumentCardState extends State<SupportingDocumentCard> {
     final capture = widget.capture;
     final done = fileName != null && !uploading;
     final both = capture == SupportingDocumentCapture.drawOrUpload;
-    final signing = capture != SupportingDocumentCapture.upload &&
+    final signing = (capture == SupportingDocumentCapture.draw || both) &&
         !_uploadInstead &&
         fileName == null &&
         widget.onSign != null;

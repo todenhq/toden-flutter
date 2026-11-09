@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/verification_config.dart';
+import 'package:toden_flutter/src/config/verification_config.dart';
 
 /// A brand import produces TWO palettes: the light one lands on the appearance
 /// and the dark one in `appearance.dark`.

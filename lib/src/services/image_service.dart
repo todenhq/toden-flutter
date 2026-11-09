@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 
 import '../config/capture_config.dart';
+import '../liveness/selfie_pick.dart' show SelfieFace, selfieFrame, selfieOutputSize;
 
 // ─── Isolate param/result types ───────────────────────────────────────────────
 // compute() requires top-level functions, so we pass everything as plain maps.
@@ -189,14 +190,35 @@ Future<String> cropToBase64(
 
 class _SelfieParams {
   final Uint8List bytes;
-  const _SelfieParams(this.bytes);
+
+  /// Where the face is in the still, to cut it to the standard selfie frame
+  /// (liveness/selfie_pick.dart). Null leaves the still uncut.
+  final SelfieFace? cut;
+  const _SelfieParams(this.bytes, [this.cut]);
+}
+
+/// The liveness selfie cut to the standard frame: 3:4, the face 42% of the
+/// width, at most 720 wide, never enlarged (liveness/selfie_pick.dart).
+img.Image _cutSelfie(img.Image im, SelfieFace? face) {
+  if (face == null) return im;
+  final rect = selfieFrame(face, im.width, im.height, allowSmall: true);
+  if (rect == null) return im;
+  final cropped = img.copyCrop(im, x: rect.x, y: rect.y, width: rect.width, height: rect.height);
+  final size = selfieOutputSize(rect);
+  if (size.width >= cropped.width) return cropped;
+  return img.copyResize(
+    cropped,
+    width: size.width,
+    height: size.height,
+    interpolation: img.Interpolation.average,
+  );
 }
 
 Uint8List _selfieWorker(_SelfieParams p) {
   var im = img.decodeImage(p.bytes);
   if (im == null) return p.bytes;
   im = img.bakeOrientation(im);
-  return _enhanceAndEncodeSelfie(im);
+  return _enhanceAndEncodeSelfie(_cutSelfie(im, p.cut));
 }
 
 // ── Stream-frame selfie path (no takePicture mode-switch) ────────────────────
@@ -212,6 +234,7 @@ class _SelfieFrameParams {
   final int bytesPerRow;   // row stride of the source plane
   final bool bgra;         // true = iOS BGRA8888; false = treat as already-RGB(A)
   final bool mirror;       // front camera → mirror horizontally
+  final SelfieFace? cut;   // the face in the (mirrored) frame; null = uncut
   const _SelfieFrameParams({
     required this.bytes,
     required this.width,
@@ -219,6 +242,7 @@ class _SelfieFrameParams {
     required this.bytesPerRow,
     required this.bgra,
     required this.mirror,
+    this.cut,
   });
 }
 
@@ -241,7 +265,7 @@ Uint8List _selfieFrameWorker(_SelfieFrameParams p) {
   // Stream frames are already at preview exposure — run the LEAN encode (resize +
   // encode only). The heavy dark-face lift is tuned for stills and blows preview
   // frames out, so it is skipped here.
-  return _resizeAndEncodeSelfie(im);
+  return _resizeAndEncodeSelfie(_cutSelfie(im, p.cut));
 }
 
 /// Encodes a selfie [from a stream frame]: BGRA bytes → enhanced JPEG. Runs in an
@@ -253,6 +277,7 @@ Future<Uint8List?> processSelfieFrame({
   required int bytesPerRow,
   required bool bgra,
   required bool mirror,
+  SelfieFace? cut,
 }) async {
   try {
     return await compute(
@@ -264,6 +289,7 @@ Future<Uint8List?> processSelfieFrame({
         bytesPerRow: bytesPerRow,
         bgra: bgra,
         mirror: mirror,
+        cut: cut,
       ),
     );
   } catch (_) {
@@ -362,8 +388,8 @@ Uint8List _enhanceAndEncodeSelfie(img.Image input) {
 
 /// Bakes orientation, lifts a backlit/underexposed face, and encodes a sharp
 /// JPEG for the selfie. Runs in an isolate via [compute].
-Future<Uint8List> processSelfieImage(Uint8List bytes) =>
-    compute(_selfieWorker, _SelfieParams(bytes));
+Future<Uint8List> processSelfieImage(Uint8List bytes, {SelfieFace? cut}) =>
+    compute(_selfieWorker, _SelfieParams(bytes, cut));
 
 // Android's liveness still is the latest ANALYSIS frame, JPEG-encoded natively
 // (LivenessRecorder.captureStillJpeg), so it already carries the exposure the
@@ -374,15 +400,15 @@ Future<Uint8List> processSelfieImage(Uint8List bytes) =>
 Uint8List _selfieStreamStillWorker(_SelfieParams p) {
   final im = img.decodeImage(p.bytes);
   if (im == null) return p.bytes;
-  return _resizeAndEncodeSelfie(img.bakeOrientation(im));
+  return _resizeAndEncodeSelfie(_cutSelfie(img.bakeOrientation(im), p.cut));
 }
 
 /// Encodes a selfie that is already a JPEG of a camera-stream frame (Android's
 /// native liveness still): bakes orientation and size-bounds it, WITHOUT the
 /// exposure lift [processSelfieImage] applies to `takePicture` stills. Runs in
 /// an isolate via [compute].
-Future<Uint8List> processSelfieStreamStill(Uint8List bytes) =>
-    compute(_selfieStreamStillWorker, _SelfieParams(bytes));
+Future<Uint8List> processSelfieStreamStill(Uint8List bytes, {SelfieFace? cut}) =>
+    compute(_selfieStreamStillWorker, _SelfieParams(bytes, cut));
 
 // ─── Card-region crop ─────────────────────────────────────────────────────────
 
@@ -391,6 +417,7 @@ class _CropCardParams {
   final double viewW;
   final double viewH;
   final double aspect;
+  final DocumentGuideBand? band;
   final int maxBytes;
 
   const _CropCardParams({
@@ -398,6 +425,7 @@ class _CropCardParams {
     required this.viewW,
     required this.viewH,
     this.aspect = 1.586,
+    this.band,
     this.maxBytes = 1024 * 1024,
   });
 }
@@ -436,7 +464,8 @@ Uint8List _cropCardWorker(_CropCardParams p) {
   // Guide rect in viewfinder logical pixels — from the SAME function the
   // on-screen overlay paints, so the crop can never take a different rectangle
   // than the one the user framed against.
-  final guide = documentGuideRect(ui.Size(p.viewW, p.viewH), p.aspect);
+  final guide =
+      documentGuideRect(ui.Size(p.viewW, p.viewH), p.aspect, band: p.band);
   final cardW = guide.width;
   final cardH = guide.height;
   final left = guide.left;
@@ -470,6 +499,7 @@ Future<String> cropCardRegion(
   required double viewW,
   required double viewH,
   double aspect = 1.586,
+  DocumentGuideBand? band,
   int maxBytes = 1024 * 1024,
 }) async {
   final compressed = await cropCardRegionBytes(
@@ -477,6 +507,7 @@ Future<String> cropCardRegion(
     viewW: viewW,
     viewH: viewH,
     aspect: aspect,
+    band: band,
     maxBytes: maxBytes,
   );
   return base64Encode(compressed);
@@ -485,11 +516,16 @@ Future<String> cropCardRegion(
 /// Same as [cropCardRegion] but returns the raw compressed JPEG bytes
 /// instead of base64. Use this when uploading via multipart so the bytes
 /// don't have to be base64-decoded again on the way out.
+///
+/// [aspect] and [band] must be the ones the viewfinder drew the guide with
+/// (an upright guide for a turned NIN slip uses the band), so the crop is the
+/// rectangle the user framed against.
 Future<Uint8List> cropCardRegionBytes(
   Uint8List bytes, {
   required double viewW,
   required double viewH,
   double aspect = 1.586,
+  DocumentGuideBand? band,
   int maxBytes = 1024 * 1024,
 }) {
   return compute(
@@ -499,9 +535,36 @@ Future<Uint8List> cropCardRegionBytes(
       viewW: viewW,
       viewH: viewH,
       aspect: aspect,
+      band: band,
       maxBytes: maxBytes,
     ),
   );
+}
+
+// ─── Turning a capture back ───────────────────────────────────────────────────
+
+class _RotateParams {
+  final Uint8List bytes;
+  final int degrees;
+  const _RotateParams(this.bytes, this.degrees);
+}
+
+Uint8List _rotateWorker(_RotateParams p) {
+  final decoded = img.decodeImage(p.bytes);
+  if (decoded == null) throw Exception('Could not decode image');
+  final rotated = img.copyRotate(img.bakeOrientation(decoded), angle: p.degrees);
+  return Uint8List.fromList(img.encodeJpg(rotated, quality: 95));
+}
+
+/// Turns a captured photo [degrees] clockwise (a multiple of 90). A NIN slip is
+/// framed upright on a phone held upright (config/document_turn.dart), so its
+/// crop comes out portrait; this puts it back to landscape before it is stored,
+/// so the review, the upload and the server all see an ordinary slip. Zero
+/// returns [bytes] untouched. Runs in an isolate via [compute].
+Future<Uint8List> rotateJpegClockwise(Uint8List bytes, int degrees) {
+  final turn = ((degrees % 360) + 360) % 360;
+  if (turn == 0) return Future.value(bytes);
+  return compute(_rotateWorker, _RotateParams(bytes, turn));
 }
 
 /// Returns the size in bytes of a base64-encoded image (no data-URI prefix).

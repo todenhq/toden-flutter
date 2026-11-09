@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/verification_bottom_sheet.dart';
+import 'package:toden_flutter/src/widgets/verification_bottom_sheet.dart';
 
 /// iOS's numeric keypad has no done/return key, so a money field could summon
 /// a keyboard the user had no way to put away. The sheet now unfocuses on a

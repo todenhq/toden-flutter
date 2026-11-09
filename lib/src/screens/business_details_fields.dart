@@ -3,16 +3,14 @@ import 'package:flutter/material.dart';
 import '../config/business.dart';
 import '../config/registration_hint.dart';
 import '../config/theme.dart';
-import '../widgets/ui_input.dart';
 import 'business_company_info_fields.dart';
 import 'business_details_parts.dart';
-import '../i18n/text_scope.dart';
+import 'business_number_fields.dart';
 
 // ─── The DETAILS screen of the business step ──────────────────────────────────
 //
-// Confirming what the register said. Registration number and name are editable
-// here too — this is also where manual entry lands, for the companies no
-// search index carries. Split from business_details_screen.dart (200-line
+// Confirming what the register said. Registration number and name stay
+// editable: this is where its answer is confirmed or corrected. Split from business_details_screen.dart (200-line
 // rule); field order mirrors the web and RN SDKs.
 
 class BusinessDetailsFields extends StatelessWidget {
@@ -60,37 +58,16 @@ class BusinessDetailsFields extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Live like the web SDK: a wrong CAC prefix is corrected on the spot,
-        // not discovered on Continue. The registry tip fills the same slot
-        // until there is an error to show.
-        UiInput(
-          label: productDef.input == BusinessProductInput.tin
-              ? productDef.inputLabel
-              : context.verificationText('business.details.registrationNumberLabel'),
-          controller: regCtrl,
-          hint: regHint.placeholder,
-          textCapitalization: TextCapitalization.characters,
-          autocorrect: false,
-          errorText: regCtrl.text.trim().isNotEmpty && !numberValid
-              ? (!formatOk && regHint.formatError != null
-                  ? regHint.formatError
-                  : 'Enter a valid ${productDef.inputLabel.toLowerCase()}.')
-              : null,
-          helperText: regHint.tip,
-          onChanged: (v) => onChanged('registrationNumber', v),
-        ),
-        const SizedBox(height: UiSpacing.md),
-
-        BusinessFieldLabel(
-          label: context.verificationText('business.details.nameLabel'),
-          required: requireName,
-        ),
-        const SizedBox(height: UiSpacing.xs),
-        UiInput(
-          controller: nameCtrl,
-          hint: 'Enter the registered business name',
-          autocorrect: false,
-          onChanged: (v) => onChanged('registrationName', v),
+        BusinessNumberFields(
+          productDef: productDef,
+          regHint: regHint,
+          numberValid: numberValid,
+          formatOk: formatOk,
+          showName: true,
+          requireName: requireName,
+          regCtrl: regCtrl,
+          nameCtrl: nameCtrl,
+          onChanged: onChanged,
         ),
 
         if (showCompanyInfo) ...[

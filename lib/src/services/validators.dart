@@ -41,6 +41,32 @@ ValidationResult validateVnin(String value) {
   return const ValidationResult.ok();
 }
 
+/// A Nigerian mobile number, typed as 0803…, +234 803… or 803…, in the 11-digit
+/// local form the server sends (kyc-core lib/id-number-format/rules.ts). This
+/// accepts exactly what that rule accepts.
+String normaliseNgPhone(String value) {
+  final digits = value.replaceAll(RegExp(r'\D'), '');
+  if (RegExp(r'^234[789]\d{9}$').hasMatch(digits)) {
+    return '0${digits.substring(3)}';
+  }
+  if (RegExp(r'^[789]\d{9}$').hasMatch(digits)) return '0$digits';
+  return digits;
+}
+
+/// Both phone-keyed lookups take the same number.
+ValidationResult validateNgPhone(String value) {
+  final v = value.trim();
+  if (v.isEmpty) return const ValidationResult.fail('Phone number is required');
+  if (RegExp(r'[A-Za-z]').hasMatch(v)) {
+    return const ValidationResult.fail('Phone number must contain only digits');
+  }
+  if (!RegExp(r'^0[789]\d{9}$').hasMatch(normaliseNgPhone(v))) {
+    return const ValidationResult.fail(
+        'Enter a Nigerian mobile number, for example 08031234567');
+  }
+  return const ValidationResult.ok();
+}
+
 /// Nigerian International Passport — letter followed by 8 digits (e.g. A12345678).
 ValidationResult validateNgPassport(String value) {
   final v = value.trim().toUpperCase();
@@ -227,6 +253,8 @@ ValidationResult validateIdNumber(
     ('NG', 'tax-id')          => validateNin(value),
     ('NG', 'nin')             => validateNin(value),
     ('NG', 'vnin')            => validateVnin(value),
+    ('NG', 'phone-number')    => validateNgPhone(value),
+    ('NG', 'nin-phone')       => validateNgPhone(value),
     ('NG', 'passport')        => validateNgPassport(value),
     ('NG', 'drivers-license') => validateNgDriversLicense(value),
     ('NG', 'pvc')             => validateNgPvc(value),

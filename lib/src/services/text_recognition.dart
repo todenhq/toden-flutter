@@ -53,13 +53,7 @@ class TextRecognitionService {
 
     _busy = true;
     try {
-      final planes = image.planes
-          .map((p) => <String, dynamic>{
-                'bytes': p.bytes,
-                'bytesPerRow': p.bytesPerRow,
-                'bytesPerPixel': p.bytesPerPixel,
-              })
-          .toList(growable: false);
+      final planes = _planes(image);
 
       final result =
           await _channel.invokeMapMethod<String, dynamic>('recognize', {
@@ -82,4 +76,54 @@ class TextRecognitionService {
       _busy = false;
     }
   }
+
+  /// Recognises the frame with [quarterTurns] EXTRA clockwise quarter turns
+  /// (1 or 3) on top of the usual upright correction, for a long document
+  /// framed upright on a phone held upright (a NIN slip, see
+  /// config/document_turn.dart). Read upright, its text runs sideways and
+  /// comes back as nonsense, and identity needs the slip's words.
+  ///
+  /// Returns null when this build's native side has no turned read (an app
+  /// still running an older native build): the caller falls back to
+  /// [recognize], so every other document keeps its auto-capture. An empty
+  /// list means the read ran and found nothing.
+  Future<List<String>?> recognizeTurned(
+    CameraImage image, {
+    required int sensorOrientation,
+    required int quarterTurns,
+  }) async {
+    if (!Platform.isIOS && !Platform.isAndroid) return null;
+    if (image.planes.isEmpty || _busy) return const [];
+
+    _busy = true;
+    try {
+      final result =
+          await _channel.invokeMapMethod<String, dynamic>('recognizeTurned', {
+        'width': image.width,
+        'height': image.height,
+        'sensorOrientation': sensorOrientation,
+        'quarterTurns': quarterTurns,
+        'planes': _planes(image),
+      });
+      final lines = result?['lines'];
+      if (lines is List) {
+        return lines.whereType<String>().toList(growable: false);
+      }
+      return const [];
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
+    } finally {
+      _busy = false;
+    }
+  }
+
+  static List<Map<String, dynamic>> _planes(CameraImage image) => image.planes
+      .map((p) => <String, dynamic>{
+            'bytes': p.bytes,
+            'bytesPerRow': p.bytesPerRow,
+            'bytesPerPixel': p.bytesPerPixel,
+          })
+      .toList(growable: false);
 }

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/selfie_upload_wait.dart';
+import 'package:toden_flutter/src/config/selfie_upload_wait.dart';
 
 // A tiny store: a snapshot the test mutates, and listeners it notifies.
 class _FakeStore {

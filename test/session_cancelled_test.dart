@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/result_copy.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/result_wait.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/session_cancelled.dart';
-import 'package:myaza_kyc_sdk_flutter/src/config/submit_recovery.dart';
-import 'package:myaza_kyc_sdk_flutter/src/providers/verification_state.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/api_service.dart';
-import 'package:myaza_kyc_sdk_flutter/src/services/verification_error_mapper.dart';
+import 'package:toden_flutter/src/config/result_copy.dart';
+import 'package:toden_flutter/src/config/result_wait.dart';
+import 'package:toden_flutter/src/config/session_cancelled.dart';
+import 'package:toden_flutter/src/config/submit_recovery.dart';
+import 'package:toden_flutter/src/providers/verification_state.dart';
+import 'package:toden_flutter/src/services/api_service.dart';
+import 'package:toden_flutter/src/services/verification_error_mapper.dart';
 
 // An organisation can cancel a verification session midway. The server then
 // answers 409 { error: 'session_cancelled', message } from /session/start,

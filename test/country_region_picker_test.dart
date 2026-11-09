@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/country_option_tile.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/country_region_picker.dart';
-import 'package:myaza_kyc_sdk_flutter/src/widgets/geo_badge.dart';
+import 'package:toden_flutter/src/widgets/country_option_tile.dart';
+import 'package:toden_flutter/src/widgets/country_region_picker.dart';
+import 'package:toden_flutter/src/widgets/geo_badge.dart';
 
 // ─── The picker pins the visitor's country ───────────────────────────────────
 //

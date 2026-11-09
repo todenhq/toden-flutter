@@ -6,6 +6,7 @@ import 'background_presence.dart';
 import 'presence_auto_arm.dart';
 import 'presence_math.dart';
 import 'presence_stand_down.dart';
+import 'presence_report_proof.dart';
 import 'presence_store.dart';
 import 'presence_watch_wait.dart';
 
@@ -225,18 +226,28 @@ class AddressPresence {
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
       ));
+      final observations = [
+        ReportObservation(
+          day: local.day,
+          source: 'foreground',
+          dwellMinutes: 0,
+          nightPresent: local.nightPresent,
+          samples: 1,
+          mockLocation: fix.isMocked,
+          emulator: await runningOnEmulator(),
+        ),
+      ];
+      final proof = await reportProof(
+        dio: dio,
+        externalUserId: externalUserId,
+        observations: observations,
+        playIntegrityProject: pin.playIntegrityProject,
+      );
       await dio.post<Map<String, dynamic>>('/api/v1/address/observations', data: {
         'externalUserId': externalUserId,
-        'observations': [
-          {
-            'day': local.day,
-            'source': 'foreground',
-            'dwellMinutes': 0,
-            'nightPresent': local.nightPresent,
-            'samples': 1,
-            if (fix.isMocked) 'integrity': {'mockLocation': true},
-          },
-        ],
+        if (pin.presenceToken != null) 'presenceToken': pin.presenceToken,
+        'observations': observations.map((o) => o.toJson()).toList(),
+        ...proof,
       });
       return PresenceReportResult(true, inside, PresenceReportReason.reported);
     } catch (_) {
