@@ -173,13 +173,32 @@ public class DocumentDetector: NSObject, FlutterPlugin {
   /// largest, so the gate still says a corner is cut off. Mirrors the React
   /// Native SDK's HybridMyazaRectDetector.
   private static func best(_ all: [VNRectangleObservation]) -> VNRectangleObservation? {
-    let area = { (o: VNRectangleObservation) in o.boundingBox.width * o.boundingBox.height }
-    let inside = all.filter { o in
-      [o.topLeft, o.topRight, o.bottomRight, o.bottomLeft].allSatisfy { p in
-        p.x > 0.01 && p.x < 0.99 && p.y > 0.01 && p.y < 0.99
-      }
+    // Written out with explicit types: as one nested closure chain, Xcode's
+    // type checker gave up on it ("unable to type-check this expression in
+    // reasonable time") in integrators' builds.
+    let inside: [VNRectangleObservation] = all.filter { (o: VNRectangleObservation) -> Bool in
+      Self.isInsideFrame(o)
     }
-    return (inside.isEmpty ? all : inside).max(by: { area($0) < area($1) })
+    let pool: [VNRectangleObservation] = inside.isEmpty ? all : inside
+    return pool.max { (a: VNRectangleObservation, b: VNRectangleObservation) -> Bool in
+      Self.area(a) < Self.area(b)
+    }
+  }
+
+  private static func area(_ o: VNRectangleObservation) -> CGFloat {
+    let size: CGSize = o.boundingBox.size
+    return size.width * size.height
+  }
+
+  private static func isInsideFrame(_ o: VNRectangleObservation) -> Bool {
+    let corners: [CGPoint] = [o.topLeft, o.topRight, o.bottomRight, o.bottomLeft]
+    let low: CGFloat = 0.01
+    let high: CGFloat = 0.99
+    for p in corners {
+      if p.x <= low || p.x >= high { return false }
+      if p.y <= low || p.y >= high { return false }
+    }
+    return true
   }
 
   /// Mean luma over a coarse grid of the BGRA frame, 0..1. Sampled rather than
