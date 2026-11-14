@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
 import '../services/nfc_reader.dart';
+import '../i18n/text_scope.dart';
 import 'icons/icons.dart';
 import 'ui_spinner.dart';
 
@@ -55,8 +56,9 @@ class NfcReadProgress extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
+              // The catalogue text, so an org's wording reaches this line.
               Text(
-                NfcReadStage.waiting.label,
+                context.verificationText('nfc.waiting'),
                 style: text.bodySmall.copyWith(
                   color: colors.primary,
                   fontWeight: FontWeight.w600,
@@ -85,14 +87,13 @@ class _StepRow extends StatelessWidget {
     // `done` completes every step: the photo group is skipped when the security
     // object didn't come back, and a step left spinning after a successful read
     // would read as a failure.
-    final complete =
-        current == NfcReadStage.done || current.index > step.index;
+    final complete = current == NfcReadStage.done || current.index > step.index;
     final active = current == step;
 
     final Widget leading;
     if (complete) {
-      leading = const UiIcon(UiIcons.circleCheck,
-          size: 16, color: UiColors.success);
+      leading =
+          const UiIcon(UiIcons.circleCheck, size: 16, color: UiColors.success);
     } else if (active) {
       leading = SizedBox(
         width: 14,

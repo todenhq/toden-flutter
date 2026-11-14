@@ -30,6 +30,9 @@ class ContactChannelSettings {
   final bool isPhone;
   final int codeLength;
   final OtpInputStyle inputStyle;
+
+  /// Letters as well as digits in the code (config `alphanumericCode`).
+  final bool alphanumeric;
   final bool required;
 
   /// Phone only — the delivery channels on offer. Empty for email. When it
@@ -51,6 +54,7 @@ class ContactChannelSettings {
     required this.isPhone,
     required this.codeLength,
     required this.inputStyle,
+    this.alphanumeric = false,
     required this.required,
     required this.offeredChannels,
     required this.maxAttempts,
@@ -94,6 +98,9 @@ class ContactChannelSettings {
       inputStyle: isPhone
           ? (phone?.inputStyle ?? OtpInputStyle.segmented)
           : (email?.inputStyle ?? OtpInputStyle.segmented),
+      alphanumeric: isPhone
+          ? (phone?.alphanumericCode ?? false)
+          : (email?.alphanumericCode ?? false),
       required: isPhone ? (phone?.required ?? true) : (email?.required ?? true),
       offeredChannels:
           isPhone ? (phone?.offeredChannels ?? const ['sms']) : const [],

@@ -8,6 +8,12 @@ void main() {
     expect(errorDetailsFrom(400, {'error': 'invalid_media', 'mediaKey': 'selfie'}), {'mediaKey': 'selfie'});
   });
 
+  test('a refused personal email keeps the reason it gives', () {
+    expect(
+        errorDetailsFrom(400, {'error': 'invalid_destination', 'reason': 'corporate_email_required'}),
+        {'reason': 'corporate_email_required'});
+  });
+
   test('the other refusals keep what they carried before', () {
     expect(errorDetailsFrom(402, {'required': 1, 'balance': 0, 'currency': 'USD'}),
         {'required': 1, 'balance': 0, 'currency': 'USD'});

@@ -175,8 +175,13 @@ StepMeta _contactMeta(VerificationStep step, StepMeta meta, VerificationConfig c
             ? config.phoneVerification?.codeLength
             : config.emailVerification?.codeLength) ??
         6;
+    final alphanumeric = (isPhone
+            ? config.phoneVerification?.alphanumericCode
+            : config.emailVerification?.alphanumericCode) ??
+        false;
+    final unit = alphanumeric ? 'character' : 'digit';
     return StepMeta(meta.title,
-        'Enter the $length-digit code we sent to ${state.contactDestination}$by.');
+        'Enter the $length-$unit code we sent to ${state.contactDestination}$by.');
   }
   if (isPhone) {
     return StepMeta(meta.title,

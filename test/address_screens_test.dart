@@ -26,12 +26,12 @@ void main() {
     testWidgets('shows where it will take them once a fix lands',
         (tester) async {
       await tester.pumpWidget(_host(CurrentLocationRow(
-        hint: '11 Bassey Street, Calabar',
+        hint: '11 Adebayo Street, Calabar',
         locating: false,
         onTap: () {},
       )));
       expect(find.text('Use my current location'), findsOneWidget);
-      expect(find.text('11 Bassey Street, Calabar'), findsOneWidget);
+      expect(find.text('11 Adebayo Street, Calabar'), findsOneWidget);
     });
 
     testWidgets('says it is looking, then what it offers', (tester) async {

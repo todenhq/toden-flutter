@@ -50,6 +50,8 @@ const Set<String> _notRecoverable = {
   'rate_limited',
   // Nothing anybody entered can undo a cancellation; only an admin can.
   'session_cancelled',
+  // Nor a decline (config/session_declined.dart).
+  'session_declined',
 };
 
 /// Where Go back should land for a refusal, or null when going back cannot

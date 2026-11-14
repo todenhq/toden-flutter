@@ -40,6 +40,18 @@ class _ContactVerificationScreenState
   bool _checking = false;
   String? _error;
 
+  /// The current code is used up (services/contact_errors.dart isCodeUsedUp):
+  /// the field is read-only and the primary action sends a new code. Cleared
+  /// only by a code sent successfully.
+  bool _codeUsedUp = false;
+
+  /// Codes sent so far; each one remounts the code field empty.
+  int _sends = 0;
+
+  /// Wrong codes entered; each one also remounts the field empty, so the
+  /// applicant types the next try into a clean field.
+  int _wrongEntries = 0;
+
   /// User-picked delivery channel; null leaves the workflow's first offered
   /// channel as the default.
   String? _via;
@@ -116,12 +128,18 @@ class _ContactVerificationScreenState
         _challengeId = res.challengeId;
         _expiresAt = DateTime.tryParse(res.expiresAt ?? '');
         _code = '';
+        _codeUsedUp = false;
+        _sends++;
         _sending = false;
       });
     } catch (e) {
       // Catch everything: a non-API failure (socket/TLS/parse) must still clear
       // the spinner, otherwise the button stays stuck mid-send with no message.
       if (!mounted) return;
+      if (_endsSession(e)) {
+        setState(() => _sending = false);
+        return;
+      }
       setState(() {
         _sending = false;
         _error = describeSendError(e);
@@ -131,14 +149,23 @@ class _ContactVerificationScreenState
 
   Future<void> _check(String code) async {
     final value = code.trim();
-    if (_challengeId == null || _busy || value.length < kMinCodeLength) return;
+    if (_challengeId == null ||
+        _busy ||
+        _codeUsedUp ||
+        value.length < kMinCodeLength) {
+      return;
+    }
     setState(() {
       _checking = true;
       _error = null;
     });
     try {
-      final res =
-          await _api.contactCheck(challengeId: _challengeId!, code: value);
+      final res = await _api.contactCheck(
+        challengeId: _challengeId!,
+        code: value,
+        sessionId: ref.read(kYCNotifierProvider).sessionId,
+        country: ref.read(kYCNotifierProvider).selectedCountry,
+      );
       if (!mounted) return;
       if (res.verified && res.token.isNotEmpty) {
         // Clear before advancing — a stuck `true` reads as an endless spinner.
@@ -151,16 +178,35 @@ class _ContactVerificationScreenState
         setState(() {
           _checking = false;
           _error = 'That code is not correct. Please try again.';
+          _code = '';
+          _wrongEntries++;
         });
       }
     } catch (e) {
       if (!mounted) return;
+      if (_endsSession(e)) {
+        setState(() => _checking = false);
+        return;
+      }
       setState(() {
         _checking = false;
+        _codeUsedUp = isCodeUsedUp(e);
         _error = describeCheckError(e);
+        // A wrong code clears the field; a network failure keeps what was
+        // typed so the applicant can simply try again.
+        if (isWrongCode(e)) {
+          _code = '';
+          _wrongEntries++;
+        }
       });
     }
   }
+
+  /// A cancelled or declined session ends the flow on its own screen
+  /// (config/session_declined.dart); this step names the channel it was on.
+  bool _endsSession(Object e) => ref
+      .read(kYCNotifierProvider.notifier)
+      .endOnSessionRefusal(e, channel: widget.channel);
 
   @override
   Widget build(BuildContext context) {
@@ -216,8 +262,13 @@ class _ContactVerificationScreenState
           ContactCodePanel(
             codeLength: _sentCodeLength ?? settings.codeLength,
             style: settings.inputStyle,
+            alphanumeric: settings.alphanumeric,
             enabled: !_busy,
             challengeId: _challengeId!,
+            // Sends and wrong entries both only grow, so the sum changes on
+            // each and remounts the field empty.
+            sendCount: _sends + _wrongEntries,
+            codeUsedUp: _codeUsedUp,
             expiresAt: _expiresAt,
             onChanged: (c) => setState(() => _code = c),
             onCompleted: _check,
@@ -229,9 +280,14 @@ class _ContactVerificationScreenState
           hasChallenge: hasChallenge,
           isBusy: _busy,
           isPhone: _isPhone,
-          onSubmit: (hasChallenge ? _canVerify : _canSend) && !_busy
-              ? (hasChallenge ? () => _check(_code) : _send)
-              : null,
+          codeUsedUp: hasChallenge && _codeUsedUp,
+          onSubmit: _busy
+              ? null
+              : hasChallenge && _codeUsedUp
+                  ? () => _resend(null)
+                  : (hasChallenge ? _canVerify : _canSend)
+                      ? (hasChallenge ? () => _check(_code) : _send)
+                      : null,
           onSkip: settings.required ? null : _advance,
         ),
       ],

@@ -31,12 +31,31 @@ class EmailVerificationConfig {
   final int maxAttempts;
   final OtpInputStyle inputStyle;
 
+  /// Letters as well as digits in the code (`alphanumericCode`; default false,
+  /// digits only). The server sends from 23456789ABCDEFGHJKMNPQRSTUVWXYZ and
+  /// compares without regard to case; the field takes any letter or digit.
+  final bool alphanumericCode;
+
+  /// Decline the session when a code's attempts run out
+  /// (`declineOnLastAttempt`; default false: the applicant can request a new
+  /// code). The server enforces it and answers `session_declined`
+  /// (config/session_declined.dart); the SDK only shows the ending.
+  final bool declineOnLastAttempt;
+
+  /// Work addresses only (`corporateOnly`). The server refuses a free-provider
+  /// address at send (`invalid_destination`, reason
+  /// `corporate_email_required`); the SDK does not pre-check it.
+  final bool corporateOnly;
+
   const EmailVerificationConfig({
     this.enabled = false,
     this.required = true,
     this.codeLength = 6,
     this.maxAttempts = 3,
     this.inputStyle = OtpInputStyle.segmented,
+    this.alphanumericCode = false,
+    this.declineOnLastAttempt = false,
+    this.corporateOnly = false,
   });
 
   factory EmailVerificationConfig.fromJson(Map<String, dynamic> json) =>
@@ -46,6 +65,9 @@ class EmailVerificationConfig {
         codeLength: _clampCodeLength(json['codeLength']),
         maxAttempts: (json['maxAttempts'] as num?)?.toInt() ?? 3,
         inputStyle: OtpInputStyle.fromString(json['inputStyle'] as String?),
+        alphanumericCode: json['alphanumericCode'] == true,
+        declineOnLastAttempt: json['declineOnLastAttempt'] == true,
+        corporateOnly: json['corporateOnly'] == true,
       );
 }
 
@@ -55,6 +77,15 @@ class PhoneVerificationConfig {
   final int codeLength;
   final int maxAttempts;
   final OtpInputStyle inputStyle;
+
+  /// Letters as well as digits in the code (`alphanumericCode`; default false).
+  final bool alphanumericCode;
+
+  /// Decline the session when a code's attempts run out
+  /// (`declineOnLastAttempt`; default false: the applicant can request a new
+  /// code). The server enforces it and answers `session_declined`
+  /// (config/session_declined.dart); the SDK only shows the ending.
+  final bool declineOnLastAttempt;
 
   /// Delivery channels on offer (`sms` / `whatsapp`). The org chooses what is
   /// offered; when there is more than one, the USER picks between them on the
@@ -75,6 +106,8 @@ class PhoneVerificationConfig {
     this.codeLength = 6,
     this.maxAttempts = 3,
     this.inputStyle = OtpInputStyle.segmented,
+    this.alphanumericCode = false,
+    this.declineOnLastAttempt = false,
     this.channels = const ['sms'],
     this.defaultCountry,
     this.countries = const [],
@@ -97,6 +130,8 @@ class PhoneVerificationConfig {
         codeLength: _clampCodeLength(json['codeLength']),
         maxAttempts: (json['maxAttempts'] as num?)?.toInt() ?? 3,
         inputStyle: OtpInputStyle.fromString(json['inputStyle'] as String?),
+        alphanumericCode: json['alphanumericCode'] == true,
+        declineOnLastAttempt: json['declineOnLastAttempt'] == true,
         channels: ((json['channels'] as List?) ?? const ['sms'])
             .map((e) => e.toString())
             .toList(growable: false),

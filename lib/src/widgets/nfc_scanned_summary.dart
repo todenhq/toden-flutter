@@ -86,7 +86,7 @@ class NfcScannedSummary extends StatelessWidget {
   }
 
   /// Small caps-ish field label. Named fields beat a middot-joined string: the
-  /// old "NAME · B51305135" gave no clue what the second value was.
+  /// old "NAME · A12345674" gave no clue what the second value was.
   Widget _label(UiThemeText text, UiColorScheme colors, String value) =>
       Text(
         value.toUpperCase(),

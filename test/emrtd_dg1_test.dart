@@ -11,11 +11,11 @@ import 'package:toden_flutter/src/services/mrz_parser.dart';
 // digits produces a fixture that fails for a reason unrelated to what is being
 // tested, and one whose digits happened to be wrong in the same way as the code
 // would pass while proving nothing.
-const _doc = 'B51305135';
-const _dob = '990725';
+const _doc = 'A12345674';
+const _dob = '920719';
 const _expiry = '341029';
 
-final String _l1 = 'P<NGAINGWE<<RICHARD<UNIMKE'.padRight(44, '<');
+final String _l1 = 'P<NGAOKEKE<<CHINEDU<OBINNA'.padRight(44, '<');
 
 String _buildLine2() {
   // Joined rather than `+`-composed: an MRZ line is POSITIONAL, so one field
@@ -59,9 +59,9 @@ void main() {
   group('parseDg1', () {
     test('reads the holder name off the chip exactly', () {
       final scan = parseDg1(_dg1(mrz));
-      expect(scan?.lastName, 'INGWE');
-      expect(scan?.firstName, 'RICHARD UNIMKE');
-      expect(scan?.documentNumber, 'B51305135');
+      expect(scan?.lastName, 'OKEKE');
+      expect(scan?.firstName, 'CHINEDU OBINNA');
+      expect(scan?.documentNumber, 'A12345674');
     });
 
     test('returns null rather than throwing on absent or malformed DG1', () {
@@ -78,17 +78,17 @@ void main() {
     // check digit over the name field.
     test('is immune to the camera misread that mangled the holder name', () {
       final misread = _l1
-          .replaceFirst('INGWE<<RICHARD', 'INGWEK<RICHARD')
+          .replaceFirst('OKEKE<<CHINEDU', 'OKEKEK<CHINEDU')
           .replaceRange(40, 44, 'KKKK');
       expect(misread.length, 44);
 
       final fromCamera = parseMrz(misread + l2);
       // It validates. That is the trap.
       expect(fromCamera, isNotNull);
-      expect(fromCamera!.displayName, 'KKKK INGWEK RICHARD UNIMKE');
+      expect(fromCamera!.displayName, 'KKKK OKEKEK CHINEDU OBINNA');
 
       // The chip is unaffected by whatever the camera thought it saw.
-      expect(parseDg1(_dg1(mrz))!.displayName, 'RICHARD UNIMKE INGWE');
+      expect(parseDg1(_dg1(mrz))!.displayName, 'CHINEDU OBINNA OKEKE');
     });
   });
 }

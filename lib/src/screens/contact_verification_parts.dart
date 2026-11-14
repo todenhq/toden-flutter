@@ -84,9 +84,21 @@ class ContactCodePanel extends StatelessWidget {
   final OtpInputStyle style;
   final bool enabled;
 
+  /// Letters as well as digits (config `alphanumericCode`).
+  final bool alphanumeric;
+
   /// Remounts the OTP field (clearing typed digits) when the challenge changes,
   /// so a resend never leaves the previous code on screen.
   final String challengeId;
+
+  /// Counts the codes sent, and remounts the field with each one too, so a
+  /// new code always starts from an empty field even if the challenge id
+  /// were reused.
+  final int sendCount;
+
+  /// The current code is used up: the field is read-only and dimmed until a
+  /// new code is sent.
+  final bool codeUsedUp;
 
   /// When the code stops being valid — drives the live countdown. Null falls
   /// back to static copy.
@@ -109,7 +121,10 @@ class ContactCodePanel extends StatelessWidget {
     required this.codeLength,
     required this.style,
     required this.enabled,
+    this.alphanumeric = false,
     required this.challengeId,
+    this.sendCount = 0,
+    this.codeUsedUp = false,
     required this.onChanged,
     this.expiresAt,
     required this.onCompleted,
@@ -128,13 +143,17 @@ class ContactCodePanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        OtpInput(
-          key: ValueKey(challengeId),
-          length: codeLength,
-          style: style,
-          enabled: enabled,
-          onChanged: onChanged,
-          onCompleted: onCompleted,
+        Opacity(
+          opacity: codeUsedUp ? 0.5 : 1,
+          child: OtpInput(
+            key: ValueKey('$challengeId/$sendCount'),
+            length: codeLength,
+            style: style,
+            enabled: enabled && !codeUsedUp,
+            alphanumeric: alphanumeric,
+            onChanged: onChanged,
+            onCompleted: onCompleted,
+          ),
         ),
         const SizedBox(height: UiSpacing.md),
         Row(

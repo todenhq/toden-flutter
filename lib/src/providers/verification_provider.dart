@@ -21,6 +21,8 @@ import '../config/verification_config.dart';
 import '../presence/presence_auto_report.dart';
 import '../config/selfie_upload_wait.dart';
 import '../config/session_cancelled.dart';
+import '../config/session_declined.dart';
+import '../i18n/text_scope.dart' show textFnFor;
 import '../config/silent_capture.dart';
 import '../config/supporting_documents.dart';
 import 'session_progress.dart';
@@ -649,6 +651,22 @@ class VerificationNotifier extends _$VerificationNotifier {
 
   /// Convenience for DocumentCaptureScreen: also advances [documentScanPhase]
   /// based on whether the selected ID type requires both sides.
+  /// Drops the document's photos and recordings before a capture is uploaded,
+  /// so each side submits only what that capture produced
+  /// (config/document_recordings.dart). Rebuilt rather than copyWith'd:
+  /// copyWith cannot clear an id.
+  void clearDocumentMedia() {
+    final media = state.mediaIds;
+    state = state.copyWith(
+      mediaIds: VerificationMediaIds(
+        selfie: media.selfie,
+        livenessVideo: media.livenessVideo,
+        proofOfAddress: media.proofOfAddress,
+        addressPhoto: media.addressPhoto,
+      ),
+    );
+  }
+
   void setDocumentMediaId(String mediaId, {required String side}) {
     if (side == 'front') {
       final needsBack =
@@ -1609,12 +1627,10 @@ class VerificationNotifier extends _$VerificationNotifier {
       }
     } catch (e) {
       // Resuming is a convenience; verifying is not conditional on it. The one
-      // refusal that DOES stop the flow is a cancelled session: the applicant
-      // must not be walked into captures the server will refuse
-      // (config/session_cancelled.dart).
-      if (sessionStartStopsFlow(e)) {
-        markSessionCancelled(sessionCancelledMessageFor(e));
-      }
+      // refusals that DO stop the flow are a cancelled or declined session:
+      // the applicant must not be walked into captures the server will refuse
+      // (config/session_cancelled.dart, config/session_declined.dart).
+      if (sessionStartStopsFlow(e)) endOnSessionRefusal(e);
     }
   }
 
@@ -1629,6 +1645,36 @@ class VerificationNotifier extends _$VerificationNotifier {
     if (_disposed || state.sessionCancelledMessage != null) return;
     _progressTimer?.cancel();
     state = state.copyWith(sessionCancelledMessage: sessionCancelledText(message));
+  }
+
+  /// The server declined this session (config/session_declined.dart).
+  /// Replaces the whole flow with the declined screen (the widget reports
+  /// `session_declined` to onError once) and stops further progress saves.
+  /// Idempotent like [markSessionCancelled]: the first words win.
+  void markSessionDeclined(SessionDeclined declined) {
+    if (_disposed || state.sessionDeclined != null) return;
+    _progressTimer?.cancel();
+    state = state.copyWith(sessionDeclined: declined);
+  }
+
+  /// Ends the flow on a refusal no retry can fix: a cancelled or a declined
+  /// session. Returns whether [error] was one, so a caller stops there instead
+  /// of showing its own error. [channel] names the contact step the refusal
+  /// came from; otherwise the step the applicant is on decides it.
+  bool endOnSessionRefusal(Object? error, {String? channel}) {
+    final cancelled = sessionCancelledMessageFor(error);
+    if (cancelled != null) {
+      markSessionCancelled(cancelled);
+      return true;
+    }
+    final declined = sessionDeclinedFor(
+      error,
+      channel: channel ?? contactChannelOf(state.currentStep),
+      t: textFnFor(_config),
+    );
+    if (declined == null) return false;
+    markSessionDeclined(declined);
+    return true;
   }
 
   /// The step after the address region in the REAL order, for a resume whose
@@ -1656,6 +1702,8 @@ class VerificationNotifier extends _$VerificationNotifier {
         // A cancellation is the server's answer about this attempt, not
         // something a fresh start can undo: only an admin's uncancel can.
         sessionCancelledMessage: state.sessionCancelledMessage,
+        // A decline is NOT kept: it ends that session only, and a new start
+        // gets a fresh one (the server still refuses the old session).
       ),
     );
     StepLog.reset();
@@ -1682,7 +1730,11 @@ class VerificationNotifier extends _$VerificationNotifier {
   bool _disposed = false;
 
   void _scheduleProgressSave(VerificationState next) {
-    if (next.sessionId == null || next.sessionCancelledMessage != null) return;
+    if (next.sessionId == null ||
+        next.sessionCancelledMessage != null ||
+        next.sessionDeclined != null) {
+      return;
+    }
     _progressTimer?.cancel();
     _progressTimer = Timer(const Duration(milliseconds: 800), () {
       final s = state;
@@ -1702,13 +1754,11 @@ class VerificationNotifier extends _$VerificationNotifier {
       if (fingerprint == _lastSavedProgress) return;
       _lastSavedProgress = fingerprint;
       // Losing a save costs some re-typing on a future resume, never anything
-      // now. A cancelled session is the exception: the server refused it, so
-      // the flow stops on the cancelled screen rather than carrying on into
+      // now. A cancelled or declined session is the exception: the server
+      // refused it, so the flow stops on its screen rather than carrying on into
       // a submission that can only be refused too.
       api.saveProgress(sessionId, payload).catchError((Object e) {
-        if (isSessionCancelledError(e)) {
-          markSessionCancelled(sessionCancelledMessageFor(e));
-        }
+        endOnSessionRefusal(e);
       });
     });
   }

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../config/contact_verification.dart';
 import '../config/otp_code.dart';
+import '../config/otp_keyboard.dart';
 import '../config/theme.dart';
 import '../i18n/text_scope.dart';
 import 'icons/icons.dart';
@@ -16,7 +17,14 @@ import 'ui_input.dart';
 //
 // Neither field limits its length or filters its input: both cut a paste before
 // anybody reads it. The length is applied to the digits (config/otp_code.dart).
-// A number pad has no paste key, so Paste code sits beside it.
+// A number pad has no paste key, so Paste code sits beside it. `alphanumeric`
+// takes letters too, upper-cased (config/otp_keyboard.dart).
+//
+// `enabled: false` makes the field read-only: no typing, no paste, no
+// autofill, and nothing auto-submits (a used-up code, or a request in flight).
+
+/// The widest a code box grows (its height follows at 0.82 wide to 1 tall).
+const double kOtpBoxMaxWidth = 56;
 
 class OtpInput extends StatefulWidget {
   final int length;
@@ -25,6 +33,9 @@ class OtpInput extends StatefulWidget {
   final ValueChanged<String> onCompleted;
   final bool enabled;
 
+  /// Letters as well as digits (config `alphanumericCode`); off by default.
+  final bool alphanumeric;
+
   const OtpInput({
     super.key,
     required this.length,
@@ -32,6 +43,7 @@ class OtpInput extends StatefulWidget {
     required this.onCompleted,
     this.onChanged,
     this.enabled = true,
+    this.alphanumeric = false,
   });
 
   @override
@@ -54,7 +66,8 @@ class _OtpInputState extends State<OtpInput> {
 
   Future<void> _paste() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
-    final next = pastedCode(data?.text ?? '', widget.length);
+    final next = pastedCode(data?.text ?? '', widget.length,
+        alphanumeric: widget.alphanumeric);
     if (!mounted) return;
     if (next == null) {
       setState(() => _noCode = true);
@@ -64,7 +77,19 @@ class _OtpInputState extends State<OtpInput> {
   }
 
   void _onChanged(String raw) {
-    final clipped = otpCodeFrom(raw, _previous, widget.length);
+    // A paste that resolves after the field was disabled, or anything that
+    // slips past a read-only field, changes nothing and submits nothing.
+    if (!widget.enabled) {
+      if (_controller.text != _previous) {
+        _controller.value = TextEditingValue(
+          text: _previous,
+          selection: TextSelection.collapsed(offset: _previous.length),
+        );
+      }
+      return;
+    }
+    final clipped = otpCodeFrom(raw, _previous, widget.length,
+        alphanumeric: widget.alphanumeric);
     _previous = clipped;
     _noCode = false;
     if (clipped != _controller.text) {
@@ -80,6 +105,8 @@ class _OtpInputState extends State<OtpInput> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboard = OtpKeyboard.of(
+        alphanumeric: widget.alphanumeric, length: widget.length);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -87,12 +114,16 @@ class _OtpInputState extends State<OtpInput> {
           UiInput(
             controller: _controller,
             hint: '•' * widget.length,
-            keyboardType: TextInputType.number,
+            keyboardType: keyboard.type,
+            textCapitalization: keyboard.capitalization,
+            autocorrect: keyboard.autocorrect,
+            inputFormatters: keyboard.formatters,
             autofocus: true,
+            readOnly: !widget.enabled,
             onChanged: _onChanged,
           )
         else
-          _segmented(context),
+          _segmented(context, keyboard),
         _pasteLink(context),
       ],
     );
@@ -121,44 +152,56 @@ class _OtpInputState extends State<OtpInput> {
     );
   }
 
-  Widget _segmented(BuildContext context) {
+  Widget _segmented(BuildContext context, OtpKeyboard keyboard) {
     final colors = context.myazaColors;
     final text = context.myazaText;
 
+    // The boxes share the width but never grow past kOtpBoxMaxWidth, so a
+    // 4-character code keeps the size a 6-character one has on a phone and
+    // the row centres (the same cap in all three SDKs).
+    final maxRowWidth =
+        widget.length * kOtpBoxMaxWidth + (widget.length - 1) * UiSpacing.xs;
     return Stack(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            for (var i = 0; i < widget.length; i++)
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    right: i == widget.length - 1 ? 0 : UiSpacing.xs,
-                  ),
-                  child: AspectRatio(
-                    aspectRatio: 0.82,
-                    child: Container(
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: colors.background,
-                        border: Border.all(
-                          color: i < _controller.text.length
-                              ? colors.primary
-                              : colors.border,
-                          width: i < _controller.text.length ? 1.5 : 1.0,
-                        ),
-                        borderRadius: BorderRadius.circular(UiRadius.md),
+        Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxRowWidth),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                for (var i = 0; i < widget.length; i++)
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        right: i == widget.length - 1 ? 0 : UiSpacing.xs,
                       ),
-                      child: Text(
-                        i < _controller.text.length ? _controller.text[i] : '',
-                        style: text.heading2,
+                      child: AspectRatio(
+                        aspectRatio: 0.82,
+                        child: Container(
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: colors.background,
+                            border: Border.all(
+                              color: i < _controller.text.length
+                                  ? colors.primary
+                                  : colors.border,
+                              width: i < _controller.text.length ? 1.5 : 1.0,
+                            ),
+                            borderRadius: BorderRadius.circular(UiRadius.md),
+                          ),
+                          child: Text(
+                            i < _controller.text.length
+                                ? _controller.text[i]
+                                : '',
+                            style: text.heading2,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
-          ],
+              ],
+            ),
+          ),
         ),
         // Transparent field over the boxes captures taps + keyboard input.
         Positioned.fill(
@@ -169,7 +212,10 @@ class _OtpInputState extends State<OtpInput> {
               focusNode: _focus,
               enabled: widget.enabled,
               autofocus: true,
-              keyboardType: TextInputType.number,
+              keyboardType: keyboard.type,
+              textCapitalization: keyboard.capitalization,
+              autocorrect: keyboard.autocorrect,
+              inputFormatters: keyboard.formatters,
               showCursor: false,
               onChanged: _onChanged,
               decoration: const InputDecoration(

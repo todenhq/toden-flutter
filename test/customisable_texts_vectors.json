@@ -1184,7 +1184,7 @@
     {
       "key": "nfc.description",
       "group": "nfc",
-      "default": "Hold your ID flat against the back of your phone and keep it still until scanning completes.",
+      "default": "Hold your document flat against the back of your phone until it’s read.",
       "availability": {
         "subject": "individual",
         "scopes": [
@@ -1196,7 +1196,7 @@
     {
       "key": "nfc.waiting",
       "group": "nfc",
-      "default": "Waiting for your document…",
+      "default": "Waiting for the chip",
       "availability": {
         "subject": "individual",
         "scopes": [
@@ -1208,7 +1208,7 @@
     {
       "key": "nfc.skip",
       "group": "nfc",
-      "default": "My device can’t scan the chip. Skip",
+      "default": "Continue without the chip",
       "availability": {
         "subject": "individual",
         "scopes": [

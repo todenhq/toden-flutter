@@ -12,7 +12,7 @@ Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  toden_flutter: ^4.0.0
+  toden_flutter: ^4.2.0
 ```
 
 Then run `flutter pub get`.

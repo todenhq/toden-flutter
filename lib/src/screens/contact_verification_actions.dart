@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
+import '../widgets/ui_alert.dart';
 import '../widgets/ui_button.dart';
 import '../widgets/icons/icons.dart';
 import '../i18n/business_variants.dart';
@@ -16,7 +17,8 @@ class ContactActions extends StatelessWidget {
   /// Null when there is nothing to report.
   final String? error;
 
-  /// Send-the-code vs verify-the-code: changes only the label and the handler.
+  /// Send-the-code vs verify-the-code: changes only the label and the handler
+  /// (and [codeUsedUp] turns verify into "Send a new code").
   final bool hasChallenge;
   final bool isBusy;
 
@@ -29,6 +31,9 @@ class ContactActions extends StatelessWidget {
   /// Drives the closing reassurance line, which differs per channel.
   final bool isPhone;
 
+  /// The current code is used up: the primary action sends a new one.
+  final bool codeUsedUp;
+
   const ContactActions({
     super.key,
     required this.error,
@@ -37,6 +42,7 @@ class ContactActions extends StatelessWidget {
     required this.onSubmit,
     required this.onSkip,
     required this.isPhone,
+    this.codeUsedUp = false,
   });
 
   @override
@@ -49,13 +55,18 @@ class ContactActions extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (error != null) ...[
-          const SizedBox(height: UiSpacing.sm),
-          Text(error!,
-              style: text.bodySmall.copyWith(color: UiColors.error)),
+          // A tinted error card rather than a line of small text: a wrong or
+          // used-up code is the one thing the applicant must notice here.
+          const SizedBox(height: UiSpacing.md),
+          Semantics(liveRegion: true, child: UiAlert.error(title: error!)),
         ],
         const SizedBox(height: UiSpacing.xl),
         UiButton(
-          label: t(hasChallenge ? 'contact.verifyCode' : 'contact.sendCode'),
+          label: t(!hasChallenge
+              ? 'contact.sendCode'
+              : codeUsedUp
+                  ? 'contact.code.sendNew'
+                  : 'contact.verifyCode'),
           isLoading: isBusy,
           onPressed: onSubmit,
         ),

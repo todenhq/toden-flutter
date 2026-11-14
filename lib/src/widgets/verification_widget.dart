@@ -10,6 +10,7 @@ import '../config/verification_config.dart';
 import '../config/contact_recovery.dart' show contactBackShown;
 import '../config/id_selection_layout.dart' show countryOnIdStep;
 import '../config/session_cancelled.dart';
+import '../config/session_declined.dart';
 import '../config/appearance_scheme.dart';
 import '../config/bright_screen.dart';
 import '../config/theme.dart';
@@ -92,6 +93,7 @@ class Verification {
     void Function(VerificationSubmission)? onSubmit,
     void Function(VerificationError)? onError,
     VoidCallback? onClose,
+
     /// The verdict, on a flow that waits for it in the app (a biometric
     /// re-authentication on the default delivery). See [VerificationResult].
     void Function(VerificationResult)? onResult,
@@ -315,7 +317,8 @@ class _EmbeddedWorkflowGateState extends State<_EmbeddedWorkflowGate> {
         }
         final result = snap.data!;
         return ProviderScope(
-          overrides: Verification._overridesFor(result.config, result.serverConfig),
+          overrides:
+              Verification._overridesFor(result.config, result.serverConfig),
           child: _VerificationFlowWidget(
             onSubmit: widget.onSubmit,
             onError: widget.onError,
@@ -346,11 +349,12 @@ class _VerificationFlowWidget extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_VerificationFlowWidget> createState() => _VerificationFlowWidgetState();
+  ConsumerState<_VerificationFlowWidget> createState() =>
+      _VerificationFlowWidgetState();
 }
 
-class _VerificationFlowWidgetState extends ConsumerState<_VerificationFlowWidget>
-    with PortraitLock {
+class _VerificationFlowWidgetState
+    extends ConsumerState<_VerificationFlowWidget> with PortraitLock {
   /// One stable key per step, so a step's State survives being REPARENTED.
   ///
   /// The full-bleed camera swaps the whole shell — sheet-with-chrome for a bare
@@ -368,6 +372,8 @@ class _VerificationFlowWidgetState extends ConsumerState<_VerificationFlowWidget
   bool _configErrorReported = false;
   // Ensures a cancelled session is reported to onError at most once.
   bool _cancelReported = false;
+  // And a declined one.
+  bool _declineReported = false;
 
   @override
   void initState() {
@@ -420,8 +426,7 @@ class _VerificationFlowWidgetState extends ConsumerState<_VerificationFlowWidget
     final systemBrightness = MediaQuery.platformBrightnessOf(context);
     final userIsDark = themeMode == ThemeMode.dark ||
         (themeMode == ThemeMode.system && systemBrightness == Brightness.dark);
-    final baseScheme =
-        userIsDark ? UiColorScheme.dark : UiColorScheme.light;
+    final baseScheme = userIsDark ? UiColorScheme.dark : UiColorScheme.light;
     // Fold in the dark overrides FIRST: the appearance is applied on top of the
     // active base scheme, so a light background would otherwise overwrite the
     // dark one and the toggle would do nothing on a branded flow.
@@ -453,12 +458,21 @@ class _VerificationFlowWidgetState extends ConsumerState<_VerificationFlowWidget
     // LAN IP vs `.local`, …), so it may 404 on-device. Rebase it onto the URL
     // the SDK actually talks to; a consumer's literal `appearance.logo` URL is
     // used as-is.
-    final logoUrl = appearanceLogo == 'default'
-        ? rebaseServerUrl(
-            branding?.logo,
-            resolveBaseUrl(config.apiKey, devUrl: config.devUrl),
-          )
-        : appearanceLogo;
+    // An empty logo is the workflow's "None": no logo at all, not even the
+    // app's own logoAsset (a workflow's appearance wins over the app's).
+    final logoNone = appearanceLogo != null && appearanceLogo.isEmpty;
+    // Unset is the organisation's logo, as 'default' is (decision
+    // 2026-11-13), unless the app bundled its own [logoAsset].
+    final useOrgLogo = appearanceLogo == 'default' ||
+        (appearanceLogo == null && appearance?.logoAsset == null);
+    final logoUrl = logoNone
+        ? null
+        : useOrgLogo
+            ? rebaseServerUrl(
+                branding?.logo,
+                resolveBaseUrl(config.apiKey, devUrl: config.devUrl),
+              )
+            : appearanceLogo;
     final companyName = appearance?.companyName ?? branding?.companyName;
 
     void onToggleTheme() {
@@ -500,10 +514,12 @@ class _VerificationFlowWidgetState extends ConsumerState<_VerificationFlowWidget
 
     // ── Prevent dismissal during submission, or when the consumer disables
     //    close (programmatic pop is then the only way out). ──────────────────
-    // A cancelled run has nothing left to protect, so it may always be closed.
-    final canDismiss =
-        (step != VerificationStep.submitted || state.sessionCancelledMessage != null) &&
-            !config.disableClose;
+    // A cancelled or declined run has nothing left to protect, so it may
+    // always be closed.
+    final canDismiss = (step != VerificationStep.submitted ||
+            state.sessionCancelledMessage != null ||
+            state.sessionDeclined != null) &&
+        !config.disableClose;
 
     // ── Fatal config-load failure (e.g. wrong API key) blocks the flow ─────
     // It replaces the normal step with a clear error screen, strips the
@@ -512,7 +528,8 @@ class _VerificationFlowWidgetState extends ConsumerState<_VerificationFlowWidget
     // A business workflow with a biometric scope is refused outright: it
     // should never arrive (publish refuses it), and it must never open a
     // camera (config/scope.dart unsupportedScopeConfig).
-    final unsupportedScope = unsupportedScopeConfig(config.subjectType, config.scope);
+    final unsupportedScope =
+        unsupportedScopeConfig(config.subjectType, config.scope);
     final configError = unsupportedScope
         ? kUnsupportedScopeMessage
         : serverConfig.status == ServerConfigStatus.error && serverConfig.fatal
@@ -542,20 +559,35 @@ class _VerificationFlowWidgetState extends ConsumerState<_VerificationFlowWidget
         configError == null ? state.sessionCancelledMessage : null;
     if (cancelledMessage != null && !_cancelReported) {
       _cancelReported = true;
-      final verificationError =
-          VerificationError(code: kSessionCancelledCode, message: cancelledMessage);
+      final verificationError = VerificationError(
+          code: kSessionCancelledCode, message: cancelledMessage);
       WidgetsBinding.instance
           .addPostFrameCallback((_) => widget.onError?.call(verificationError));
     }
-    final blockingMessage = configError ?? cancelledMessage;
+
+    // ── Declined by the server (config/session_declined.dart) ────────────
+    // Exactly parallel: the same screen with the decline's own title, and
+    // `session_declined` reported to onError once.
+    final declined = configError == null && cancelledMessage == null
+        ? state.sessionDeclined
+        : null;
+    if (declined != null && !_declineReported) {
+      _declineReported = true;
+      final verificationError = VerificationError(
+          code: kSessionDeclinedCode, message: declined.message);
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => widget.onError?.call(verificationError));
+    }
+    final blockingMessage =
+        configError ?? cancelledMessage ?? declined?.message;
 
     // ── Screen routing ────────────────────────────────────────────────────
     final screen = blockingMessage != null
         ? _ConfigErrorScreen(
             title: cancelledMessage != null
                 ? kSessionCancelledTitle
-                : 'Unable to start verification',
-            icon: cancelledMessage != null
+                : declined?.title ?? 'Unable to start verification',
+            icon: cancelledMessage != null || declined != null
                 ? UiIcons.circleX
                 : UiIcons.circleAlert,
             message: blockingMessage,
@@ -593,8 +625,10 @@ class _VerificationFlowWidgetState extends ConsumerState<_VerificationFlowWidget
     // On the combined layout the country row below names it; the header need
     // not repeat it.
     final headerCountry = blockingMessage == null &&
-            (step == VerificationStep.idType || step == VerificationStep.idInput) &&
-            !(step == VerificationStep.idType && countryOnIdTypeStep(config, state))
+            (step == VerificationStep.idType ||
+                step == VerificationStep.idInput) &&
+            !(step == VerificationStep.idType &&
+                countryOnIdTypeStep(config, state))
         ? effectiveCountry(config, state)
         : null;
 
@@ -626,9 +660,11 @@ class _VerificationFlowWidgetState extends ConsumerState<_VerificationFlowWidget
         // Hide the brand bar on a fatal config error — show a clean, chrome-free
         // error screen (just the theme/fullscreen controls), like the web SDK.
         logoUrl: blockingMessage != null ? null : logoUrl,
-        logoAsset: blockingMessage != null ? null : appearance?.logoAsset,
+        logoAsset:
+            blockingMessage != null || logoNone ? null : appearance?.logoAsset,
         companyName: blockingMessage != null ? null : companyName,
-        trustAttribution: blockingMessage != null ? null : branding?.trustAttribution,
+        trustAttribution:
+            blockingMessage != null ? null : branding?.trustAttribution,
         country: headerCountry,
         // Which steps get the whole body instead of the shared scroll view: see
         // _fillsViewport.
@@ -686,17 +722,17 @@ class _VerificationFlowWidgetState extends ConsumerState<_VerificationFlowWidget
                 Theme(
                   data: Theme.of(context).copyWith(extensions: [userScheme]),
                   child: LivenessImmersiveControls(
-                  onBack: onBack,
-                  // The same explicit close as the sheet's: tell the host,
-                  // then pop past the step-back guard.
-                  onClose: canDismiss
-                      ? () {
-                          widget.onClose?.call();
-                          final nav = Navigator.of(context);
-                          if (nav.canPop()) nav.pop();
-                        }
-                      : null,
-                ),
+                    onBack: onBack,
+                    // The same explicit close as the sheet's: tell the host,
+                    // then pop past the step-back guard.
+                    onClose: canDismiss
+                        ? () {
+                            widget.onClose?.call();
+                            final nav = Navigator.of(context);
+                            if (nav.canPop()) nav.pop();
+                          }
+                        : null,
+                  ),
                 ),
               ],
             ),
@@ -836,7 +872,9 @@ class _VerificationFlowWidgetState extends ConsumerState<_VerificationFlowWidget
   /// with nothing saying which is which.
   Widget _screenWithMultiId(VerificationStep step) {
     final plan = ref.read(kYCNotifierProvider.notifier).multiIdPlan();
-    if (plan == null || !_multiIdSteps.contains(step)) return _screenForStep(step);
+    if (plan == null || !_multiIdSteps.contains(step)) {
+      return _screenForStep(step);
+    }
     // Keyed, because the liveness step sits under the strip in the sheet and
     // on its own once its camera takes the screen: without a key that move
     // would rebuild the step and restart the camera.

@@ -24,7 +24,7 @@ AddressFlowOptions _options({
 const _picked = AddressState(
   lat: 4.9323964,
   lng: 8.3254216,
-  label: '11 Bassey Street, Idim Ita, Calabar',
+  label: '11 Adebayo Street, Idim Ita, Calabar',
   pickedAt: AddressPickedAt(4.9323964, 8.3254216),
 );
 
@@ -152,7 +152,7 @@ void main() {
       const derived = AddressState(
         lat: 4.9328964,
         lng: 8.3254216,
-        label: '11 Bassey Street, Idim Ita, Calabar',
+        label: '11 Adebayo Street, Idim Ita, Calabar',
       );
       expect(shouldAskLabelDecision(derived), isFalse);
     });

@@ -8,16 +8,23 @@ import 'icons/icons.dart';
 // screens/BackgroundAskParts.tsx; keep the two in lockstep.
 
 class AskReason {
-  const AskReason(this.icon, this.title, this.caption);
+  const AskReason(this.icon, this.title, this.caption, {this.done = false});
 
   final UiIconData icon;
   final String title;
   final String caption;
+
+  /// Already done: a check in place of the icon (the chip intro's photo page).
+  final bool done;
 }
 
-/// The radar in two soft rings: the area around the address being watched.
+/// An icon in two soft rings. The radar (the area around the address being
+/// watched) by default; the chip intro (nfc_intro_view.dart) shows the NFC
+/// phone.
 class AskHero extends StatelessWidget {
-  const AskHero({super.key});
+  const AskHero({super.key, this.icon = UiIcons.radar});
+
+  final UiIconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +39,7 @@ class AskHero extends StatelessWidget {
         height: 52,
         decoration: BoxDecoration(color: colors.primary.withValues(alpha: 0.18), shape: BoxShape.circle),
         alignment: Alignment.center,
-        child: UiIcon(UiIcons.radar, size: 26, color: colors.primary),
+        child: UiIcon(icon, size: 26, color: colors.primary),
       ),
     );
   }
@@ -56,38 +63,46 @@ class AskReasons extends StatelessWidget {
           children: [
             for (var i = 0; i < reasons.length; i++) ...[
               if (i > 0) Divider(height: 0.5, thickness: 0.5, color: colors.border),
-              Padding(
-                padding: const EdgeInsets.all(UiSpacing.md),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: colors.primary.withValues(alpha: 0.14),
-                        shape: BoxShape.circle,
+              Semantics(
+                label: '${reasons[i].title}. ${reasons[i].caption}'
+                    '${reasons[i].done ? ' Done.' : ''}',
+                excludeSemantics: true,
+                child: Padding(
+                  padding: const EdgeInsets.all(UiSpacing.md),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: (reasons[i].done ? UiColors.success : colors.primary)
+                              .withValues(alpha: 0.14),
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: reasons[i].done
+                            ? const UiIcon(UiIcons.circleCheck, size: 20, color: UiColors.success)
+                            : UiIcon(reasons[i].icon, size: 20, color: colors.primary),
                       ),
-                      alignment: Alignment.center,
-                      child: UiIcon(reasons[i].icon, size: 20, color: colors.primary),
-                    ),
-                    const SizedBox(width: UiSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            reasons[i].title,
-                            style: text.heading3.copyWith(color: colors.textDark),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            reasons[i].caption,
-                            style: text.bodySmall.copyWith(color: colors.textSecondary),
-                          ),
-                        ],
+                      const SizedBox(width: UiSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              reasons[i].title,
+                              style: text.heading3.copyWith(color: colors.textDark),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              reasons[i].caption,
+                              style: text.bodySmall.copyWith(color: colors.textSecondary),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],

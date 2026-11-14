@@ -23,8 +23,8 @@ void main() {
           'lat': 6,
           'lng': 3.4219,
           'directions': 'black gate',
-          'label': '11 Bassey Street, Idim Ita, Calabar',
-          'parts': {'street': 'Bassey Street', 'city': 'Calabar'},
+          'label': '11 Adebayo Street, Idim Ita, Calabar',
+          'parts': {'street': 'Adebayo Street', 'city': 'Calabar'},
           'pickedAt': {'lat': 6, 'lng': 3.4219},
           'labelKept': true,
           'deviceLat': 6.4283,
@@ -40,7 +40,7 @@ void main() {
     expect(s.address?.directions, 'black gate');
     // The picked address and the applicant's answer about it survive: losing
     // them would make somebody redo a search they had already finished.
-    expect(s.address?.label, '11 Bassey Street, Idim Ita, Calabar');
+    expect(s.address?.label, '11 Adebayo Street, Idim Ita, Calabar');
     expect(s.address?.parts?.city, 'Calabar');
     expect(s.address?.pickedAt?.lng, 3.4219);
     expect(s.address?.labelKept, isTrue);
@@ -54,7 +54,7 @@ void main() {
     final replayed = restoredState(const VerificationState(), snapshot);
     expect(replayed.address?.lat, 6.0);
     expect(replayed.address?.directions, 'black gate');
-    expect(replayed.address?.label, '11 Bassey Street, Idim Ita, Calabar');
+    expect(replayed.address?.label, '11 Adebayo Street, Idim Ita, Calabar');
     expect(replayed.address?.labelKept, isTrue);
     expect(replayed.mediaIds.addressPhoto, 'med_9');
   });

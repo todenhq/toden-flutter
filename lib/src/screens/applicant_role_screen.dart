@@ -279,7 +279,7 @@ class _ApplicantRoleScreenState extends ConsumerState<ApplicantRoleScreen> {
   }
 }
 
-/// "Richard Ingwe" → "RI" — the avatar monogram.
+/// "Chinedu Okeke" → "CO" — the avatar monogram.
 String _initialsOf(String name) => name
     .trim()
     .split(RegExp(r'\s+'))

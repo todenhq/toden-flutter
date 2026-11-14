@@ -4,6 +4,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../config/theme.dart';
 import '../config/verification_config.dart';
 import '../config/session_cancelled.dart';
+import '../config/session_declined.dart';
+import '../i18n/translate.dart' show defaultTextFn;
 import '../widgets/ui_alert.dart';
 import '../widgets/ui_button.dart';
 import '../widgets/icons/icons.dart';
@@ -43,6 +45,7 @@ class ErrorView extends StatelessWidget {
       // Normally the dedicated cancelled screen takes over first; this keeps
       // any path that still lands here from reading as a failed submission.
       kSessionCancelledCode => kSessionCancelledTitle,
+      kSessionDeclinedCode => defaultTextFn(kSessionEndedTitleKey),
       _ => 'Submission Failed',
     };
 

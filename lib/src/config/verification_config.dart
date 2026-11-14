@@ -81,7 +81,9 @@ class VerificationAppearance {
 
   /// Network logo URL to render in the header, or the literal `'default'` to
   /// use the org's own logo from the server config response. Takes precedence
-  /// over [logoAsset].
+  /// over [logoAsset]. Null (with no [logoAsset]) shows the organisation's
+  /// logo, as `'default'` does. An empty string shows no logo at all (not even
+  /// [logoAsset]): a workflow's "None" logo is this, and it wins over the app's.
   final String? logo;
 
   /// Corner radius in px for buttons, inputs and cards. The whole radius scale
@@ -106,6 +108,9 @@ class VerificationAppearance {
   /// working for any branded flow.
   final VerificationAppearance? dark;
 
+  /// The mode the flow opens in. Defaults to [VerificationThemeMode.system]
+  /// (decision 2026-11-13): with no theme from the workflow or the app, the
+  /// applicant's device setting decides. A workflow's own theme wins.
   final VerificationThemeMode theme;
 
   const VerificationAppearance({
@@ -123,7 +128,7 @@ class VerificationAppearance {
     this.fontFamily,
     this.headingFontFamily,
     this.dark,
-    this.theme = VerificationThemeMode.light,
+    this.theme = VerificationThemeMode.system,
   });
 
   /// The palette for [isDark], with the dark overrides folded in when present.
@@ -483,6 +488,16 @@ class VerificationConfig {
   /// palette. Default 4. Normally set by a resolved workflow.
   final int flashSequenceLength;
 
+  /// The most failed liveness checks one verification attempt may have, 1 to
+  /// 3. Null means no limit. A resolved workflow sets it (`maxLivenessAttempts`,
+  /// 3 when the workflow leaves it out, null when it turns the limit off). Each failed check is reported to the server,
+  /// which counts them; the failed check's panel says how many attempts are
+  /// left, and at the limit the server declines the session
+  /// (`session_declined`, reason `liveness_attempts_exceeded`) and the flow
+  /// ends on the declined screen. The server reads the limit from the
+  /// published workflow, so setting it here alone limits nothing.
+  final int? maxLivenessAttempts;
+
   /// Show a light/dark mode toggle button in the modal header. Default `true`.
   /// When `false`, the flow stays on the theme from [appearance] (its `theme`
   /// field) and the user can't switch it. Mirrors the web/RN SDKs'
@@ -681,6 +696,7 @@ class VerificationConfig {
     this.enableLiveness = true,
     this.livenessMode = 'gestures',
     this.flashSequenceLength = 4,
+    this.maxLivenessAttempts,
     this.showThemeToggle = true,
     this.progressStyle = VerificationProgressStyle.bar,
     this.disableClose = false,
@@ -741,6 +757,7 @@ class VerificationConfig {
     bool? enableLiveness,
     String? livenessMode,
     int? flashSequenceLength,
+    int? maxLivenessAttempts,
     bool? showThemeToggle,
     VerificationProgressStyle? progressStyle,
     bool? disableClose,
@@ -790,6 +807,7 @@ class VerificationConfig {
         enableLiveness: enableLiveness ?? this.enableLiveness,
         livenessMode: livenessMode ?? this.livenessMode,
         flashSequenceLength: flashSequenceLength ?? this.flashSequenceLength,
+        maxLivenessAttempts: maxLivenessAttempts ?? this.maxLivenessAttempts,
         showThemeToggle: showThemeToggle ?? this.showThemeToggle,
         progressStyle: progressStyle ?? this.progressStyle,
         disableClose: disableClose ?? this.disableClose,
@@ -869,6 +887,11 @@ class VerificationError {
   ///                                  cannot continue until it is uncancelled.
   ///                                  Reported once, beside the SDK's own
   ///                                  cancelled screen
+  ///   • 'session_declined'         — the server declined this verification
+  ///                                  session (a contact code used up on a
+  ///                                  step with `declineOnLastAttempt`); it
+  ///                                  cannot continue. Reported once, beside
+  ///                                  the SDK's own declined screen
   ///   • 'unknown'                  — anything else
   ///
   /// Voice guidance is text-to-speech *output* — it never records audio, and a

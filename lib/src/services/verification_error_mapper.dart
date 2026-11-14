@@ -1,6 +1,7 @@
 import '../config/verification_config.dart';
 import '../config/business_document_groups.dart';
 import '../config/session_cancelled.dart';
+import '../config/session_declined.dart';
 import 'api_service.dart';
 
 // ─── mapToVerificationError — raw API error → typed VerificationError ────────────────────────────
@@ -103,6 +104,15 @@ VerificationError mapToVerificationError(Object error, {required ErrorContext co
         return VerificationError(
           code: kSessionCancelledCode,
           message: sessionCancelledText(error.message),
+        );
+      // The server declined this session (a used-up contact code on a step
+      // that declines on its last attempt). Terminal like a cancellation
+      // (config/session_declined.dart).
+      case kSessionDeclinedCode:
+        return VerificationError(
+          code: kSessionDeclinedCode,
+          message: sessionDeclinedFor(error)!.message,
+          details: error.details,
         );
       case 'insufficient_credits':
         return VerificationError(

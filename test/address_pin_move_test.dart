@@ -12,7 +12,7 @@ import 'package:toden_flutter/src/utils/map_tiles.dart';
 AddressState _picked({
   double lat = 6.4281,
   double lng = 3.4219,
-  String label = '11 Bassey Street, Idim Ita, Calabar',
+  String label = '11 Adebayo Street, Idim Ita, Calabar',
   bool labelKept = false,
 }) =>
     AddressState(
@@ -47,7 +47,7 @@ void main() {
 
     test('a PICKED label survives a nudge, and is not re-derived', () {
       final move = resolvePinMove(_picked(), const MapLatLng(6.4285, 3.4222));
-      expect(move.address!.label, '11 Bassey Street, Idim Ita, Calabar');
+      expect(move.address!.label, '11 Adebayo Street, Idim Ita, Calabar');
       expect(move.address!.pickedAt, isNotNull);
       expect(move.relabel, isFalse);
     });

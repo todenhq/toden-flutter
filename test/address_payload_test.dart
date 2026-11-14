@@ -53,7 +53,7 @@ void main() {
       final payload = addressPayload(const AddressState(
         lat: 6.4281,
         lng: 3.4219,
-        label: ' 11 Bassey Street, Calabar ',
+        label: ' 11 Adebayo Street, Calabar ',
         street: ' Wisdom Close ',
         propertyNumber: ' 11 ',
         streetView: AddressStreetView(
@@ -63,7 +63,7 @@ void main() {
           fov: 75,
         ),
       ));
-      expect(payload['label'], '11 Bassey Street, Calabar');
+      expect(payload['label'], '11 Adebayo Street, Calabar');
       expect(payload['street'], 'Wisdom Close');
       expect(payload['propertyNumber'], '11');
       expect(payload['streetView'], {
@@ -82,7 +82,7 @@ void main() {
       final payload = addressPayload(const AddressState(
         lat: 6.4281,
         lng: 3.4219,
-        label: '11 Bassey Street',
+        label: '11 Adebayo Street',
         pickedAt: AddressPickedAt(6.4281, 3.4219),
         labelKept: true,
         parts: AddressParts(city: 'Calabar'),
@@ -100,12 +100,12 @@ void main() {
       final progress = addressProgressJson(const AddressState(
         lat: 6.4281,
         lng: 3.4219,
-        label: '11 Bassey Street',
+        label: '11 Adebayo Street',
         pickedAt: AddressPickedAt(6.4281, 3.4219),
         labelKept: true,
         parts: AddressParts(city: 'Calabar'),
       ));
-      expect(progress['label'], '11 Bassey Street');
+      expect(progress['label'], '11 Adebayo Street');
       expect(progress['pickedAt'], {'lat': 6.4281, 'lng': 3.4219});
       expect(progress['labelKept'], isTrue);
       expect((progress['parts'] as Map)['city'], 'Calabar');

@@ -15,22 +15,22 @@ void main() {
       // THE BUG. A passport or PVC has no ID-input screen, so `fromState` is always
       // null there — the prop is the only source and must survive.
       final result = resolveVerifyUserData(
-        const UserData(firstName: 'Emmanuel', lastName: 'Ingwe'),
+        const UserData(firstName: 'Benedict', lastName: 'Okeke'),
         null,
       );
       expect(result, isNotNull);
-      expect(result!.firstName, 'Emmanuel');
-      expect(result.lastName, 'Ingwe');
+      expect(result!.firstName, 'Benedict');
+      expect(result.lastName, 'Okeke');
     });
 
     test('lets the prop win per field, with typed values filling the gaps', () {
       final result = resolveVerifyUserData(
         const UserData(firstName: 'Prop'),
-        const UserData(firstName: 'Typed', lastName: 'FromInput', dateOfBirth: '1999-07-25'),
+        const UserData(firstName: 'Typed', lastName: 'FromInput', dateOfBirth: '1992-07-19'),
       );
       expect(result!.firstName, 'Prop'); //        integrator's value wins
       expect(result.lastName, 'FromInput'); //     prop omitted it, typed fills in
-      expect(result.dateOfBirth, '1999-07-25');
+      expect(result.dateOfBirth, '1992-07-19');
     });
 
     test('treats empty strings as absent, not as a submitted value', () {
@@ -38,8 +38,8 @@ void main() {
       // against nothing. Example apps commonly pass `firstName.trim()` from a blank
       // input, so this is the realistic case, not a contrived one.
       expect(resolveVerifyUserData(const UserData(firstName: '', lastName: ''), null), isNull);
-      final partial = resolveVerifyUserData(const UserData(firstName: 'Emmanuel', lastName: ''), null);
-      expect(partial!.firstName, 'Emmanuel');
+      final partial = resolveVerifyUserData(const UserData(firstName: 'Benedict', lastName: ''), null);
+      expect(partial!.firstName, 'Benedict');
       expect(partial.lastName, isNull);
     });
 

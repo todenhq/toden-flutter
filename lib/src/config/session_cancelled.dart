@@ -1,4 +1,5 @@
 import '../services/api_service.dart' show VerificationApiException;
+import 'session_declined.dart' show isSessionDeclinedError;
 
 // ─── A cancelled session ─────────────────────────────────────────────────────
 //
@@ -49,9 +50,11 @@ String? sessionCancelledMessageFor(Object? error) => isSessionCancelledError(err
 ///
 /// Starting a session is best-effort: an outage, a timeout or any other
 /// refusal leaves the flow running, because verifying is never conditional on
-/// a session existing. A cancelled session is the one exception: the
-/// applicant must not be walked into captures the server will refuse.
-bool sessionStartStopsFlow(Object? error) => isSessionCancelledError(error);
+/// a session existing. A cancelled or declined session is the exception: the
+/// applicant must not be walked into captures the server will refuse
+/// (config/session_declined.dart).
+bool sessionStartStopsFlow(Object? error) =>
+    isSessionCancelledError(error) || isSessionDeclinedError(error);
 
 /// Whether a `/status` value is the cancelled state (terminal: the wait ends).
 bool isCancelledStatus(String? status) => status == kCancelledStatus;

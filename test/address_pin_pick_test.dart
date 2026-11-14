@@ -20,12 +20,12 @@ void main() {
           lat: 6.5,
           lng: 3.4,
           houseNumber: '11',
-          road: 'Bassey Street',
-          formatted: '11 Bassey Street, Idim Ita',
+          road: 'Adebayo Street',
+          formatted: '11 Adebayo Street, Idim Ita',
           city: 'Calabar',
         ),
       );
-      expect(next.label, '11 Bassey Street, Idim Ita');
+      expect(next.label, '11 Adebayo Street, Idim Ita');
       expect(next.pickedAt?.lat, 6.5);
       expect(next.parts?.city, 'Calabar');
       expect(next.propertyNumber, '11');
@@ -42,7 +42,7 @@ void main() {
     test('a resolved street retires the typed one back to null', () {
       final next = addressFromPick(
         const AddressState(lat: 0, lng: 0, street: 'Wisdom Close'),
-        const ResolvedPlace(lat: 6.5, lng: 3.4, road: 'Bassey Street'),
+        const ResolvedPlace(lat: 6.5, lng: 3.4, road: 'Adebayo Street'),
       );
       // Null, never '': the details sheet reads '' as deliberately cleared,
       // which would suppress the resolved-street prefill it should show.
@@ -97,8 +97,8 @@ void main() {
         addressDetailSummary(const AddressState(
           lat: 0,
           lng: 0,
-          label: '11 Bassey Street',
-          parts: AddressParts(street: 'Bassey Street', city: 'Calabar'),
+          label: '11 Adebayo Street',
+          parts: AddressParts(street: 'Adebayo Street', city: 'Calabar'),
         )),
         'A house number and directions help someone find it',
       );

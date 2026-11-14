@@ -1,6 +1,6 @@
 name: toden_flutter
 description: Toden SDK for Flutter. ID verification, liveness detection, NFC chip reading and document capture.
-version: 4.0.1
+version: 4.2.0
 
 homepage: https://github.com/todenhq/toden-flutter
 repository: https://github.com/todenhq/toden-flutter

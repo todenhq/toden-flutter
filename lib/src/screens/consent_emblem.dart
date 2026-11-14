@@ -32,21 +32,26 @@ class ConsentEmblem extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.myazaColors;
     final config = ref.watch(verificationConfigProvider);
-    final branding = ref.watch(kYCNotifierProvider.select((s) => s.serverConfig.branding));
+    final branding =
+        ref.watch(kYCNotifierProvider.select((s) => s.serverConfig.branding));
     final whiteLabel = needsProcessorDisclosure(branding?.trustAttribution);
 
     final Widget child;
     if (!whiteLabel) {
       final mark = todenMarkColours(colors.background);
-      child = TodenMark(size: kConsentEmblemMarkSize, ink: mark.ink, accent: mark.accent);
+      child = TodenMark(
+          size: kConsentEmblemMarkSize, ink: mark.ink, accent: mark.accent);
     } else {
       // The org's logo as the sheet's header resolves it: `appearance.logo`
       // 'default' is the server's branding logo, any other value a URL.
       final configured = config.appearance?.logo;
-      final logo = configured == 'default'
-          ? rebaseServerUrl(branding?.logo, resolveBaseUrl(config.apiKey, devUrl: config.devUrl))
+      // Unset is the organisation's logo, as 'default' is; '' is "None".
+      final logo = configured == 'default' || configured == null
+          ? rebaseServerUrl(branding?.logo,
+              resolveBaseUrl(config.apiKey, devUrl: config.devUrl))
           : configured;
-      final shield = UiIcon(UiIcons.shieldCheck, size: 32, color: colors.primary);
+      final shield =
+          UiIcon(UiIcons.shieldCheck, size: 32, color: colors.primary);
       child = logo == null || logo.isEmpty
           ? shield
           : Image.network(

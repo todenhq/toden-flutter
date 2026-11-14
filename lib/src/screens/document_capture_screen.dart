@@ -13,6 +13,7 @@ import '../config/capture_config.dart';
 import '../config/capture_hints.dart';
 import '../config/document_capture_check.dart';
 import '../config/document_capture_methods.dart';
+import '../config/document_recordings.dart';
 import '../config/document_guide.dart';
 import '../config/document_specimen.dart';
 import '../config/document_turn.dart' show screenGuideAspect;
@@ -828,13 +829,15 @@ class _DocumentCaptureScreenState
       path = await native.stopRecording();
     } else {
       final cameraNotifier = ref.read(cameraNotifierProvider.notifier);
-      if (!cameraNotifier.isRecordingVideo) return;
-      path = await cameraNotifier.stopVideoRecording();
+      path = cameraNotifier.isRecordingVideo
+          ? await cameraNotifier.stopVideoRecording()
+          : null;
     }
     if (kDebugMode) {
       debugPrint('[Verification] side clip stored: phase=$_phase path=$path');
     }
-    if (path == null) return;
+    // Stored even when null: this shot has no clip, and a clip from an earlier
+    // try at the side (one that ended before a failed shot) is not this one's.
     if (_phase == _ScanPhase.cameraFront) {
       _frontVideoPath = path;
     } else if (_phase == _ScanPhase.cameraBack) {
@@ -1389,68 +1392,71 @@ class _DocumentCaptureScreenState
       final notifier = ref.read(kYCNotifierProvider.notifier);
       final api = notifier.api;
 
-      // Upload front (retried on transient failures: network / timeout / 5xx)
-      final frontMediaId = await withRetry(
-        () => api.upload(_frontBytes!, 'image/jpeg', MediaType.documentFront),
-        onRetry: onRetry,
-      );
-      if (!mounted) return;
-      notifier.setDocumentMediaId(frontMediaId, side: 'front');
-      // Each side's capture check starts the moment the side is stored, so it
-      // runs alongside the uploads still to come; they are awaited together
-      // below. A check never throws, so one left behind by an early return
-      // costs nothing.
-      final checks = [_checkSide(api, frontMediaId, 'front')];
-
-      // Upload front video (best-effort — skip if not recorded or if its upload
-      // fails after retries). Compress aggressively first.
-      if (_frontVideoPath != null) {
-        try {
-          final frontVideoBytes = await compressVideoToBytes(
-            _frontVideoPath!,
-            label: 'document front video',
-          );
-          if (!mounted) return;
-          // The side clip is best-effort — an empty one is simply no clip, and
-          // uploading zero bytes would be worse than omitting it.
-          if (frontVideoBytes.isEmpty) throw const _EmptyClip();
-          final frontVideoMediaId = await withRetry(
-            () => api.upload(frontVideoBytes, 'video/mp4', MediaType.documentFrontVideo),
-          );
-          if (!mounted) return;
-          notifier.setMediaId('documentFrontVideo', frontVideoMediaId);
-        } catch (_) {/* best-effort */}
-      }
-
-      // Upload back if captured
-      if (_backBytes != null) {
-        final backMediaId = await withRetry(
-          () => api.upload(_backBytes!, 'image/jpeg', MediaType.documentBack),
+      // Each side's still, then that capture's own recording: every document
+      // id is cleared first, so a side with no recording of its own submits
+      // none (config/document_recordings.dart). Each side's capture check
+      // starts the moment the side is stored, so it runs alongside the uploads
+      // still to come; they are awaited together below. A check never throws,
+      // so one left behind by an early return costs nothing.
+      final checks = <Future<DocumentCaptureCheckResult?>>[];
+      final completed = await uploadDocumentSides(
+        sides: [
+          DocumentSideUpload(
+            side: 'front',
+            still: _frontBytes!,
+            recording: _frontVideoPath,
+          ),
+          if (_backBytes != null)
+            DocumentSideUpload(
+              side: 'back',
+              still: _backBytes!,
+              recording: _backVideoPath,
+            ),
+        ],
+        clearDocumentMedia: notifier.clearDocumentMedia,
+        // Retried on transient failures: network / timeout / 5xx.
+        uploadStill: (side) => withRetry(
+          () => api.upload(
+            side.still,
+            'image/jpeg',
+            side.side == 'back'
+                ? MediaType.documentBack
+                : MediaType.documentFront,
+          ),
           onRetry: onRetry,
-        );
-        if (!mounted) return;
-        notifier.setDocumentMediaId(backMediaId, side: 'back');
-        checks.add(_checkSide(api, backMediaId, 'back'));
-      }
-
-      // Upload back video (best-effort)
-      if (_backVideoPath != null) {
-        try {
-          final backVideoBytes = await compressVideoToBytes(
-            _backVideoPath!,
-            label: 'document back video',
+        ),
+        // Best-effort: compressed aggressively first, skipped when it cannot
+        // be read or its upload fails after retries.
+        uploadRecording: (side, path) async {
+          final bytes = await compressVideoToBytes(
+            path,
+            label: 'document ${side.side} video',
           );
-          if (!mounted) return;
-          // The side clip is best-effort — an empty one is simply no clip, and
-          // uploading zero bytes would be worse than omitting it.
-          if (backVideoBytes.isEmpty) throw const _EmptyClip();
-          final backVideoMediaId = await withRetry(
-            () => api.upload(backVideoBytes, 'video/mp4', MediaType.documentBackVideo),
+          if (!mounted) return null;
+          // An empty clip is simply no clip, and uploading zero bytes would be
+          // worse than omitting it.
+          if (bytes.isEmpty) throw const _EmptyClip();
+          return withRetry(
+            () => api.upload(
+              bytes,
+              'video/mp4',
+              side.side == 'back'
+                  ? MediaType.documentBackVideo
+                  : MediaType.documentFrontVideo,
+            ),
           );
-          if (!mounted) return;
-          notifier.setMediaId('documentBackVideo', backVideoMediaId);
-        } catch (_) {/* best-effort */}
-      }
+        },
+        onStill: (side, mediaId) {
+          notifier.setDocumentMediaId(mediaId, side: side);
+          checks.add(_checkSide(api, mediaId, side));
+        },
+        onRecording: (side, mediaId) => notifier.setMediaId(
+          side == 'back' ? 'documentBackVideo' : 'documentFrontVideo',
+          mediaId,
+        ),
+        active: () => mounted,
+      );
+      if (!completed) return;
 
       // Bounded by each check's own timeout, and an unanswered check is no
       // problem, so this can only ever ask for a retake.

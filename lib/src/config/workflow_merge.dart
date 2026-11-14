@@ -10,6 +10,7 @@ import 'questionnaire.dart';
 import 'supporting_documents.dart';
 import '../providers/step_resubmit.dart';
 import 'multi_id.dart';
+import 'liveness_attempts.dart' show maxLivenessAttemptsFrom;
 import '../i18n/translate.dart' show parseWorkflowTexts;
 
 /// Merges a resolved workflow's config over the consumer's [base] config —
@@ -117,6 +118,7 @@ VerificationConfig mergeWorkflowIntoConfig(
     business: business,
     livenessMode: flow.raw['livenessMode'] as String?,
     flashSequenceLength: (flow.raw['flashSequenceLength'] as num?)?.toInt(),
+    maxLivenessAttempts: maxLivenessAttemptsFrom(flow.raw['maxLivenessAttempts']),
     deviceIntelligence: flow.raw['deviceIntelligence'] as bool?,
     keyPeopleLinkRecovery: flow.raw['keyPeopleLinkRecovery'] as bool?,
     consentStep: flow.raw['consentStep'] as bool?,
@@ -225,6 +227,7 @@ VerificationConfig overlayApplicantWorkflow(
     enableLiveness: flow.enableLiveness,
     livenessMode: flow.raw['livenessMode'] as String?,
     flashSequenceLength: (flow.raw['flashSequenceLength'] as num?)?.toInt(),
+    maxLivenessAttempts: maxLivenessAttemptsFrom(flow.raw['maxLivenessAttempts']),
     // The applicant leg's front-camera capture follows its own workflow.
     silentCapture: flow.raw['silentCapture'] as bool?,
     // So does the bright screen that lights the applicant's selfie.

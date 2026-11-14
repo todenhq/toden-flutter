@@ -46,4 +46,54 @@ void main() {
       expect(pastedCode('', 6), isNull);
     });
   });
+
+  // An alphanumeric code (the workflow's `alphanumericCode`): any ASCII letter
+  // or digit, upper-cased. Sandbox still sends zeros, so digits alone pass too.
+  group('otpCodeFrom, letters and digits', () {
+    test('upper-cases what is typed and keeps letters and digits', () {
+      expect(otpCodeFrom('k7m', 'k7', 6, alphanumeric: true), 'K7M');
+      expect(otpCodeFrom('K7M!', 'K7M', 6, alphanumeric: true), 'K7M');
+      expect(otpCodeFrom('000000', '00000', 6, alphanumeric: true), '000000');
+    });
+
+    test('drops spaces and dashes', () {
+      expect(otpCodeFrom('K7M P2Q', '', 6, alphanumeric: true), 'K7MP2Q');
+      expect(otpCodeFrom('k7m-p2q', '', 6, alphanumeric: true), 'K7MP2Q');
+    });
+
+    test('finds the code in the sentence it was copied from', () {
+      expect(otpCodeFrom('Your code is K7MP2Q. It expires soon.', '', 6, alphanumeric: true), 'K7MP2Q');
+      expect(otpCodeFrom('Your Toden code: HJKM', '', 4, alphanumeric: true), 'HJKM');
+      expect(otpCodeFrom('CODE: K7MP', '', 4, alphanumeric: true), 'K7MP');
+    });
+
+    test('truncates to the code length', () {
+      expect(otpCodeFrom('K7MP2QX', 'K7MP2Q', 6, alphanumeric: true), 'K7MP2Q');
+      expect(otpCodeFrom('abK7MP2Q', 'ab', 6, alphanumeric: true), 'K7MP2Q');
+    });
+
+    test('leaves the digits-only reading alone', () {
+      expect(otpCodeFrom('12a', '12', 6), '12');
+      expect(otpCodeFrom('12a', '12', 6, alphanumeric: false), '12');
+    });
+  });
+
+  group('pastedCode, letters and digits', () {
+    test('takes a code, however it was copied', () {
+      expect(pastedCode('Your code is K7MP2Q', 6, alphanumeric: true), 'K7MP2Q');
+      expect(pastedCode('k7m p2q', 6, alphanumeric: true), 'K7MP2Q');
+      expect(pastedCode('K7M-P2Q', 6, alphanumeric: true), 'K7MP2Q');
+      expect(pastedCode('000000', 6, alphanumeric: true), '000000');
+    });
+
+    test('refuses what is not a code', () {
+      expect(pastedCode('08031234567', 6, alphanumeric: true), isNull);
+      expect(pastedCode('hello', 6, alphanumeric: true), isNull);
+      expect(pastedCode('', 6, alphanumeric: true), isNull);
+    });
+
+    test('still refuses letters with digits only', () {
+      expect(pastedCode('K7MP2Q', 6), isNull);
+    });
+  });
 }

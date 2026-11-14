@@ -11,9 +11,9 @@ void main() {
     RegistryOfficer(name: 'Atambi Tony Joseph', designation: 'WITNESS'),
     RegistryOfficer(name: 'Archibong Bassey Charles', designation: 'DIRECTOR'),
     RegistryOfficer(name: 'Archibong Bassey Charles', designation: 'SHAREHOLDER'),
-    RegistryOfficer(name: 'Ingwe Unimke Richard', designation: 'DIRECTOR'),
+    RegistryOfficer(name: 'Okeke Obinna Chinedu', designation: 'DIRECTOR'),
     RegistryOfficer(
-        name: 'Ingwe Unimke Richard',
+        name: 'Okeke Obinna Chinedu',
         designation: 'PERSONS WITH SIGNIFICANT CONTROL'),
   ];
 
@@ -21,7 +21,7 @@ void main() {
     test('offers one row per person and drops the filing agent and witness', () {
       final rows = prefillKeyPeople(flitstack, 'NG');
       expect(rows.map((r) => r.name).toList(),
-          ['Archibong Bassey Charles', 'Ingwe Unimke Richard']);
+          ['Archibong Bassey Charles', 'Okeke Obinna Chinedu']);
     });
 
     test('keeps the classification that asks the most of them', () {

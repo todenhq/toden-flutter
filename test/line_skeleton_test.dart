@@ -41,7 +41,7 @@ void main() {
     final skeleton = tester.getSize(find.byType(LineSkeleton));
 
     await tester.pumpWidget(
-      _host(const Text('11 Bassey Street', style: _style, maxLines: 1)),
+      _host(const Text('11 Adebayo Street', style: _style, maxLines: 1)),
     );
     await tester.pump();
     final line = tester.getSize(find.byType(Text));

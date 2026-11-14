@@ -181,7 +181,7 @@ final RegExp _kWhitespace = RegExp(r'\s+');
 /// The client mirror of the server's composed-line rules, so what the applicant
 /// confirms is what the org later reads. A typed number REPLACES a differing
 /// picked one, because living at 8 when only 11 was listed is not
-/// "8, 11 Bassey Street"; a typed street the label does not carry leads.
+/// "8, 11 Adebayo Street"; a typed street the label does not carry leads.
 String displayAddressLine(AddressState address) {
   final number = _blankToNull(address.propertyNumber);
   final typed = _blankToNull(address.street);

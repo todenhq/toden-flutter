@@ -20,8 +20,10 @@ import '../config/capture_config.dart';
 import '../config/verification_config.dart';
 import '../config/liveness_audio.dart';
 import '../config/liveness_avatar_url.dart';
+import '../config/liveness_attempts.dart';
 import '../services/model_readiness.dart';
 import '../config/selfie_upload_wait.dart';
+import 'liveness_attempts_left.dart';
 import 'liveness_handover.dart';
 import 'liveness_immersive.dart';
 import '../config/theme.dart';
@@ -48,6 +50,7 @@ import '../liveness/native_liveness_recorder.dart';
 import '../providers/camera_provider.dart';
 import '../providers/verification_provider.dart';
 import '../providers/verification_state.dart';
+import '../providers/step_order.dart' show effectiveCountry;
 import '../providers/liveness_provider.dart';
 import '../services/api_service.dart';
 import '../services/image_service.dart';
@@ -251,6 +254,13 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
   bool _permissionDenied = false;
   // Ensures the camera_permission_denied error is reported to onError once.
   bool _cameraPermissionReported = false;
+  // The failed check's "2 attempts left." line, from the server's answer to
+  // the report of that failure (config/liveness_attempts.dart). Null until it
+  // answers, and whenever there is nothing to say.
+  String? _attemptsLeft;
+  // Counts failures reported, so an answer that lands after a later failure
+  // cannot put an older count on its panel.
+  int _failureReports = 0;
   // Show the "Allow camera access" primer before the OS prompt (Stripe-style),
   // unless the camera is already granted. The camera (and therefore the OS
   // prompt) only starts once the user taps "Grant access".
@@ -1586,6 +1596,36 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     notifier.nextStep();
   }
 
+  /// A failed check counts against the workflow's `maxLivenessAttempts`
+  /// (config/liveness_attempts.dart). Reported once, in the background: Try
+  /// Again never waits on it. The answer adds the attempts-left line to the
+  /// panel; a decline ends the flow on the declined screen.
+  Future<void> _reportFailedCheck() async {
+    final config = ref.read(verificationConfigProvider);
+    if (config.maxLivenessAttempts == null) return;
+    final report = ++_failureReports;
+    // No setState: the phase change that called this rebuilds the screen.
+    _attemptsLeft = null;
+    final notifier = ref.read(kYCNotifierProvider.notifier);
+    final flow = ref.read(kYCNotifierProvider);
+    final country = effectiveCountry(config, flow);
+    final line = await reportFailedLivenessCheck(
+      maxAttempts: config.maxLivenessAttempts,
+      report: () => notifier.api.reportLivenessFailed(
+        sessionId: flow.sessionId,
+        country: country.isEmpty ? null : country,
+      ),
+      onDeclined: (e) {
+        // A closed flow's notifier refuses writes: nobody is left to tell.
+        try {
+          notifier.endOnSessionRefusal(e);
+        } catch (_) {}
+      },
+    );
+    if (!mounted || report != _failureReports) return;
+    setState(() => _attemptsLeft = line);
+  }
+
   void _retryLiveness() {
     // Without this, the central copy set at completion would immediately
     // re-open the review the retake is trying to leave.
@@ -1820,6 +1860,8 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
         } else if (next.phase == LivenessPhase.complete &&
             next.selfieBase64 != null) {
           _handleComplete(next.selfieBase64!);
+        } else if (next.phase == LivenessPhase.failed) {
+          _reportFailedCheck();
         }
       }
     });
@@ -1962,6 +2004,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
       onFrameSize: _onFrameSize,
       litForDimRoom: _litForDimRoom,
       onRetry: livenessState.isFailed ? _retryLiveness : null,
+      attemptsLeft: livenessState.isFailed ? _attemptsLeft : null,
       onSelfieAccepted: _onSelfieAccepted,
       onRetakeSelfie: _retryLiveness,
       isUploadingSelfie: _isUploadingSelfie,
@@ -2154,6 +2197,10 @@ class _ActiveView extends StatelessWidget {
   final bool isDim;
   final bool isBright;
   final VoidCallback? onRetry;
+
+  /// The failed check's "1 attempt left." line, when the workflow limits
+  /// attempts and the server said how many are left.
+  final String? attemptsLeft;
   final VoidCallback onSelfieAccepted;
   final VoidCallback onRetakeSelfie;
   final bool isUploadingSelfie;
@@ -2210,6 +2257,7 @@ class _ActiveView extends StatelessWidget {
     required this.selfieRetryInfo,
     required this.onDismissUploadError,
     this.onRetry,
+    this.attemptsLeft,
     this.reviewReady = false,
   });
 
@@ -2290,6 +2338,10 @@ class _ActiveView extends StatelessWidget {
           ),
           textAlign: TextAlign.center,
         ),
+        if (attemptsLeft != null) ...[
+          const SizedBox(height: UiSpacing.sm),
+          LivenessAttemptsLeft(text: attemptsLeft!),
+        ],
         const SizedBox(height: UiSpacing.lg),
         UiButton(label: 'Try Again', onPressed: onRetry),
       ] else if (!immersive) ...[
@@ -2388,8 +2440,11 @@ class _ActiveView extends StatelessWidget {
               ],
             );
           },
-          footer: LivenessReassurance(visible: beforeCapture),
-          below: isFailed
+          // A failed check rests its panel on the bottom edge at its full
+          // height. Squeezed into the strip under the window it was cut off
+          // on a short phone; the window has nothing left to show, so the
+          // panel may cover its lower edge.
+          footer: isFailed
               // Its own surface: red text straight on the camera was lost.
               ? LivenessFrostedPanel(
                   child: Column(
@@ -2398,9 +2453,10 @@ class _ActiveView extends StatelessWidget {
                     children: below,
                   ),
                 )
-              : showsCount
-                  ? LivenessStepCount(step: step, total: total)
-                  : const SizedBox.shrink(),
+              : LivenessReassurance(visible: beforeCapture),
+          below: !isFailed && showsCount
+              ? LivenessStepCount(step: step, total: total)
+              : const SizedBox.shrink(),
         ),
       );
     }

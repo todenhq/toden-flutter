@@ -37,7 +37,7 @@ VerificationState _ready({AddressBookSwitches? book = _on, AddressBookReuse? reu
       addressBookReuse: reuse,
     );
 
-const _reuse = AddressBookReuse(grant: 'abr_1', entryId: 'adb_1', label: 'Bassey Street', area: 'Calabar');
+const _reuse = AddressBookReuse(grant: 'abr_1', entryId: 'adb_1', label: 'Adebayo Street', area: 'Calabar');
 
 void main() {
   group('addressBookOffer', () {
@@ -188,7 +188,7 @@ void main() {
     });
 
     test('reads a saved address by street and area', () {
-      expect(savedAddressLine(label: 'Bassey Street', area: 'Calabar South'), 'Bassey Street, Calabar South');
+      expect(savedAddressLine(label: 'Adebayo Street', area: 'Calabar South'), 'Adebayo Street, Calabar South');
       expect(savedAddressLine(label: null, area: 'Ikeja'), 'Ikeja');
     });
 
@@ -223,7 +223,7 @@ void main() {
     final now = DateTime.parse('2026-10-26T12:00:00Z');
     SavedAddress entry(String? status, int? daysAgo) => SavedAddress(
           entryId: 'adb_${status}_$daysAgo',
-          label: 'Bassey Street',
+          label: 'Adebayo Street',
           area: 'Calabar',
           countryCode: 'NG',
           tier: 'attested',
@@ -259,7 +259,7 @@ void main() {
       final listing = AddressBookListing.fromJson({
         'grant': 'abr_9',
         'addresses': [
-          {'entryId': 'adb_1', 'label': 'Bassey Street', 'presenceStatus': 'verified'},
+          {'entryId': 'adb_1', 'label': 'Adebayo Street', 'presenceStatus': 'verified'},
           {'label': 'No id'},
         ],
       });
@@ -270,7 +270,7 @@ void main() {
 
   group('offerTitleKey', () {
     test('greets the person when the host app named them', () {
-      expect(offerTitleKey('Richard'), 'address.book.offer.titleNamed');
+      expect(offerTitleKey('Chinedu'), 'address.book.offer.titleNamed');
     });
 
     test('keeps the plain title without a usable name', () {

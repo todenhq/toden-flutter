@@ -16,24 +16,24 @@ void main() {
     test('replaces a contradictory picked number with the typed one', () {
       expect(
         displayAddressLine(_base.copyWith(
-            label: '11 Bassey Street, Idim Ita, Calabar', propertyNumber: '8')),
-        '8 Bassey Street, Idim Ita, Calabar',
+            label: '11 Adebayo Street, Idim Ita, Calabar', propertyNumber: '8')),
+        '8 Adebayo Street, Idim Ita, Calabar',
       );
     });
 
     test('never doubles a number the label already leads with', () {
       expect(
         displayAddressLine(_base.copyWith(
-            label: '11 Bassey Street, Idim Ita', propertyNumber: '11')),
-        '11 Bassey Street, Idim Ita',
+            label: '11 Adebayo Street, Idim Ita', propertyNumber: '11')),
+        '11 Adebayo Street, Idim Ita',
       );
     });
 
     test('prefixes a number the label never carried', () {
       expect(
         displayAddressLine(_base.copyWith(
-            label: 'Bassey Street, Calabar', propertyNumber: '8')),
-        '8, Bassey Street, Calabar',
+            label: 'Adebayo Street, Calabar', propertyNumber: '8')),
+        '8, Adebayo Street, Calabar',
       );
     });
 

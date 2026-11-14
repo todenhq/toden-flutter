@@ -1,4 +1,4 @@
-import 'dart:async' show Timer;
+import 'dart:async' show Timer, unawaited;
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
@@ -17,6 +17,8 @@ import '../widgets/ui_button.dart';
 import 'mrz_scan_view.dart';
 import '../widgets/nfc_scanned_summary.dart';
 import 'nfc_screen_parts.dart';
+import 'nfc_intro_view.dart';
+import '../config/nfc_intro.dart';
 import '../i18n/text_scope.dart';
 import '../widgets/ui_spinner.dart';
 
@@ -53,7 +55,7 @@ class NfcScreen extends ConsumerStatefulWidget {
   ConsumerState<NfcScreen> createState() => _NfcScreenState();
 }
 
-enum _Phase { checking, scanning, reading, success, failed }
+enum _Phase { checking, intro, scanning, reading, success, failed }
 
 class _NfcScreenState extends ConsumerState<NfcScreen> {
   final _reader = createNfcChipReader();
@@ -110,14 +112,12 @@ class _NfcScreenState extends ConsumerState<NfcScreen> {
     Navigator.of(context, rootNavigator: true).maybePop();
   }
 
-  bool get _allowSkip => ref.read(verificationConfigProvider).nfc?.allowSkip ?? false;
+  bool get _allowSkip =>
+      ref.read(verificationConfigProvider).nfc?.allowSkip ?? false;
 
   @override
   void initState() {
     super.initState();
-    _skipRevealTimer = Timer(_skipRevealDelay, () {
-      if (mounted) setState(() => _skipRevealed = true);
-    });
     _checkAvailability();
   }
 
@@ -130,6 +130,19 @@ class _NfcScreenState extends ConsumerState<NfcScreen> {
       return;
     }
 
+    // The explanation first: nothing is read, and no camera opens, until the
+    // person has seen how to hold the document and pressed Continue. The read
+    // used to start here, which only worked for people who already knew a
+    // passport's chip is in its cover.
+    setState(() => _phase = _Phase.intro);
+  }
+
+  /// Continue on the intro: the skip timer starts now, then the read (or the
+  /// photo-page scan, when capture did not read the code).
+  Future<void> _begin() async {
+    _skipRevealTimer = Timer(_skipRevealDelay, () {
+      if (mounted) setState(() => _skipRevealed = true);
+    });
     // Document capture already read the MRZ off the photo page, so go straight
     // to the chip — no second scan of the same document.
     final known = ref.read(kYCNotifierProvider).mrzScan;
@@ -231,7 +244,21 @@ class _NfcScreenState extends ConsumerState<NfcScreen> {
     if (_phase == _Phase.checking) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: UiSpacing.xl),
-        child: Center(child: SizedBox.square(dimension: 24, child: UiSpinner())),
+        child:
+            Center(child: SizedBox.square(dimension: 24, child: UiSpinner())),
+      );
+    }
+
+    if (_phase == _Phase.intro) {
+      final state = ref.read(kYCNotifierProvider);
+      // Watched: a photo's code is read in the background and can land after
+      // this step opens, and the photo-page row then turns to done.
+      final codeRead = ref.watch(
+          kYCNotifierProvider.select((s) => s.mrzScan != null));
+      return NfcIntroView(
+        passport: isPassportId(state.selectedIdType?.key),
+        needsCode: !codeRead,
+        onContinue: () => unawaited(_begin()),
       );
     }
 
@@ -272,29 +299,33 @@ class _NfcScreenState extends ConsumerState<NfcScreen> {
         ] else ...[
           const NfcScanIllustration(),
           const SizedBox(height: UiSpacing.lg),
-          Text(
-            _phase == _Phase.reading
-                ? switch (_stage) {
-                    // Nothing detected yet: an instruction, and a catalogue text.
-                    NfcReadStage.waiting => context.verificationText('nfc.waiting'),
-                    // Android took the tag before our reader started and will
-                    // not hand it over again, so the ONLY thing that recovers
-                    // is a physical lift and replace. Without this case the
-                    // screen fell through to "Chip detected", which is the
-                    // opposite of the truth and told the user to keep doing
-                    // the one thing that could never work.
-                    NfcReadStage.repositionNeeded =>
-                      'Lift your document away from the phone, then place it '
-                          'back against the top edge.',
-                    // The chip IS connected: the risk now is the user lifting
-                    // the document mid-read, so say that it is working.
-                    _ => 'Chip detected — keep the document still until this '
-                        'finishes.',
-                  }
-                : 'We read your document’s details — the chip didn’t open.',
-            style: text.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
+          // The header already says where to hold the document, so the body
+          // says only what is happening. Waiting for the chip is the progress
+          // row's own line (nfc.waiting); the builder preview draws the same.
+          if (_phase != _Phase.reading || _stage != NfcReadStage.waiting) ...[
+            Text(
+              _phase == _Phase.reading
+                  ? switch (_stage) {
+                      // Android took the tag before our reader started and
+                      // will not hand it over again, so the ONLY thing that
+                      // recovers is a physical lift and replace. Without this
+                      // case the screen fell through to "Chip found", the
+                      // opposite of the truth.
+                      NfcReadStage.repositionNeeded =>
+                        'Lift your document away from the phone, then place '
+                            'it back against the top edge.',
+                      // The chip IS connected: the risk now is the user lifting
+                      // the document mid-read, so say that it is working.
+                      _ => 'Chip found. Keep still until this finishes.',
+                    }
+                  : 'We read your document’s details — the chip didn’t open.',
+              style: _phase == _Phase.reading
+                  ? text.bodySmall
+                      .copyWith(color: context.myazaColors.textSecondary)
+                  : text.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+          ],
           if (scan != null) ...[
             const SizedBox(height: UiSpacing.md),
             NfcScannedSummary(scan: scan),
@@ -306,8 +337,7 @@ class _NfcScreenState extends ConsumerState<NfcScreen> {
         ],
         if (_error != null) ...[
           const SizedBox(height: UiSpacing.sm),
-          Text(_error!,
-              style: text.bodySmall.copyWith(color: UiColors.error)),
+          Text(_error!, style: text.bodySmall.copyWith(color: UiColors.error)),
         ],
         if (_phase == _Phase.failed) ...[
           const SizedBox(height: UiSpacing.lg),

@@ -1,6 +1,7 @@
 import 'business_variants.dart';
 import 'customisable_texts.dart';
 import 'defaults_address_book.dart';
+import 'defaults_contact_attempts.dart';
 import 'defaults_business_documents.dart';
 import 'defaults_country_poa.dart';
 import 'defaults_presence_guidance.dart';
@@ -84,6 +85,7 @@ String resolveText(
       kCountryPoaTexts[key] ??
       kPresenceGuidanceTexts[key] ??
       kWelcomeVariantTexts[key] ??
+      kContactAttemptsTexts[key] ??
       fallback ??
       key;
   return fillPlaceholders(template, vars ?? const {})

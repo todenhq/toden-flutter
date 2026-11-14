@@ -45,7 +45,7 @@ class _Api extends VerificationApiService {
   @override
   Future<AddressBookListing> addressBookAddresses(String challengeId, String code) async =>
       const AddressBookListing(grant: 'abr_1', addresses: [
-        SavedAddress(entryId: 'adb_1', label: 'Bassey Street', area: 'Calabar', presenceStatus: 'verified'),
+        SavedAddress(entryId: 'adb_1', label: 'Adebayo Street', area: 'Calabar', presenceStatus: 'verified'),
       ]);
 
   @override
@@ -85,7 +85,7 @@ List<Override> _overrides(_Api api, {String? email = 'ada@example.com'}) => [
       addressBookProvider.overrideWith(AddressBookNotifier.new),
     ];
 
-const _reuse = AddressBookReuse(grant: 'abr_1', entryId: 'adb_1', label: 'Bassey Street', area: 'Calabar');
+const _reuse = AddressBookReuse(grant: 'abr_1', entryId: 'adb_1', label: 'Adebayo Street', area: 'Calabar');
 
 Widget _themed(ProviderContainer container, Widget home) => UncontrolledProviderScope(
       container: container,
@@ -165,7 +165,7 @@ void main() {
     addTearDown(c.dispose);
     c.read(addressBookProvider.notifier).listed(
       'abr_1',
-      const [SavedAddress(entryId: 'adb_1', label: 'Bassey Street', area: 'Calabar')],
+      const [SavedAddress(entryId: 'adb_1', label: 'Adebayo Street', area: 'Calabar')],
       flowRunsPresence: false,
     );
     expect(c.read(addressBookProvider).picked?.entryId, 'adb_1');
@@ -189,7 +189,7 @@ void main() {
     await tester.enterText(find.byType(TextField), '000000');
     await tester.pumpAndSettle();
     expect(container.read(addressBookProvider).phase, AddressBookPhase.pick);
-    expect(find.text('Bassey Street, Calabar'), findsOneWidget);
+    expect(find.text('Adebayo Street, Calabar'), findsOneWidget);
     expect(find.text('Presence confirmed'), findsOneWidget);
 
     await tester.tap(find.text('Use this address'));

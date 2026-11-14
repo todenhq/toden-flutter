@@ -172,7 +172,7 @@ class _MrzScanViewState extends ConsumerState<MrzScanView> {
     if (!camera.isReady || controller == null) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: UiSpacing.xl),
-        child: Center(child: UiSpinner()),
+        child: Center(child: SizedBox.square(dimension: 24, child: UiSpinner())),
       );
     }
 
@@ -186,7 +186,7 @@ class _MrzScanViewState extends ConsumerState<MrzScanView> {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (busy) ...[
-            const Center(child: UiSpinner()),
+            const Center(child: SizedBox.square(dimension: 24, child: UiSpinner())),
             const SizedBox(height: UiSpacing.md),
           ],
           Text(message, style: text.bodyMedium, textAlign: TextAlign.center),

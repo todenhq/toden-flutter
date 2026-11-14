@@ -11,9 +11,11 @@ import '../nfc/emrtd_active_auth.dart';
 import '../utils/map_tiles.dart' show MapLatLng;
 import '../utils/resolve_url.dart' show rebaseServerAssets;
 import 'api_business.dart';
+import 'api_liveness.dart';
 
 // Re-exported so callers keep a single view of the HTTP contract.
 export 'api_business.dart';
+export 'api_liveness.dart';
 export 'sdk_branding.dart';
 import 'sdk_branding.dart';
 import '../config/ownership_pending.dart' show summaryOwnershipPending;
@@ -31,7 +33,7 @@ part 'api_device.dart';
 // which SDK versions are in the wild and gate breaking API changes by version.
 // Keep in sync with pubspec.yaml `version`.
 
-const String kSdkVersion = '4.0.1';
+const String kSdkVersion = '4.2.0';
 
 // ─── Exception ────────────────────────────────────────────────────────────────
 
@@ -1676,17 +1678,54 @@ class VerificationApiService {
   }
 
   /// Checks an OTP against a challenge. Returns the single-use proof `token`.
+  /// Check the typed code. [sessionId] names the attempt, as the web SDK
+  /// does, so the server can charge the step when the check completes (and,
+  /// on a workflow that declines on the last attempt, decline the right one).
   Future<ContactCheckResponse> contactCheck({
     required String challengeId,
     required String code,
+    String? sessionId,
+    String? country,
   }) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         '/api/v1/contact/check',
-        data: {'challengeId': challengeId, 'code': code},
+        data: {
+          'challengeId': challengeId,
+          'code': code,
+          if (sessionId != null) 'sessionId': sessionId,
+          if (country != null && country.length == 2) 'country': country,
+        },
         options: Options(contentType: 'application/json'),
       );
       return ContactCheckResponse.fromJson(response.data!);
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+  }
+
+  // ── Liveness attempts — one failed check (config/liveness_attempts.dart) ──
+
+  /// Reports one failed liveness check, so a workflow's `maxLivenessAttempts`
+  /// can decline the attempt at the limit. [sessionId] names the attempt;
+  /// [country] is the flow's ISO-2 country, for the liveness price. At the
+  /// limit the server answers 409 `session_declined` (reason
+  /// `liveness_attempts_exceeded`), thrown like any refusal. Never retried:
+  /// each call is one failure.
+  Future<LivenessFailedResponse> reportLivenessFailed({
+    String? sessionId,
+    String? country,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/api/kyc/liveness/failed',
+        data: {
+          if (sessionId != null) 'sessionId': sessionId,
+          if (country != null && country.length == 2) 'country': country,
+        },
+        options: Options(contentType: 'application/json'),
+      );
+      return LivenessFailedResponse.fromJson(response.data);
     } on DioException catch (e) {
       throw _mapDioError(e);
     }
@@ -1807,10 +1846,21 @@ Map<String, dynamic>? errorDetailsFrom(int statusCode, Map<String, dynamic> data
       if (data['missingGroups'] is List) 'missingGroups': data['missingGroups'],
     };
   }
+  // 400 invalid_code says how many tries the code has left; 0 means it is used
+  // up and the step disables its field (services/contact_errors.dart).
+  if (statusCode == 400 && data['attemptsRemaining'] is num) {
+    return {'attemptsRemaining': (data['attemptsRemaining'] as num).toInt()};
+  }
+  // 409 session_declined names why (`reasonCode`), which picks the declined
+  // screen's words (config/session_declined.dart).
+  if (statusCode == 409 && data['reasonCode'] is String) return {'reasonCode': data['reasonCode']};
   // 400 invalid_media names the capture it refused (`mediaKey`), which is
   // where Go back lands (config/submit_recovery.dart). Dropped, a bad upload
   // always fell back to the step before submission.
   if (statusCode == 400 && data['mediaKey'] is String) return {'mediaKey': data['mediaKey']};
+  // 400 invalid_destination from a work-address-only email step carries
+  // `reason: corporate_email_required` (services/contact_errors.dart).
+  if (statusCode == 400 && data['reason'] is String) return {'reason': data['reason']};
   // 403 feature_disabled carries `feature` (document_verification | gov_db_check).
   // 403 id_type_not_allowed carries `country`, `idType`, `reason`.
   if (statusCode == 403) {

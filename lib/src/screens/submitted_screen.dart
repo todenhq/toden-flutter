@@ -9,7 +9,6 @@ import '../config/verification_result.dart';
 import '../config/result_copy.dart';
 import '../config/scope.dart';
 import '../config/selfie_upload_wait.dart';
-import '../config/session_cancelled.dart';
 import '../config/theme.dart';
 import '../config/contact_recovery.dart';
 import '../config/submit_recovery.dart';
@@ -193,14 +192,11 @@ class _SubmittedScreenState extends ConsumerState<SubmittedScreen> {
       });
     } on VerificationApiException catch (e) {
       if (!mounted) return;
-      // An organisation cancelled this verification: no Try again, no Go back.
-      // The flow swaps to the dedicated cancelled screen, which reports
-      // `session_cancelled` to onError once (config/session_cancelled.dart).
-      final cancelled = sessionCancelledMessageFor(e);
-      if (cancelled != null) {
-        ref.read(kYCNotifierProvider.notifier).markSessionCancelled(cancelled);
-        return;
-      }
+      // An organisation cancelled this verification, or the server declined
+      // it: no Try again, no Go back. The flow swaps to the dedicated screen,
+      // which reports `session_cancelled` / `session_declined` to onError once
+      // (config/session_cancelled.dart, config/session_declined.dart).
+      if (ref.read(kYCNotifierProvider.notifier).endOnSessionRefusal(e)) return;
       // The saved address could not be used (grant spent or expired, or its
       // presence verdict too old): the offer comes back over the address step
       // rather than ending on an error.

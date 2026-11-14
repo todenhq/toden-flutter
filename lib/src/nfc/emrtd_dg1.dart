@@ -14,9 +14,9 @@ import 'emrtd_tlv.dart';
 // The camera scan is a GUESS at the same characters and is not a safe
 // substitute for display. Measured on a real Nigerian passport: the on-device
 // recogniser read the first '<' of the '<<' surname separator as 'K', so
-// `INGWE<<RICHARD<UNIMKE` arrived as `INGWEK<RICHARD...`. The name split then
+// `OKEKE<<CHINEDU<OBINNA` arrived as `OKEKEK<CHINEDU...`. The name split then
 // never fired at the surname boundary and landed in the trailing filler,
-// producing "KKKK INGWEK RICHARD UNIMKE" under a caption promising we had read
+// producing "KKKK OKEKEK CHINEDU OBINNA" under a caption promising we had read
 // the secure chip.
 //
 // TD3 carries NO check digit over the name field (only line 2 is protected), so

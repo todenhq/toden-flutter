@@ -11,6 +11,7 @@ import '../services/api_service.dart';
 import '../services/nfc_reader.dart';
 import '../services/mrz_parser.dart';
 import '../config/multi_id.dart';
+import '../config/session_declined.dart' show SessionDeclined;
 
 // ─── KYC flow step ────────────────────────────────────────────────────────────
 //
@@ -238,6 +239,12 @@ class VerificationState {
   /// words the cancelled screen shows. Non-null replaces the whole flow with
   /// that screen; nothing in the flow clears it (config/session_cancelled.dart).
   final String? sessionCancelledMessage;
+
+  /// Set once the server declines this session (409 `session_declined`, for
+  /// a used-up contact code on a step that declines on its last attempt): the
+  /// words the declined screen shows. Non-null replaces the whole flow with
+  /// that screen; nothing in the flow clears it (config/session_declined.dart).
+  final SessionDeclined? sessionDeclined;
 
   /// A KYB application whose business half already committed, resumed before
   /// the applicant's own verification went through. The business submission
@@ -474,6 +481,7 @@ class VerificationState {
     this.sessionId,
     this.sessionUrl,
     this.sessionCancelledMessage,
+    this.sessionDeclined,
     this.resumedApplication,
     this.businessCheck = const BusinessCheckState(),
     this.selectedCountry,
@@ -546,6 +554,7 @@ class VerificationState {
     String? sessionId,
     String? sessionUrl,
     String? sessionCancelledMessage,
+    SessionDeclined? sessionDeclined,
     ResumedApplication? resumedApplication,
     BusinessCheckState? businessCheck,
     String? selectedCountry,
@@ -638,6 +647,7 @@ class VerificationState {
       sessionUrl: sessionUrl ?? this.sessionUrl,
         sessionCancelledMessage:
             sessionCancelledMessage ?? this.sessionCancelledMessage,
+        sessionDeclined: sessionDeclined ?? this.sessionDeclined,
         resumedApplication: resumedApplication ?? this.resumedApplication,
         businessCheck: businessCheck ?? this.businessCheck,
         selectedCountry: selectedCountry ?? this.selectedCountry,

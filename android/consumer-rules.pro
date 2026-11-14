@@ -11,3 +11,12 @@
 -keep class * extends androidx.work.ListenableWorker {
     public <init>(android.content.Context, androidx.work.WorkerParameters);
 }
+
+# ML Kit (document detection, the MRZ and text reads, face detection) starts
+# from component registrars it builds by reflection, through their no-argument
+# constructors. R8 in a release build removed those constructors ("Could not
+# instantiate com.google.mlkit.vision.text.internal.TextRegistrar ...
+# NoSuchMethodException <init> []"), ML Kit never started, and every scan found
+# nothing while the camera ran: no document detected, no MRZ, no face.
+-keep class * implements com.google.firebase.components.ComponentRegistrar { <init>(); }
+-keep class com.google.mlkit.**.*Registrar { <init>(); }
