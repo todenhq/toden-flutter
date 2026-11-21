@@ -18,18 +18,17 @@ import 'liveness_cutout.dart';
 // errors keep the colours they have always had and stay readable.
 //
 // The window is centred across, and on a short screen sits a little below the
-// centre so the gesture picture above it keeps a readable size
-// (livenessWindowDrop). The "centre your face" guidance is judged against the
+// centre so the instruction above it keeps its room (livenessWindowDrop). The "centre your face" guidance is judged against the
 // window wherever it sits (faceWindowFor is given the same drop).
 // The window's size is worked out HERE, from the box this frame is actually
 // given, and handed to whoever draws on it or judges the face against it: a
 // second measurement taken from the screen disagrees with this one whenever
 // the SDK does not have the whole display (split view, a host that insets it).
 
-/// How much of the tint covers the blurred feed in a well-lit room. A real
+/// How much of the tint covers the blurred feed in a well-lit room. A light
 /// blur under a thin tint: the blur moves the eye to the window, the tint only
-/// evens the background out.
-const double kLivenessTint = 0.16;
+/// evens the background out. The web SDK's LIVENESS_TINT.
+const double kLivenessTint = 0.08;
 
 /// The tint in a dark room. The step is lit so the SCREEN lights the face,
 /// and a thin tint over a dark room is a dark screen: this hands most of the
@@ -40,7 +39,9 @@ const double kLivenessDimRoomTint = 0.66;
 /// it then has to do the blur's job of quietening the room.
 const double kLivenessFlatTint = 0.74;
 
-const double _kBlurSigma = 11;
+/// The blur round the window: light, never heavy (web 2026-11-17, `blur(2px)`;
+/// a CSS blur's length is the Gaussian's standard deviation, as a sigma is).
+const double kLivenessBlurSigma = 2;
 
 /// The back and close buttons the shell draws over the frame: the gap above
 /// them, and the height they take with the gaps around them.
@@ -67,12 +68,9 @@ class LivenessImmersiveFrame extends StatelessWidget {
   /// Given the window's size; its own centre is placed on the window's.
   final Widget Function(Size window) cutout;
 
-  /// The instruction, resting just above the window, and over it whatever is
-  /// narrow enough to stand BETWEEN the back and close buttons (the gesture
-  /// picture). Given the height there is under those buttons (`room`) and the
-  /// height up to their top (`reach`): what is wide keeps to the first, what
-  /// is narrow and centred may use the second.
-  final Widget Function(double room, double reach) above;
+  /// The instruction, resting just above the window. Given the height there
+  /// is under the back and close buttons.
+  final Widget Function(double room) above;
 
   /// What starts just below the window: the step count, or the retry.
   final Widget below;
@@ -118,7 +116,6 @@ class LivenessImmersiveFrame extends StatelessWidget {
         final aboveBottom = centre.dy - half - 20;
         final room =
             math.max(0.0, aboveBottom - insets.top - _kControlsBand);
-        final reach = math.max(0.0, aboveBottom - aboveTop);
         final contentWidth =
             math.max(0.0, size.width - UiSpacing.lg * 2);
         return Stack(
@@ -143,8 +140,8 @@ class LivenessImmersiveFrame extends StatelessWidget {
                   if (!blurs) return fill;
                   return BackdropFilter(
                     filter: ImageFilter.blur(
-                      sigmaX: _kBlurSigma,
-                      sigmaY: _kBlurSigma,
+                      sigmaX: kLivenessBlurSigma,
+                      sigmaY: kLivenessBlurSigma,
                     ),
                     child: fill,
                   );
@@ -168,7 +165,7 @@ class LivenessImmersiveFrame extends StatelessWidget {
                 alignment: Alignment.bottomCenter,
                 child: SizedBox(
                   width: contentWidth,
-                  child: above(room, reach),
+                  child: above(room),
                 ),
               ),
             ),

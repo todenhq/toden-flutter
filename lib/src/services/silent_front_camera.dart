@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 
+import '../liveness/depth_frame.dart';
 import 'image_service.dart';
 
 // ─── Silent capture: one headless front-camera frame ─────────────────────────
@@ -54,6 +55,8 @@ Future<Uint8List?> _grab(
   bool Function() cancelled,
   void Function(CameraController) opened,
 ) async {
+  // Never under an iPhone depth frame, which holds the same front camera.
+  await depthCameraFree();
   final cameras = await availableCameras();
   final front = cameras.where((c) => c.lensDirection == CameraLensDirection.front);
   if (front.isEmpty || cancelled()) return null;

@@ -104,7 +104,7 @@ void main() {
             onWindow?.call(window);
             return SizedBox.fromSize(size: window);
           },
-          above: (room, _) {
+          above: (room) {
             onRoom?.call(room);
             // Taller than any phone's room above the window.
             return const SizedBox(height: 400, child: Placeholder());
@@ -144,7 +144,7 @@ void main() {
       ));
       expect(tester.takeException(), isNull);
       expect(room, isNotNull);
-      expect(room!, lessThan(kLivenessRoomForGesture));
+      expect(room!, lessThan(kLivenessRoomForLightingNote));
       // Nothing is drawn above the top of the back and close buttons: the
       // block may stand between them, never over the status bar.
       final top = tester.getTopLeft(find.byType(Placeholder)).dy;
@@ -167,14 +167,9 @@ void main() {
     expect(kLivenessScanHoldMs, lessThanOrEqualTo(1000));
   });
 
-  test('the gesture picture is full size with room, shrinks with less, and never goes into the pill', () {
-    expect(livenessGestureSize(220, 76), 76);
-    expect(livenessGestureSize(150, 76), 76);
-    expect(livenessGestureSize(120, 76), 56);
-    expect(livenessGestureSize(90, 76), kLivenessGestureMinSize);
-    expect(livenessGestureSize(0, 76), kLivenessGestureMinSize);
-    expect(livenessGestureSize(220, 52), kLivenessGestureMinSize);
-    expect(livenessGestureSize(170, 96), 96);
-    expect(livenessGestureSize(140, 96), 74);
+  test('nothing but the instruction stands above the window', () {
+    expect(livenessAboveHeight(40), kLivenessInstructionRoom);
+    expect(livenessAboveHeight(96), 96);
+    expect(livenessAboveHeight(180), 180);
   });
 }

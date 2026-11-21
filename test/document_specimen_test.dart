@@ -3,7 +3,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:toden_flutter/src/config/document_specimen.dart';
 import 'package:toden_flutter/src/widgets/document_ghost.dart';
-import 'package:toden_flutter/src/widgets/turn_over_prompt.dart';
 import 'package:vector_graphics_compiler/vector_graphics_compiler.dart' as vg;
 
 const _base = SpecimenInput(
@@ -220,35 +219,99 @@ void main() {
     });
   });
 
-  testWidgets('the turn-over prompt shows the document and moves on',
-      (tester) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    var done = false;
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: TurnOverPrompt(
-          aspect: 1.586,
-          accent: const Color(0xFF5645F5),
-          subject: const DocumentSpecimenSubject(
-            idType: 'pvc',
-            title: "Voter's Card",
-            country: 'Nigeria',
-            side: SpecimenSide.back,
-          ),
-          onDone: () => done = true,
-        ),
-      ),
-    ));
-    await tester.pump();
-    expect(find.text('Now turn it over'), findsOneWidget);
-    expect(find.text("Hold the back of your Voter's Card inside the frame."),
-        findsOneWidget);
-    expect(find.byType(SvgPicture), findsOneWidget);
+  group('the turn-over, in the frame', () {
+    const back = DocumentSpecimenSubject(
+      idType: 'pvc',
+      title: "Voter's Card",
+      country: 'Nigeria',
+      side: SpecimenSide.back,
+    );
 
-    await tester.tap(find.text("I've turned it over"));
-    await tester.pump(const Duration(seconds: 2));
-    expect(done, isTrue);
+    Future<void> pumpGhost(WidgetTester tester, {required bool holding}) =>
+        tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+            body: DocumentGhost(
+              key: const ValueKey(true),
+              aspect: 1.586,
+              accent: const Color(0xFF5645F5),
+              subject: back,
+              turnFrom: SpecimenSide.front,
+              holding: holding,
+            ),
+          ),
+        ));
+
+    String drawn(WidgetTester tester) {
+      final picture = tester.widget<SvgPicture>(find.byType(SvgPicture));
+      return (picture.bytesLoader as SvgStringLoader).provideSvg(null);
+    }
+
+    testWidgets('shows the side just taken, then turns over where it stands',
+        (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await pumpGhost(tester, holding: true);
+      await tester.pump();
+      final front = documentSpecimen(SpecimenInput(
+        kind: specimenKind('pvc'),
+        title: "Voter's Card",
+        country: 'Nigeria',
+        side: SpecimenSide.front,
+        aspect: 1.586,
+        accent: '#5645f5',
+        sans: 'sans-serif',
+        mono: 'monospace',
+      ));
+      // One card, the front, at the frame's own place and size.
+      expect(find.byType(SvgPicture), findsOneWidget);
+      expect(drawn(tester), front);
+      final placed = tester.getRect(find.byType(SvgPicture));
+
+      await tester.pump(kGhostTurnDelay);
+      await tester.pump(kGhostTurn);
+      final state = tester.state<DocumentGhostState>(find.byType(DocumentGhost));
+      expect(state.turned, isTrue);
+      expect(drawn(tester), isNot(front));
+      expect(tester.getRect(find.byType(SvgPicture)), placed);
+    });
+
+    testWidgets('stays while the turn-over holds, and its time starts after',
+        (tester) async {
+      await pumpGhost(tester, holding: true);
+      await tester.pump(kDocumentGhostDuration + const Duration(seconds: 1));
+      final state = tester.state<DocumentGhostState>(find.byType(DocumentGhost));
+      expect(state.leaving, isFalse, reason: 'held through the turn-over');
+
+      // The back's scan starts: it stays for its own time, then fades.
+      await pumpGhost(tester, holding: false);
+      await tester.pump(kDocumentGhostDuration - const Duration(seconds: 1));
+      expect(state.leaving, isFalse);
+      await tester.pump(const Duration(seconds: 1));
+      expect(state.leaving, isTrue);
+      await tester.pump(kDocumentGhostFade);
+    });
+
+    testWidgets('with less motion it is the back at once', (tester) async {
+      await tester.pumpWidget(const MaterialApp(
+        home: MediaQuery(
+          data: MediaQueryData(disableAnimations: true),
+          child: Scaffold(
+            body: DocumentGhost(
+              aspect: 1.586,
+              accent: Color(0xFF5645F5),
+              subject: back,
+              turnFrom: SpecimenSide.front,
+              holding: true,
+            ),
+          ),
+        ),
+      ));
+      await tester.pump();
+      await tester.pump();
+      expect(drawn(tester), contains('svg'));
+      final front = specimenSvg(back, SpecimenSide.front, 1.586, const Color(0xFF5645F5));
+      expect(drawn(tester), isNot(front));
+    });
   });
 }

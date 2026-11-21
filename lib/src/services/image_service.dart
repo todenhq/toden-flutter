@@ -410,6 +410,88 @@ Uint8List _selfieStreamStillWorker(_SelfieParams p) {
 Future<Uint8List> processSelfieStreamStill(Uint8List bytes, {SelfieFace? cut}) =>
     compute(_selfieStreamStillWorker, _SelfieParams(bytes, cut));
 
+// ─── The selfie's camera frame, for the review ───────────────────────────────
+//
+// The whole frame the selfie was cut from, shown on the full-screen review so
+// it looks as the camera did (liveness/selfie_review.dart). Held in memory and
+// never uploaded, so it is sized for the screen, not for the face match.
+
+/// The review frame's width at most.
+const int kSelfieSceneMaxWidth = 720;
+
+/// An encoded review frame and its size.
+class SelfieSceneImage {
+  final Uint8List jpeg;
+  final int width;
+  final int height;
+  const SelfieSceneImage(this.jpeg, this.width, this.height);
+}
+
+SelfieSceneImage _sceneOf(img.Image im) {
+  final shown = im.width > kSelfieSceneMaxWidth
+      ? img.copyResize(im,
+          width: kSelfieSceneMaxWidth, interpolation: img.Interpolation.average)
+      : im;
+  return SelfieSceneImage(
+    Uint8List.fromList(img.encodeJpg(shown, quality: 80)),
+    shown.width,
+    shown.height,
+  );
+}
+
+SelfieSceneImage? _sceneFrameWorker(_SelfieFrameParams p) {
+  final clean = Uint8List.fromList(p.bytes);
+  final im = img.Image.fromBytes(
+    width: p.width,
+    height: p.height,
+    bytes: clean.buffer,
+    rowStride: p.bytesPerRow,
+    order: p.bgra ? img.ChannelOrder.bgra : img.ChannelOrder.rgba,
+    numChannels: 4,
+  );
+  return _sceneOf(p.mirror ? img.flipHorizontal(im) : im);
+}
+
+SelfieSceneImage? _sceneStillWorker(Uint8List bytes) {
+  final im = img.decodeImage(bytes);
+  return im == null ? null : _sceneOf(img.bakeOrientation(im));
+}
+
+/// The review frame from a stream frame (iOS BGRA, already selfie-mirrored).
+/// Null when it cannot be encoded: the review then shows the selfie itself.
+Future<SelfieSceneImage?> processSelfieSceneFrame({
+  required Uint8List bytes,
+  required int width,
+  required int height,
+  required int bytesPerRow,
+}) async {
+  try {
+    return await compute(
+      _sceneFrameWorker,
+      _SelfieFrameParams(
+        bytes: bytes,
+        width: width,
+        height: height,
+        bytesPerRow: bytesPerRow,
+        bgra: true,
+        mirror: false,
+      ),
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
+/// The review frame from a still (Android's native still, upright and
+/// mirrored). Null when it cannot be decoded.
+Future<SelfieSceneImage?> processSelfieSceneStill(Uint8List bytes) async {
+  try {
+    return await compute(_sceneStillWorker, bytes);
+  } catch (_) {
+    return null;
+  }
+}
+
 // ─── Card-region crop ─────────────────────────────────────────────────────────
 
 class _CropCardParams {

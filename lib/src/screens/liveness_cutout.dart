@@ -10,36 +10,22 @@ const double kLivenessCutoutMinWidth = 200;
 /// A face is taller than it is wide.
 const double kLivenessCutoutAspect = 1.32;
 
-/// The room above the window at which the gesture picture is drawn at its full
-/// size (and, with 70 more, the long lighting note fits above it).
-const double kLivenessRoomForGesture = 150;
+/// The room above the window at which the long lighting note fits over the
+/// instruction: the note and its gap (78) and the instruction's pill (50).
+const double kLivenessRoomForLightingNote = 128;
 
-/// The gesture picture's smallest side. Under this the drawing stops reading.
-const double kLivenessGestureMinSize = 56;
+/// What the instruction's pill needs of the room, on two lines.
+const double kLivenessInstructionRoom = 66;
 
-/// What the instruction's pill and the gap under the picture take of the room.
-const double kLivenessGesturePillRoom = 66;
-
-/// The gesture picture at its full size, where there is the room for it.
-const double kLivenessGestureFullSize = 96;
-
-/// The side of the gesture picture for the room it has: from the top of the
-/// back and close buttons (it stands between them) down to the window. The picture
-/// ALWAYS stands on its own above the instruction: on a short phone it used to
-/// move inside the instruction's pill, where it was 28 points across and easy
-/// to miss beside the words. It now shrinks with the room instead, down to
-/// [kLivenessGestureMinSize], and never past [full].
-double livenessGestureSize(double room, double full) {
-  final fit = (room - kLivenessGesturePillRoom).floorToDouble();
-  return fit.clamp(kLivenessGestureMinSize, full < kLivenessGestureMinSize ? kLivenessGestureMinSize : full).toDouble();
-}
-
-/// The height of the block above the window. On a phone too short for even the
-/// smallest picture and its instruction, the block keeps that height and runs
-/// over the window's top edge (the hair, not the face) instead of shrinking
-/// the picture further.
+/// The height of the block above the window. On a phone too short for the
+/// instruction, the block keeps that height and runs over the window's top
+/// edge (the hair, not the face) instead of cutting the words off.
+///
+/// Nothing but the instruction stands here: a gesture is asked for in words,
+/// and the face icon that acts it out is drawn inside the window
+/// (liveness_gesture_narrator.dart).
 double livenessAboveHeight(double room) =>
-    math.max(room, kLivenessGestureMinSize + kLivenessGesturePillRoom);
+    math.max(room, kLivenessInstructionRoom);
 
 /// The face cutout: a tall rectangle whose ends are fully round. As wide as
 /// the frame allows, and bounded by the height so the instruction above and
@@ -56,18 +42,17 @@ Size livenessCutout(Size frame) {
 }
 
 // The window sits a little BELOW the centre on a short screen, and only by
-// what the block above it is short of. That block is the gesture picture and
-// the instruction. The picture is narrow and centred, so it rises into the gap
-// BETWEEN the back and close buttons (LivenessImmersiveFrame); only the
-// instruction, which is wide, has to stay under them. The window used to be
-// dropped to fit the picture under the buttons too, which on a short phone
-// pushed the face well below the middle and still left a small picture.
-// The face is judged against the window wherever it sits (faceWindowFor takes
-// the drop). Mirrors windowDrop in the web and React Native SDKs.
+// what the block above it is short of. The face is judged against the window
+// wherever it sits (faceWindowFor takes the drop). Mirrors windowDrop in the
+// web and React Native SDKs.
+//
+// The room was sized when a gesture picture stood over the instruction: a gap
+// (8), the picture on its plate (108), a gap (8), the instruction (46) and the
+// gap over the window (20). No SDK has the picture any more; the number is
+// kept so the window is in the same place in all three, and it changes in all
+// three together.
 
-/// The room wanted above the window, from the top inset down: the gap over the
-/// picture (8), the picture on its plate (108), the gap under it (8), the
-/// instruction (46) and the gap over the window (20).
+/// The room wanted above the window, from the top inset down.
 const double kLivenessWindowTopRoom = 190;
 
 /// What must stay below the window: the gap under it, the retry panel a failed

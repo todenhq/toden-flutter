@@ -78,6 +78,7 @@ Map<String, dynamic> livenessIntegrityClaim({
   required String mode,
   List<String>? challenges,
   List<Map<String, Object>>? promptTimes,
+  String? directionPlanId,
   FlashResult? flash,
   int faceGlitches = 0,
   Map<String, dynamic>? video,
@@ -88,6 +89,9 @@ Map<String, dynamic> livenessIntegrityClaim({
     if (challenges != null) 'challenges': challenges,
     // When each gesture prompt appeared and passed (prompt_timeline.dart).
     if (promptTimes != null) 'promptTimes': promptTimes,
+    // The head-direction plan Core picked for this attempt
+    // (direction_plan.dart). Absent when the SDK picked its own.
+    if (directionPlanId != null) 'directionPlanId': directionPlanId,
     'faceGlitches': faceGlitches,
     // Whether the recording reached the server, and why not: add-only codes
     // shared with the web and React Native SDKs.

@@ -6,7 +6,52 @@ import '../i18n/translate.dart' show TextFn;
 // its own after a steady moment, and the server's liveness model does the
 // judging. Never part of the random gesture pool. Each value's `name` is its
 // wire name in the liveness claim (`integrity.liveness.challenges`).
-enum LivenessChallenge { nod, turn, blink, smile, hold }
+//
+// The head directions (the `directions` gesture set) each ask for one way:
+// turnLeft, turnRight, lookUp, lookDown. Left and right are the PERSON's own,
+// which on the mirrored preview are the screen's left and right too.
+enum LivenessChallenge {
+  nod,
+  turn,
+  blink,
+  smile,
+  hold,
+  turnLeft,
+  turnRight,
+  lookUp,
+  lookDown,
+}
+
+/// Which gestures the camera asks for (`livenessGestureSet`):
+///
+///   directions  two to four of turn left, turn right, look up and look down
+///               (`livenessDirectionCount`, 3 unless set), always with a head
+///               turn, in an order picked for the session.
+///   classic     two or three of nod, turn, blink and smile.
+///
+/// Unset is `classic`, so a workflow saved before the setting keeps what it
+/// had. The web SDK's liveness/types.ts.
+const String kGestureSetDirections = 'directions';
+
+/// The four head directions, in the pool's order.
+const List<LivenessChallenge> kDirectionChallenges = [
+  LivenessChallenge.turnLeft,
+  LivenessChallenge.turnRight,
+  LivenessChallenge.lookUp,
+  LivenessChallenge.lookDown,
+];
+
+/// Whether [type] is one of the head directions.
+bool isDirectionChallenge(LivenessChallenge? type) =>
+    type != null && kDirectionChallenges.contains(type);
+
+/// The head direction with this wire name, or null.
+LivenessChallenge? directionFromName(Object? name) {
+  for (final d in kDirectionChallenges) {
+    if (d.name == name) return d;
+  }
+  return null;
+}
 
 // ─── Liveness phase state machine ─────────────────────────────────────────────
 
@@ -39,12 +84,12 @@ class ChallengeConfig {
 const List<ChallengeConfig> kDefaultChallengePool = [
   ChallengeConfig(
     type: LivenessChallenge.nod,
-    instruction: 'Kindly nod your head',
+    instruction: 'Nod your head',
     timeoutSeconds: 8,
   ),
   ChallengeConfig(
     type: LivenessChallenge.turn,
-    instruction: 'Kindly turn your head',
+    instruction: 'Turn your head',
     timeoutSeconds: 8,
   ),
   ChallengeConfig(
@@ -54,8 +99,33 @@ const List<ChallengeConfig> kDefaultChallengePool = [
   ),
   ChallengeConfig(
     type: LivenessChallenge.smile,
-    instruction: 'Smile please',
+    instruction: 'Smile',
     timeoutSeconds: 6,
+  ),
+];
+
+/// The head directions set's four movements, with the web SDK's wording. A run
+/// asks for two to four of them (challenge_manager.dart pickDirections).
+const List<ChallengeConfig> kDirectionPool = [
+  ChallengeConfig(
+    type: LivenessChallenge.turnLeft,
+    instruction: 'Turn your head to the left',
+    timeoutSeconds: 8,
+  ),
+  ChallengeConfig(
+    type: LivenessChallenge.turnRight,
+    instruction: 'Turn your head to the right',
+    timeoutSeconds: 8,
+  ),
+  ChallengeConfig(
+    type: LivenessChallenge.lookUp,
+    instruction: 'Look up',
+    timeoutSeconds: 8,
+  ),
+  ChallengeConfig(
+    type: LivenessChallenge.lookDown,
+    instruction: 'Look down',
+    timeoutSeconds: 8,
   ),
 ];
 
@@ -76,16 +146,22 @@ const ChallengeConfig kHoldChallenge = ChallengeConfig(
 // time. A consumer's own challenge pool has no key and reads as written.
 const Map<String, String> kPresenceInstructionKeys = {
   'Position your face in the circle': 'presence.position.placeFace',
-  'Kindly nod your head': 'presence.challenge.nod',
-  'Kindly turn your head': 'presence.challenge.turn',
+  'Nod your head': 'presence.challenge.nod',
+  'Turn your head': 'presence.challenge.turn',
   'Blink your eyes': 'presence.challenge.blink',
-  'Smile please': 'presence.challenge.smile',
+  'Smile': 'presence.challenge.smile',
   'Hold still and look at the camera': 'presence.challenge.hold',
+  // The head directions. Keyed by the web SDK but not customisable there, so
+  // their defaults sit with the guidance lines (defaults_presence_guidance.dart).
+  'Turn your head to the left': 'presence.challenge.turnLeft',
+  'Turn your head to the right': 'presence.challenge.turnRight',
+  'Look up': 'presence.challenge.lookUp',
+  'Look down': 'presence.challenge.lookDown',
   // The final capture's guidance (selfie_shutter.dart). Not customisable: the
   // defaults are in i18n/defaults_presence_guidance.dart.
-  'Kindly look straight at the camera': 'presence.position.lookStraight',
-  'Kindly move closer': 'presence.position.moveCloser',
-  'Kindly hold still': 'presence.position.holdStill',
+  'Look straight at the camera': 'presence.position.lookStraight',
+  'Move closer': 'presence.position.moveCloser',
+  'Hold still': 'presence.position.holdStill',
 };
 
 /// [raw] as the workflow words it, when it is one of the keyed instructions.

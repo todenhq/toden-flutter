@@ -101,6 +101,8 @@ VerificationConfig mergeWorkflowIntoConfig(
           .merge(BiometricFlowConfig.fromJson(rawBiometric.cast<String, dynamic>()))
       : null;
 
+  final flowVoice = VoiceGuidanceConfig.fromDynamic(flow.voiceGuidance);
+
   return base.copyWith(
     country: country,
     countries: countries,
@@ -126,6 +128,11 @@ VerificationConfig mergeWorkflowIntoConfig(
     silentCapture: flow.raw['silentCapture'] as bool?,
     // Same: absent leaves the prop (on by default); only false turns it off.
     livenessBrightScreen: flow.raw['livenessBrightScreen'] as bool?,
+    // Same: absent leaves the prop (on by default); only false turns it off.
+    livenessGestureGuide: flow.raw['livenessGestureGuide'] as bool?,
+    // Absent leaves the prop (classic when neither sets it).
+    livenessGestureSet: _gestureSet(flow.raw['livenessGestureSet']),
+    livenessDirectionCount: _directionCount(flow.raw['livenessDirectionCount']),
     // Absent = the flow says nothing (the prop stands; off when neither sets it).
     selfieReview: flow.raw['selfieReview'] as bool?,
     biometric: biometric,
@@ -170,7 +177,10 @@ VerificationConfig mergeWorkflowIntoConfig(
     success: flow.success != null
         ? VerificationSuccessContent.fromJson(flow.success!)
         : null,
-    voiceGuidance: VoiceGuidanceConfig.fromDynamic(flow.voiceGuidance),
+    // The one key the PROP wins on, key by key (kyc-core VOICE_GUIDANCE.md):
+    // a host's `voice` or `enabled` stands over the workflow's, and what the
+    // host leaves unset comes from the workflow.
+    voiceGuidance: flowVoice == null ? null : base.voiceGuidance.over(flowVoice),
     // Custom copy, replaced wholesale like consent (web: WORKFLOW_KEYS).
     texts: parseWorkflowTexts(flow.raw['texts']),
   );
@@ -232,8 +242,22 @@ VerificationConfig overlayApplicantWorkflow(
     silentCapture: flow.raw['silentCapture'] as bool?,
     // So does the bright screen that lights the applicant's selfie.
     livenessBrightScreen: flow.raw['livenessBrightScreen'] as bool?,
+    // And the face icon that acts out each gesture.
+    livenessGestureGuide: flow.raw['livenessGestureGuide'] as bool?,
+    // And which gestures it asks for, and how many head directions.
+    livenessGestureSet: _gestureSet(flow.raw['livenessGestureSet']),
+    livenessDirectionCount: _directionCount(flow.raw['livenessDirectionCount']),
     // And the selfie review after it.
     selfieReview: flow.raw['selfieReview'] as bool?,
     nfc: nfc,
   );
 }
+
+/// The workflow's `livenessGestureSet`, when it is one this SDK knows.
+String? _gestureSet(Object? raw) =>
+    raw == 'directions' || raw == 'classic' ? raw as String : null;
+
+/// The workflow's `livenessDirectionCount` as a whole number, or null. The
+/// range (2 to 4) is applied where it is used (challenge_manager.dart).
+int? _directionCount(Object? raw) =>
+    raw is num && raw == raw.roundToDouble() ? raw.toInt() : null;

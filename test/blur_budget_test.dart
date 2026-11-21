@@ -27,11 +27,11 @@ void main() {
     expect(budget.affordable, isTrue);
   });
 
-  test('a window of mostly slow frames ends the blur, once', () {
+  test('slow windows in a row end the blur, once', () {
     final budget = BlurBudget();
     _feed(budget, _fast, kBlurWarmupFrames);
     var ended = 0;
-    for (var i = 0; i < kBlurWindowFrames; i++) {
+    for (var i = 0; i < kBlurWindowFrames * kBlurSlowWindows; i++) {
       if (budget.add(_slow)) ended++;
     }
     expect(budget.affordable, isFalse);
@@ -51,8 +51,33 @@ void main() {
   test('the blur never comes back', () {
     final budget = BlurBudget();
     _feed(budget, _fast, kBlurWarmupFrames);
-    _feed(budget, _slow, kBlurWindowFrames);
+    _feed(budget, _slow, kBlurWindowFrames * kBlurSlowWindows);
     _feed(budget, _fast, kBlurWindowFrames * 10);
     expect(budget.affordable, isFalse);
+  });
+
+  test('one burst of slow frames keeps the blur, as on an iPhone as its camera started', () {
+    // Measured 2026-11-18: 27 slow frames in a row, then a phone keeping up.
+    final budget = BlurBudget();
+    _feed(budget, _fast, kBlurWarmupFrames);
+    _feed(budget, _slow, kBlurWindowFrames);
+    _feed(budget, _fast, kBlurWindowFrames * 20);
+    expect(budget.affordable, isTrue);
+  });
+
+  test('the warm-up covers a camera starting on a 120 Hz screen', () {
+    expect(kBlurWarmupFrames, greaterThanOrEqualTo(180));
+  });
+
+  test('frames drawn while the photo is taken are not judged', () {
+    // Measured 2026-11-18: the blur went at 9.5 s and 16.8 s, as the selfie was taken.
+    final budget = BlurBudget();
+    _feed(budget, _fast, kBlurWarmupFrames);
+    _feed(budget, _slow, kBlurWindowFrames - 1);
+    budget.pause();
+    _feed(budget, _slow, kBlurWindowFrames - 1);
+    budget.pause();
+    _feed(budget, _fast, kBlurWindowFrames * 5);
+    expect(budget.affordable, isTrue);
   });
 }

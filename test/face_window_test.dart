@@ -154,10 +154,13 @@ void main() {
       );
     });
 
-    test('keeps the smallest picture and its words on a very short phone', () {
-      expect(livenessAboveHeight(96), 122);
+    test('keeps the instruction on a very short phone', () {
+      // Nothing but the instruction stands above the window. Too little room
+      // for the words: the block keeps its height and runs over the window's
+      // top edge.
+      expect(livenessAboveHeight(40), 66);
+      expect(livenessAboveHeight(96), 96);
       expect(livenessAboveHeight(180), 180);
-      expect(livenessGestureSize(40, 76), kLivenessGestureMinSize);
     });
   });
 }

@@ -8,8 +8,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import '../nfc/emrtd_active_auth.dart';
+import '../liveness/direction_plan.dart';
 import '../utils/map_tiles.dart' show MapLatLng;
 import '../utils/resolve_url.dart' show rebaseServerAssets;
+import '../utils/journey_client.dart' show recordJourneyEvent, uploadDetail;
 import 'api_business.dart';
 import 'api_liveness.dart';
 
@@ -33,7 +35,7 @@ part 'api_device.dart';
 // which SDK versions are in the wild and gate breaking API changes by version.
 // Keep in sync with pubspec.yaml `version`.
 
-const String kSdkVersion = '4.2.0';
+const String kSdkVersion = '4.3.0';
 
 // ─── Exception ────────────────────────────────────────────────────────────────
 
@@ -66,6 +68,10 @@ class MediaType {
   static const documentFrontVideo = 'document_front_video';
   static const documentBackVideo = 'document_back_video';
   static const livenessVideo = 'liveness_video';
+
+  /// One depth frame of the face from the iPhone's Face ID camera: a 16-bit
+  /// greyscale PNG in millimetres (liveness/depth_frame.dart).
+  static const livenessDepth = 'liveness_depth';
   static const proofOfAddress = 'proof_of_address';
   static const addressPhoto = 'address_photo';
   static const businessDocument = 'business_document';
@@ -146,6 +152,7 @@ class VerifyMediaIds {
   final String? documentFrontVideo;
   final String? documentBackVideo;
   final String? livenessVideo;
+  final String? livenessDepth;
   final String? proofOfAddress;
   final String? addressPhoto;
 
@@ -161,6 +168,7 @@ class VerifyMediaIds {
     this.documentFrontVideo,
     this.documentBackVideo,
     this.livenessVideo,
+    this.livenessDepth,
     this.proofOfAddress,
     this.addressPhoto,
   });
@@ -172,6 +180,7 @@ class VerifyMediaIds {
         if (documentFrontVideo != null) 'documentFrontVideo': documentFrontVideo,
         if (documentBackVideo != null) 'documentBackVideo': documentBackVideo,
         if (livenessVideo != null) 'livenessVideo': livenessVideo,
+        if (livenessDepth != null) 'livenessDepth': livenessDepth,
         if (proofOfAddress != null) 'proofOfAddress': proofOfAddress,
         if (addressPhoto != null) 'addressPhoto': addressPhoto,
         ...silentCaptures,
@@ -185,6 +194,7 @@ class VerifyMediaIds {
       documentFrontVideo == null &&
       documentBackVideo == null &&
       livenessVideo == null &&
+      livenessDepth == null &&
       proofOfAddress == null &&
       addressPhoto == null;
 }
@@ -1041,7 +1051,7 @@ class WorkflowFlowConfig {
   final Map<String, dynamic>? consent;
   final Map<String, dynamic>? success;
 
-  /// `bool` or `{ enabled, language }` — parsed by [VoiceGuidanceConfig.fromDynamic].
+  /// `bool` or `{ enabled, language, voice }` — parsed by [VoiceGuidanceConfig.fromDynamic].
   final Object? voiceGuidance;
   final Map<String, dynamic> raw;
 
@@ -1296,6 +1306,8 @@ class VerificationApiService {
 
       return UploadResponse.fromJson(res.data!).mediaId;
     } on DioException catch (e) {
+      final detail = uploadDetail(type);
+      if (detail != null) recordJourneyEvent('upload_failed', detail: detail);
       throw _mapDioError(e, fallbackError: 'upload_failed');
     }
   }
@@ -1446,7 +1458,8 @@ class VerificationApiService {
         options: Options(contentType: 'application/json'),
       );
     } on DioException catch (e) {
-      throw _mapDioError(e);
+      // Not recorded as a network error: the save would ask for another save.
+      throw _mapDioError(e, recordNetwork: false);
     }
   }
 
@@ -1731,6 +1744,23 @@ class VerificationApiService {
     }
   }
 
+  /// The gestures Core picked for one liveness attempt, head directions or
+  /// classic (liveness/direction_plan.dart), or null when it could not say (an
+  /// older Core, a refusal, or a body the SDK cannot use): the SDK then picks
+  /// its own. Asked once per attempt; a retry asks again. Never throws.
+  Future<DirectionPlan?> livenessDirections(PlanRequest plan) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/api/v1/liveness/directions',
+        data: plan.toJson(),
+        options: Options(contentType: 'application/json'),
+      );
+      return parseDirectionPlan(response.data, plan);
+    } catch (_) {
+      return null;
+    }
+  }
+
   // ── Toden address book — reuse a saved address (api_address_book.dart) ──────
 
   /// Whether the email has a saved address this flow could take. [presence]
@@ -1790,7 +1820,7 @@ class VerificationApiService {
 
   // ── Error mapping ──────────────────────────────────────────────────────────
 
-  VerificationApiException _mapDioError(DioException e, {String? fallbackError}) {
+  VerificationApiException _mapDioError(DioException e, {String? fallbackError, bool recordNetwork = true}) {
     final statusCode = e.response?.statusCode ?? 0;
     final data = e.response?.data;
     String error = fallbackError ?? 'network_error';
@@ -1807,9 +1837,11 @@ class VerificationApiService {
         e.type == DioExceptionType.sendTimeout) {
       error = 'timeout';
       message = 'The request timed out. Please check your connection.';
+      if (recordNetwork) recordJourneyEvent('network_error', detail: 'timeout');
     } else if (e.type == DioExceptionType.connectionError) {
       error = 'network_error';
       message = 'Unable to connect to the server.';
+      if (recordNetwork) recordJourneyEvent('network_error', detail: 'offline');
     }
 
     if (statusCode == 401) {

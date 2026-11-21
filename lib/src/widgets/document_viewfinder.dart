@@ -84,8 +84,15 @@ class DocumentViewfinder extends StatelessWidget {
   final IdTypeConfig? idType;
   final String? country;
 
-  /// Off once the turn-over prompt has already shown this side.
+  /// The sample document in the frame. Off only where there is no sample to
+  /// show (photo mode); the back's sample shows for the back too.
   final bool showSpecimen;
+
+  /// Between the two sides of a card: the sample already in the frame turns
+  /// over where it stands ([DocumentGhost.turnFrom]), the hint line says to
+  /// turn the card over, and the shutter and the upload wait with that reason.
+  /// [isBack] is already true: the badge and the header name the back.
+  final bool turning;
 
   /// Stands in for the sheet's back control, which the full-screen camera
   /// hides.
@@ -119,6 +126,7 @@ class DocumentViewfinder extends StatelessWidget {
     this.idType,
     this.country,
     this.showSpecimen = true,
+    this.turning = false,
     this.onBack,
     this.onUpload,
   });
@@ -143,11 +151,17 @@ class DocumentViewfinder extends StatelessWidget {
 
     // An upright guide is a turned document (config/document_turn.dart).
     final turned = guideAspect < 1;
-    final tone = immersiveHintTone(
-      hint: hint,
-      framing: framing,
-      blocked: shutterDisabledReason != null,
-    );
+    final tone = turning
+        ? ImmersiveHintTone.neutral
+        : immersiveHintTone(
+            hint: hint,
+            framing: framing,
+            blocked: shutterDisabledReason != null,
+          );
+    final hintText = turning
+        ? context.verificationText('uploadDocument.flipBanner')
+        : documentHintText(hint, label: shortDocumentLabel(idType, hintLabel));
+    final blockedReason = turning ? hintText : shutterDisabledReason;
 
     final stack = Stack(
       fit: StackFit.expand,
@@ -173,6 +187,11 @@ class DocumentViewfinder extends StatelessWidget {
               ),
               documentFound: framing != DocumentFraming.none &&
                   framing != DocumentFraming.wrongShape,
+              // Mounted as the turn-over (the key is the side, already the
+              // back): it turns from the front where it stands, then stays
+              // for the back's scan, its time counting from then.
+              turnFrom: turning ? SpecimenSide.front : null,
+              holding: turning,
             ),
           ),
 
@@ -221,7 +240,7 @@ class DocumentViewfinder extends StatelessWidget {
                           constraints.maxWidth * kDocumentGuideWidthFraction),
                   child: ImmersiveHintPill(
                     key: kDocumentHintKey,
-                    text: documentHintText(hint, label: hintLabel),
+                    text: hintText,
                     tone: tone,
                   ),
                 ),
@@ -253,7 +272,7 @@ class DocumentViewfinder extends StatelessWidget {
                           key: kDocumentHintKey,
                           quarterTurns: kTurnedHintQuarterTurns,
                           child: ImmersiveHintPill(
-                            text: documentHintText(hint, label: hintLabel),
+                            text: hintText,
                             tone: tone,
                           ),
                         ),
@@ -273,16 +292,17 @@ class DocumentViewfinder extends StatelessWidget {
           bottom: insets.bottom + kImmersiveBottomOffset,
           height: kImmersiveBottomRowHeight,
           child: ImmersiveBottomRow(
-            onUpload: onUpload,
+            onUpload: turning ? null : onUpload,
             uploadLabel:
                 context.verificationText('uploadDocument.camera.uploadInstead'),
             // Visible through a capture, as the shutter is; a pick mid-capture
             // would race the still.
             uploadEnabled: !isProcessing,
-            onCapture: onCapture,
+            // Blocked through the turn-over, saying why.
+            onCapture: turning ? null : onCapture,
             busy: isProcessing,
             progress: scanProgress,
-            disabledReason: shutterDisabledReason,
+            disabledReason: blockedReason,
             torchOn: torchOn,
             onToggleTorch: onToggleTorch,
           ),

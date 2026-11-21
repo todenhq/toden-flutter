@@ -5,7 +5,12 @@
 // liveness_types.dart's kPresenceInstructionKeys.
 
 const Map<String, String> kPresenceGuidanceTexts = {
-  'presence.position.lookStraight': 'Kindly look straight at the camera',
-  'presence.position.moveCloser': 'Kindly move closer',
-  'presence.position.holdStill': 'Kindly hold still',
+  'presence.position.lookStraight': 'Look straight at the camera',
+  'presence.position.moveCloser': 'Move closer',
+  'presence.position.holdStill': 'Hold still',
+  // The head directions gesture set's four instructions.
+  'presence.challenge.turnLeft': 'Turn your head to the left',
+  'presence.challenge.turnRight': 'Turn your head to the right',
+  'presence.challenge.lookUp': 'Look up',
+  'presence.challenge.lookDown': 'Look down',
 };

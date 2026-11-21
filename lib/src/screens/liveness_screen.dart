@@ -11,7 +11,6 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 
 import '../liveness/capture_ring.dart';
 import '../liveness/liveness_layout.dart';
@@ -19,13 +18,15 @@ import '../config/biometric_options.dart';
 import '../config/capture_config.dart';
 import '../config/verification_config.dart';
 import '../config/liveness_audio.dart';
-import '../config/liveness_avatar_url.dart';
 import '../config/liveness_attempts.dart';
 import '../services/model_readiness.dart';
 import '../config/selfie_upload_wait.dart';
 import 'liveness_attempts_left.dart';
 import 'liveness_handover.dart';
+import 'liveness_gesture_narrator.dart';
 import 'liveness_immersive.dart';
+import 'liveness_window_line.dart';
+import '../liveness/narrator_pose.dart';
 import '../config/theme.dart';
 import '../widgets/selfie_soft_notice.dart';
 import '../liveness/capture_pose.dart';
@@ -40,10 +41,17 @@ import '../liveness/flash_overlay_color.dart';
 import '../config/bright_screen.dart';
 import '../providers/theme_provider.dart' show livenessCameraOnProvider;
 import '../liveness/flash_detector.dart';
+import '../liveness/liveness_speaker.dart';
 import '../liveness/liveness_types.dart';
 import '../liveness/selfie_pick.dart' show SelfieFace, kSelfieAspect;
+import '../liveness/selfie_review.dart' show SelfieScene;
+import 'liveness_review_scene.dart';
 import '../liveness/selfie_shutter.dart';
 import '../liveness/sharpest_still.dart';
+import '../liveness/depth_frame.dart';
+import '../liveness/signed_capture.dart' show uploadSha256;
+import '../liveness/spoken_prompts.dart';
+import '../liveness/voice_playback.dart';
 import 'liveness_selfie_run.dart';
 import '../utils/selfie_sharpness.dart';
 import '../liveness/native_liveness_recorder.dart';
@@ -62,7 +70,6 @@ import '../widgets/camera_permission_view.dart';
 import '../widgets/camera_permission_priming_view.dart';
 import '../widgets/ready_primer.dart';
 import '../widgets/ready_primer_content.dart';
-import '../widgets/liveness_avatar.dart';
 import '../widgets/ui_alert.dart';
 import '../widgets/native_camera_preview.dart';
 import '../widgets/ui_button.dart';
@@ -154,7 +161,8 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
         totalCount: l.totalCount,
         elapsedInPhase: _phaseClock.elapsedMilliseconds / 1000,
         challengeTimeout: timeout,
-        flashReadyProgress: l.flashReadyProgress,
+        // The flash-only dwell, or the ready pause before the first gesture.
+        flashReadyProgress: math.max(l.flashReadyProgress, l.readyProgress),
       ),
     );
     _ringShown.value = easeToward(_ringShown.value, _ringTarget, dt);
@@ -169,6 +177,12 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
           !_reviewReady &&
           elapsed.inMilliseconds - _greenSinceMs! >= _closeHoldMs()) {
         setState(() => _reviewReady = true);
+        // The live preview leaves the tree on the frame this asks for; only
+        // after it may the camera be closed for the depth frame.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final gone = _previewGone;
+          if (gone != null && !gone.isCompleted) gone.complete(true);
+        });
       }
     }
   }
@@ -181,11 +195,6 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     _ringPrimary = context.myazaColors.primary;
     if (_greenSinceMs == null) _ringColor.value = _ringPrimary;
 
-    // The gesture animations are served, not bundled. Warmed here — the first
-    // point in this screen's life where a BuildContext exists — so the badge
-    // is in the image cache before the first challenge names a gesture. All
-    // four, because the session randomises which ones it asks for. Failures
-    // are ignored: the avatar falls back to its icon.
     // Follow the face model from the first frame this screen exists, so the
     // wait overlaps the ready screen instead of starting after it.
     if (!_faceModelListening) {
@@ -193,17 +202,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
       _faceModel.state.addListener(_onFaceModelChanged);
       unawaited(_faceModel.start());
     }
-
-    if (!_avatarsPrecached) {
-      _avatarsPrecached = true;
-      final config = ref.read(verificationConfigProvider);
-      for (final url in livenessAvatarUrls(config.apiKey, devUrl: config.devUrl)) {
-        precacheImage(NetworkImage(url), context, onError: (_, __) {});
-      }
-    }
   }
-
-  bool _avatarsPrecached = false;
 
   /// On Android the face model is fetched rather than bundled, so the camera
   /// does not open until it can run (see model_readiness.dart). Ready from the
@@ -212,7 +211,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
   bool _faceModelListening = false;
 
   final FaceDetectorService _detector = createFaceDetectorService();
-  final _TtsService _tts = _TtsService();
+  late final LivenessSpeaker _speaker;
   final _BrightnessSampler _brightnessSampler = _BrightnessSampler();
 
   bool _processing = false;
@@ -339,6 +338,24 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
   // user who taps Continue very fast would lose the (best-effort) liveness video.
   Future<void>? _pendingRecordingStop;
 
+  // ── iPhone depth frame (liveness/depth_frame.dart) ─────────────────────────
+  // Taken once the live preview has gone after the selfie, with the plugin's
+  // camera closed for it, and uploaded with the selfie. Best-effort.
+
+  /// The depth frame of this selfie as PNG bytes (null: none), until uploaded.
+  Future<Uint8List?>? _pendingDepth;
+
+  /// Completes true once the live preview has left the screen after the
+  /// selfie, or false when the depth frame is called off before it does.
+  Completer<bool>? _previewGone;
+
+  /// Bumped by a retake, so a depth frame of the selfie it discarded is
+  /// dropped.
+  int _depthRun = 0;
+
+  /// The depth frame closed the plugin's camera: a retake opens it again.
+  bool _cameraReleasedForDepth = false;
+
   // ── Android native recorder ────────────────────────────────────────────────
   // On Android we use a native CameraX recorder that runs ONE ImageAnalysis
   // stream fanned to both ML Kit (gesture signals) AND a MediaCodec encoder
@@ -362,8 +379,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     _ringTicker = createTicker(_ringTick)..start();
     WidgetsBinding.instance.addObserver(this);
     _cameraOnCtrl = ref.read(livenessCameraOnProvider.notifier);
-    final voice = ref.read(verificationConfigProvider).voiceGuidance;
-    _tts.initialize(enabled: voice.enabled, language: voice.resolvedLanguage);
+    _speaker = _createSpeaker();
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybePrime());
     // A stored selfie with no uploaded mediaId is an interrupted upload
     // (failed, or the user left mid-flight): resume it once. Idempotent.
@@ -374,6 +390,21 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
         _uploadSelfieAndVideo();
       }
     });
+  }
+
+  /// The step's speaker: the workflow's Toden voice when it has one, its clips
+  /// loading from the server this flow talks to, else the device voice.
+  LivenessSpeaker _createSpeaker() {
+    String? baseUrl;
+    try {
+      baseUrl = ref.read(kYCNotifierProvider.notifier).api.baseUrl;
+    } catch (_) {
+      baseUrl = null; // no usable server: the device voice says everything
+    }
+    return createLivenessSpeaker(
+      ref.read(verificationConfigProvider).voiceGuidance,
+      baseUrl: baseUrl,
+    );
   }
 
   /// Show the "Allow camera access" primer before requesting permission, unless
@@ -416,7 +447,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     _ringColor.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _detector.dispose();
-    _tts.dispose();
+    unawaited(_speaker.dispose());
     _flashColor.dispose();
     _flashSequenceRunning.dispose();
     // Leaving the screen closes its camera: hand the flow its own theme and
@@ -431,6 +462,11 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
       });
     }
     _nativeRecorder?.dispose();
+    // Leaving before the preview has gone (the flow closed): no depth frame.
+    // Once it has gone the frame is already being taken, and finishes on its
+    // own beside the next step, which waits for the camera (depthCameraFree).
+    final gone = _previewGone;
+    if (gone != null && !gone.isCompleted) gone.complete(false);
     super.dispose();
   }
 
@@ -518,7 +554,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
       final granted = await requestCameraPermission();
       if (!mounted) return;
       if (!granted) {
-        _tts.stop();
+        _speaker.stop();
         _reportCameraPermissionDenied(null);
         setState(() => _permissionDenied = true);
         return;
@@ -574,7 +610,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     // though only the permission screen is showing. The build() method renders
     // the CameraPermissionView for this state.
     if (!ref.read(cameraNotifierProvider).isReady) {
-      _tts.stop();
+      _speaker.stop();
       return;
     }
 
@@ -879,6 +915,9 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
   Future<bool> _takeChosenSelfie() async {
     final chosen = await _selfieRun.encodeBest();
     if (!mounted || chosen == null) return false;
+    // The frame it was cut from, for the review, encoded beside the
+    // sharpness measure rather than after it.
+    final scene = _selfieRun.encodeBestScene();
     double? score;
     try {
       score = await compute(measureSelfieSharpnessBytes, chosen);
@@ -887,7 +926,11 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     }
     if (!mounted || isSelfieBlurry(score)) return false;
     _softSelfie = false;
-    ref.read(livenessNotifierProvider.notifier).captureSelfieEncoded(chosen);
+    final shown = await scene;
+    if (!mounted) return false;
+    ref
+        .read(livenessNotifierProvider.notifier)
+        .captureSelfieEncoded(chosen, scene: shown);
     final nativeRecorder = _nativeRecorder;
     if (_useNativeRecorder && nativeRecorder != null) {
       _pendingRecordingStop = _stopNativeRecordingInBackground(nativeRecorder);
@@ -958,7 +1001,10 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
       return null;
     }
 
-    _tts.stop(); // the sequence is visual; spoken guidance would talk over it
+    // The hold line ("Hold still. The screen will flash briefly") is said to
+    // the end: the flash measures light, not sound, so nothing needs it cut
+    // off. Only a line still waiting is dropped, being out of date now.
+    _speaker.skipWaiting();
 
     // Painted into the ROOT overlay, above the sheet. The screen is the light
     // source here, so the color has to fill the display — a fill inside the
@@ -1024,9 +1070,13 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
         _flashResult = await runFlashChallenge(
           latestRgb: _flashRgbSample,
           paint: (color) => _flashColor.value = color,
-          // Per-flow sequence length (default 4), clamped to the palette by
-          // generateFlashSequence.
-          sequence: generateFlashSequence(config.flashSequenceLength),
+          // Core's colours in Core's order when its plan came in time, the
+          // retry included: the claim names that plan, and Core reads any
+          // other colours as a replaced camera feed. Otherwise the SDK's own
+          // pick of the per-flow length (default 4), clamped to the palette
+          // by generateFlashSequence, which Core records as unplanned.
+          sequence: ref.read(livenessNotifierProvider.notifier).plannedFlash ??
+              generateFlashSequence(config.flashSequenceLength),
           // Abort if the face has been gone for a while — no point flashing at an
           // empty frame for the full sequence. Generous window so a colour flash
           // briefly hiding the face doesn't cut a sequence it's still in.
@@ -1334,6 +1384,74 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     }
   }
 
+  /// Takes the iPhone's depth frame for the selfie just taken: waits for the
+  /// live preview to leave the screen and the recording to finish, closes the
+  /// plugin's camera, then reads one frame from the TrueDepth camera. Null
+  /// when called off, or when there is no frame. Never throws.
+  Future<Uint8List?> _takeDepthFrame() async {
+    final run = _depthRun;
+    final gone = _previewGone = Completer<bool>();
+    // Read now: the screen may be gone by the time the preview is.
+    final cameraNotifier = ref.read(cameraNotifierProvider.notifier);
+    if (!await gone.future || run != _depthRun) return null;
+    // Set after the selfie went up, so read only now. The camera cannot be
+    // closed under a recording that is still being written.
+    final recordingStop = _pendingRecordingStop;
+    if (recordingStop != null) {
+      await recordingStop.timeout(const Duration(seconds: 3), onTimeout: () {});
+    }
+    if (run != _depthRun) return null;
+    _cameraReleasedForDepth = true;
+    try {
+      await cameraNotifier.release();
+    } catch (_) {
+      // The provider was disposed with the screen and closed the camera itself.
+    }
+    await CameraNotifier.closed.timeout(const Duration(seconds: 2), onTimeout: () {});
+    if (run != _depthRun) return null;
+    final png = await captureDepthPng();
+    return run == _depthRun ? png : null;
+  }
+
+  /// A retake drops the depth frame of the selfie it discards.
+  void _dropDepthFrame() {
+    _depthRun++;
+    _pendingDepth = null;
+    final gone = _previewGone;
+    if (gone != null && !gone.isCompleted) gone.complete(false);
+    _previewGone = null;
+  }
+
+  /// Uploads the depth frame, when there is one, and records its media id and
+  /// hash for the submit. Best-effort: never fails the selfie's upload.
+  /// Runs on after the screen has gone, so [notifier] is passed in, never
+  /// read through `ref`.
+  Future<void> _uploadDepthFrame(
+    VerificationApiService api,
+    VerificationNotifier notifier,
+    void Function(void Function() write) report,
+  ) async {
+    final pending = _pendingDepth;
+    if (pending == null) return;
+    // Taken once: a retried upload does not send it again.
+    _pendingDepth = null;
+    try {
+      final png = await pending.timeout(
+        kDepthFrameTimeout + const Duration(seconds: 3),
+        onTimeout: () => null,
+      );
+      if (png == null) return;
+      final mediaId = await withRetry(
+        () => api.upload(png, 'image/png', MediaType.livenessDepth),
+      );
+      report(() => notifier.setMediaId('livenessDepth', mediaId));
+      report(() => notifier.setUploadSha256('livenessDepth',
+          mediaId: mediaId, sha256: uploadSha256(png)));
+    } catch (e) {
+      if (kDebugMode) debugPrint('KYC depth frame upload failed: $e');
+    }
+  }
+
   void _handleComplete(String selfieBase64) {
     if (_completionHandled) return;
     _completionHandled = true;
@@ -1359,6 +1477,9 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
             ),
             promptTimes:
                 ref.read(livenessNotifierProvider.notifier).promptTimes,
+            // Core's head-direction plan, when the directions asked were its.
+            directionPlanId:
+                ref.read(livenessNotifierProvider.notifier).directionPlanId,
             flash: _flashResult,
           ),
         );
@@ -1366,6 +1487,9 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     // liveness provider die on step change, and the central copy is what lets
     // a return land on this review instead of a fresh gesture run.
     ref.read(kYCNotifierProvider.notifier).setSelfieImage(selfieBase64);
+    // The iPhone's depth frame, once the preview has gone (depth_frame.dart).
+    // Before the upload starts, which waits on it.
+    if (Platform.isIOS && !_useNativeRecorder) _pendingDepth = _takeDepthFrame();
     // Eagerly upload the selfie (and best-effort liveness video) the moment it's
     // shown, so the network round-trip overlaps the user's review instead of
     // blocking after they tap Continue. Both review buttons are disabled while
@@ -1433,6 +1557,9 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
       );
       if (mounted) setState(() => _selfieRetryInfo = null);
       report(() => notifier.setMediaId('selfie', selfieMediaId));
+      // The hash of exactly what was sent, for the signed capture at submit.
+      report(() => notifier.setUploadSha256('selfie',
+          mediaId: selfieMediaId, sha256: uploadSha256(bytes)));
 
       // The gesture recording finalizes in the background after the selfie is
       // shown; wait for that (bounded) so its path is set before we read it. A
@@ -1448,23 +1575,45 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
       // missing recording as a finding, and the cause makes it actionable.
       Map<String, dynamic> videoReport;
       if (_livenessVideoPath != null) {
+        // Shrinking and uploading fail for different reasons, and Core names
+        // each (compression_failed, upload_failed): one catch for both hid
+        // which step lost iPhone head-directions videos (2026-11-18).
+        Uint8List? videoBytes;
+        var tooLarge = false;
         try {
-          final videoBytes = await compressVideoToBytes(
+          final prepared = await prepareVideo(
             _livenessVideoPath!,
             label: 'liveness video',
           );
-          if (videoBytes.isEmpty) {
-            videoReport = {'recorded': false, 'failure': 'recording_empty'};
-          } else {
+          videoBytes = prepared.bytes;
+          // Not shrunk and over Core's limit: an upload that cannot succeed.
+          tooLarge = !prepared.shrunk && prepared.bytes.length > kMaxUploadBytes;
+        } catch (e) {
+          if (kDebugMode) debugPrint('KYC liveness video compression failed: $e');
+        }
+        if (videoBytes == null || tooLarge) {
+          videoReport = {
+            'recorded': false,
+            'failure': 'compression_failed',
+            if (videoBytes != null) 'bytes': videoBytes.length,
+          };
+        } else if (videoBytes.isEmpty) {
+          videoReport = {'recorded': false, 'failure': 'recording_empty'};
+        } else {
+          try {
+            final upload = videoBytes;
             final videoMediaId = await withRetry(
-              () => api.upload(videoBytes, 'video/mp4', MediaType.livenessVideo),
+              () => api.upload(upload, 'video/mp4', MediaType.livenessVideo),
             );
             report(() => notifier.setMediaId('livenessVideo', videoMediaId));
+            report(() => notifier.setUploadSha256('livenessVideo',
+                mediaId: videoMediaId, sha256: uploadSha256(upload)));
             videoReport = {'recorded': true};
+          } catch (e) {
+            // Best-effort — the verification proceeds without the liveness video.
+            if (kDebugMode) debugPrint('KYC liveness video upload failed: $e');
+            videoReport = {'recorded': false, 'failure': 'upload_failed'};
           }
-        } catch (_) {
-          // Best-effort — the verification proceeds without the liveness video.
-          videoReport = {'recorded': false, 'failure': 'upload_failed'};
         }
       } else {
         videoReport = {
@@ -1473,6 +1622,10 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
         };
       }
       report(() => notifier.setLivenessVideoReport(videoReport));
+
+      // The iPhone depth frame (depth_frame.dart), before the upload reports
+      // done: the submit only sends what has landed by then.
+      await _uploadDepthFrame(api, notifier, report);
 
       if (mounted) setState(() => _isUploadingSelfie = false);
       report(() => notifier.setSelfieUpload(SelfieUploadState.done));
@@ -1630,6 +1783,7 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     // Without this, the central copy set at completion would immediately
     // re-open the review the retake is trying to leave.
     ref.read(kYCNotifierProvider.notifier).clearSelfie();
+    _dropDepthFrame();
     setState(() {
       _softSelfie = false;
       _capturingHandled = false;
@@ -1641,12 +1795,21 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
       _pendingRecordingStop = null;
     });
     _brightnessSampler.reset();
+    _speaker.stop(); // the retry says its first line again
     ref.read(livenessNotifierProvider.notifier).reset();
 
     // Android native recorder: restart its recording for a fresh gesture clip.
     final nativeRecorder = _nativeRecorder;
     if (_useNativeRecorder && nativeRecorder != null) {
       nativeRecorder.startRecording(audio: _recordAudio);
+      return;
+    }
+
+    // The depth frame closed the camera: open it again, as a return from
+    // the background does (the camera waits for the depth frame to finish).
+    if (_cameraReleasedForDepth) {
+      _cameraReleasedForDepth = false;
+      _init();
       return;
     }
 
@@ -1658,19 +1821,6 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
       _startGestureFeed();
     }
   }
-
-  static String _guidanceText(String guidance) => switch (guidance) {
-    'too_far'   => 'Kindly move closer',
-    'too_close' => 'Kindly move further away',
-    'off_centre' => 'Centre your face in the frame',
-    _           => '',
-  };
-
-  static String _lightingText(String guidance) => switch (guidance) {
-    'dark'   => 'Move to a brighter area',
-    'bright' => 'Too bright. Reduce glare',
-    _        => '',
-  };
 
   /// Reports a denied camera permission to onError exactly once (deferred so it
   /// runs after the current build).
@@ -1827,24 +1977,11 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
 
     ref.listen<LivenessState>(livenessNotifierProvider, (prev, next) {
       final phaseChanged    = prev?.phase != next.phase;
-      final guidanceChanged = prev?.positionGuidance != next.positionGuidance;
-      final multiChanged    = prev?.multipleFaces != next.multipleFaces;
-      final lightChanged    = prev?.lightingGuidance != next.lightingGuidance;
 
-      // Speak the "only your face" prompt when a second face appears (takes
-      // priority over the regular instruction).
-      if (multiChanged && next.multipleFaces) {
-        _tts.speak(LivenessNotifier.multipleFacesGuidance);
-      } else if (lightChanged && next.lightingGuidance != null) {
-        // Speak lighting guidance when it first appears.
-        _tts.speak(_lightingText(next.lightingGuidance!));
-      } else if (phaseChanged && next.instruction.isNotEmpty && !next.multipleFaces) {
-        _tts.speak(presenceInstruction(next.instruction, context.verificationText));
-      }
-
-      // Speak position guidance when it first appears (or changes).
-      if (guidanceChanged && next.positionGuidance != null && !next.multipleFaces) {
-        _tts.speak(_guidanceText(next.positionGuidance!));
+      // Each line waits for the one before to finish (liveness_speaker.dart).
+      final t = context.verificationText;
+      for (final phrase in spokenPrompts(prev, next, (raw) => presenceInstruction(raw, t))) {
+        _speaker.speak(phrase);
       }
 
       if (phaseChanged) {
@@ -1903,7 +2040,10 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     if (!_ready) {
       return ReadyPrimer(
         // Passive Liveness asks for a hold, not prompts, and says so.
-        content: readyLivenessFor(ref.read(verificationConfigProvider).livenessMode),
+        content: readyLivenessFor(
+          ref.read(verificationConfigProvider).livenessMode,
+          gestureSet: ref.read(verificationConfigProvider).livenessGestureSet,
+        ),
         onReady: () {
           setState(() => _ready = true);
           _maybePrime(); // now decide: OS prompt, or straight to the camera
@@ -1983,13 +2123,11 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     // and the review that follows keeps it.
     return _fullScreen(_ActiveView(
       immersive: true,
-      avatarUrl: livenessState.activeChallenge == null
-          ? null
-          : livenessAvatarUrl(
-              livenessState.activeChallenge!,
-              ref.read(verificationConfigProvider).apiKey,
-              devUrl: ref.read(verificationConfigProvider).devUrl,
-            ),
+      narratedGesture: narratedGestureFor(
+        livenessState,
+        enabled: ref.read(verificationConfigProvider).livenessGestureGuide,
+      ),
+      respondedAt: () => ref.read(livenessNotifierProvider.notifier).respondedAt,
       ring: _ringShown,
       ringColor: _ringColor,
       reviewReady: _reviewReady,
@@ -2015,43 +2153,6 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
   }
 }
 
-// ─── TTS service ──────────────────────────────────────────────────────────────
-
-class _TtsService {
-  FlutterTts? _tts;
-  bool _enabled = true;
-
-  /// Initializes TTS for the spoken liveness instructions. When [enabled] is
-  /// false, [speak] becomes a no-op (spoken guidance is off). [language] is a
-  /// BCP-47 tag selecting the voice (default 'en-US'). TTS is output only — no
-  /// microphone is used.
-  Future<void> initialize({bool enabled = true, String language = 'en-US'}) async {
-    _enabled = enabled;
-    if (!enabled) return;
-    _tts = FlutterTts();
-    await _tts!.setLanguage(language);
-    await _tts!.setSpeechRate(0.5);
-    await _tts!.setVolume(1.0);
-    await _tts!.setPitch(1.0);
-  }
-
-  Future<void> speak(String text) async {
-    if (!_enabled) return;
-    await _tts?.stop();
-    await _tts?.speak(text);
-  }
-
-  /// Stops any in-flight speech without tearing down the engine.
-  Future<void> stop() async {
-    await _tts?.stop();
-  }
-
-  Future<void> dispose() async {
-    await _tts?.stop();
-    _tts = null;
-  }
-}
-
 // ─── Loading view ─────────────────────────────────────────────────────────────
 //
 // Shows the same circle footprint as the camera circle so the layout
@@ -2068,7 +2169,7 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Window-derived so a short phone keeps the avatar on screen.
+    // Window-derived so the circle fits a short phone.
     final circleSize = livenessLayout(MediaQuery.sizeOf(context)).circle;
     final colors = context.myazaColors;
     final text   = context.myazaText;
@@ -2219,9 +2320,13 @@ class _ActiveView extends StatelessWidget {
   /// screen flips this once the closing beat has played.
   final bool reviewReady;
 
-  /// The served animation for the active gesture (null outside a challenge, or
-  /// when the key is malformed). Resolved here because the screen holds config.
-  final String? avatarUrl;
+  /// The gesture the narrator acts out in the window, or null for none
+  /// ([narratedGestureFor]).
+  final NarratorGesture? narratedGesture;
+
+  /// When the person last did anything with their face: the narrator comes
+  /// back only once they have gone quiet.
+  final int Function() respondedAt;
 
   /// The camera has the whole screen: feed edge to edge, blurred everywhere
   /// but a circle for the face (liveness_immersive.dart).
@@ -2236,7 +2341,8 @@ class _ActiveView extends StatelessWidget {
   final bool litForDimRoom;
 
   const _ActiveView({
-    this.avatarUrl,
+    this.narratedGesture,
+    required this.respondedAt,
     this.immersive = false,
     this.onFrameSize,
     this.litForDimRoom = false,
@@ -2263,7 +2369,6 @@ class _ActiveView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final layout = livenessLayout(MediaQuery.sizeOf(context));
     final phase = livenessState.phase;
     final isFailed = phase == LivenessPhase.failed;
 
@@ -2274,6 +2379,7 @@ class _ActiveView extends StatelessWidget {
       return _SelfieReviewView(
         immersive: immersive,
         selfieBase64: livenessState.selfieBase64!,
+        scene: livenessState.selfieScene,
         onRetake: onRetakeSelfie,
         onContinue: onSelfieAccepted,
         isUploading: isUploadingSelfie,
@@ -2317,6 +2423,10 @@ class _ActiveView extends StatelessWidget {
           frame: frame,
           cutout: cutout,
           segments: livenessState.totalCount + 2,
+          narratedGesture: isFailed ? null : narratedGesture,
+          respondedAt: respondedAt,
+          showNarratorAgain: livenessState.wrongWayCount,
+          sides: sidesFor(livenessState),
         );
 
     // Everything under the camera: where the test has got to, then either the
@@ -2344,44 +2454,16 @@ class _ActiveView extends StatelessWidget {
         ],
         const SizedBox(height: UiSpacing.lg),
         UiButton(label: 'Try Again', onPressed: onRetry),
-      ] else if (!immersive) ...[
-        const SizedBox(height: UiSpacing.xl),
-        Center(
-          child: LivenessAvatar(
-            activeChallenge: livenessState.activeChallenge,
-            phase: phase,
-            size: layout.avatar,
-            iconSize: layout.avatarIcon,
-            avatarUrl: avatarUrl,
-          ),
-        ),
       ],
     ];
 
     if (immersive) {
-      // The gesture being asked for, shown ABOVE the window with the words it
-      // illustrates. The front camera is at the top of the phone: eyes that
-      // go up to read stay near the lens, while eyes that drop to the bottom
-      // of the screen tip the head down, which is the wrong pose for the
-      // photo and for a nod or a blink being judged.
-      final challenge = livenessState.activeChallenge;
-      final showsGesture = !isFailed &&
-          challenge != null &&
-          challenge != LivenessChallenge.hold &&
-          (phase == LivenessPhase.challenge ||
-              phase == LivenessPhase.challengePassed ||
-              phase == LivenessPhase.positioning);
-      Widget gesture({required double size, bool compact = false}) =>
-          LivenessGesturePlate(
-            compact: compact,
-            child: LivenessAvatar(
-              activeChallenge: challenge,
-              phase: phase,
-              size: size,
-              iconSize: size / 2,
-              avatarUrl: avatarUrl,
-            ),
-          );
+      // A gesture is asked for in words, ABOVE the window, and (unless the
+      // workflow turns it off) a face icon pops up in the window, acts it out
+      // once and goes (liveness_gesture_narrator.dart). The front camera is at
+      // the top of the phone: eyes that go up to read stay near the lens,
+      // while eyes that drop to the bottom of the screen tip the head down,
+      // which is the wrong pose for the photo and for a nod being judged.
       // Where the test has got to, in words, where the sheet has its dots.
       final total = livenessState.totalCount;
       final showsCount = !isFailed &&
@@ -2400,6 +2482,10 @@ class _ActiveView extends StatelessWidget {
       final beforeCapture = phase != LivenessPhase.complete &&
           phase != LivenessPhase.failed;
       return LivenessBlurBudget(
+        // Only while the camera is simply live: the photo stalls the screen.
+        judging: phase == LivenessPhase.positioning ||
+            phase == LivenessPhase.challenge ||
+            phase == LivenessPhase.challengePassed,
         child: LivenessImmersiveFrame(
           onSize: onFrameSize,
           tint: litForDimRoom ? kLivenessDimRoomTint : kLivenessTint,
@@ -2410,20 +2496,12 @@ class _ActiveView extends StatelessWidget {
             nativePreviewH: nativePreviewH,
           ),
           cutout: (window) => circle(frame: window, cutout: true),
-          above: (room, reach) {
+          above: (room) {
             if (isFailed) return const SizedBox.shrink();
-            // The picture stands on its own above the words, and it is narrow,
-            // so it may rise between the back and close buttons: its size
-            // comes from the room up to the TOP of those buttons
-            // (liveness_cutout.dart). The long lighting note is wide, so it
-            // only shows when everything fits under the buttons, and the
-            // picture gives it room.
+            // The long lighting note is wide, so it only shows when it fits
+            // under the back and close buttons with the instruction.
             final lighting = isDim || isBright;
-            final showsLighting = room >= kLivenessRoomForGesture + 70;
-            final size = livenessGestureSize(
-              showsLighting && lighting ? room - 70 : reach,
-              kLivenessGestureFullSize,
-            );
+            final showsLighting = room >= kLivenessRoomForLightingNote;
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2431,10 +2509,6 @@ class _ActiveView extends StatelessWidget {
                 if (showsLighting) ...[
                   _LightingWarningBanner(isDim: isDim, isBright: isBright),
                   if (lighting) const SizedBox(height: UiSpacing.sm),
-                ],
-                if (showsGesture) ...[
-                  Center(child: gesture(size: size)),
-                  const SizedBox(height: UiSpacing.sm),
                 ],
                 instructionWith(),
               ],
@@ -2455,7 +2529,13 @@ class _ActiveView extends StatelessWidget {
                 )
               : LivenessReassurance(visible: beforeCapture),
           below: !isFailed && showsCount
-              ? LivenessStepCount(step: step, total: total)
+              ? LivenessStepCount(
+                  step: step,
+                  total: total,
+                  // The four-sided line shows the progress: the count is for
+                  // screen readers only.
+                  screenReaderOnly: livenessState.directions.isNotEmpty,
+                )
               : const SizedBox.shrink(),
         ),
       );
@@ -2544,9 +2624,15 @@ class _SelfieReviewView extends StatelessWidget {
   /// Continue and no Retake.
   final bool done;
 
+  /// The camera frame the selfie was cut from. Full screen, the review shows
+  /// it as the camera did, the face in the window (ReviewScene). Null shows
+  /// the selfie itself.
+  final SelfieScene? scene;
+
   const _SelfieReviewView({
     this.immersive = false,
     this.done = false,
+    this.scene,
     required this.selfieBase64,
     required this.onRetake,
     required this.onContinue,
@@ -2558,7 +2644,7 @@ class _SelfieReviewView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Window-derived so a short phone keeps the avatar on screen.
+    // Window-derived so the circle fits a short phone.
     final circleSize = livenessLayout(MediaQuery.sizeOf(context)).circle;
     final imageBytes = selfieBase64 != null ? base64Decode(selfieBase64!) : null;
 
@@ -2619,9 +2705,11 @@ class _SelfieReviewView extends StatelessWidget {
       final colors = context.myazaColors;
       return LivenessImmersiveFrame(
         // No mirror: the JPEG is already selfie-mirrored (see below).
-        preview: Image.memory(imageBytes, fit: BoxFit.cover, gaplessPlayback: true),
+        preview: scene != null
+            ? ReviewScene(scene: scene!)
+            : Image.memory(imageBytes, fit: BoxFit.cover, gaplessPlayback: true),
         cutout: (window) => _ReviewWindow(size: window, busy: isUploading),
-        above: (_, __) => Center(
+        above: (_) => Center(
           child: LivenessFrostedPill(
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -2804,7 +2892,7 @@ class _ImmersiveLoading extends StatelessWidget {
           child: Center(child: _PulseLoader(color: colors.primary)),
         ),
       ),
-      above: (_, __) => Center(
+      above: (_) => Center(
         child: LivenessFrostedPill(
           child: Text(
             'Getting the camera ready…',
@@ -2948,16 +3036,10 @@ class _InstructionBanner extends StatelessWidget {
       displayText = LivenessNotifier.multipleFacesGuidance;
       textColor   = UiColors.error;
     } else if (lightingGuidance != null) {
-      displayText = lightingGuidance == 'dark'
-          ? 'Move to a brighter area'
-          : 'Too bright. Reduce glare';
+      displayText = lightingGuidanceText(lightingGuidance!);
       textColor = UiColors.error;
     } else if (hasPositionWarning) {
-      displayText = switch (positionGuidance) {
-        'too_far' => 'Kindly move closer',
-        'off_centre' => 'Centre your face in the frame',
-        _ => 'Kindly move further away',
-      };
+      displayText = positionGuidanceText(positionGuidance!);
       textColor = UiColors.error;
     } else if (hasWrongGesture) {
       displayText = 'Wrong gesture';
@@ -3054,9 +3136,27 @@ class _CameraCircle extends StatelessWidget {
   /// what the row of dots says in the sheet.
   final int segments;
 
+  /// The gesture the narrator acts out inside the window, or null for none.
+  final NarratorGesture? narratedGesture;
+
+  /// When the person last did anything with their face (the narrator's cue to
+  /// come back). Unused without a narrated gesture.
+  final int Function()? respondedAt;
+
+  /// Changes when the narrator should act the gesture out again now.
+  final int showNarratorAgain;
+
+  /// Head directions, full screen: the line round the window is four sides
+  /// ([LivenessSideLine]). Null for any other test.
+  final LivenessSides? sides;
+
   const _CameraCircle({
     super.key,
     this.frame,
+    this.narratedGesture,
+    this.respondedAt,
+    this.showNarratorAgain = 0,
+    this.sides,
     this.cutout = false,
     this.segments = 1,
     required this.controller,
@@ -3100,24 +3200,9 @@ class _CameraCircle extends StatelessWidget {
     };
   }
 
-  /// The glow outside the window. While the face is still being lined up it
-  /// breathes, which says "here" without a word; it holds still once the test
-  /// is running, and always when the person asked for less motion.
-  Widget _glow(BuildContext context, Color color) {
-    final glow = IgnorePointer(
-      child: CustomPaint(painter: LivenessWindowGlow(color: color)),
-    );
-    final still = phase != LivenessPhase.positioning ||
-        MediaQuery.of(context).disableAnimations;
-    if (still) return glow;
-    return glow
-        .animate(onPlay: (controller) => controller.repeat(reverse: true))
-        .fade(begin: 0.35, end: 1, duration: 1100.ms, curve: Curves.easeInOut);
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Window-derived so a short phone keeps the avatar on screen.
+    // Window-derived so the circle fits a short phone.
     final circleSize =
         frame?.width ?? livenessLayout(MediaQuery.sizeOf(context)).circle;
     // A circle in the sheet; taller than it is wide when full screen. Either
@@ -3133,13 +3218,15 @@ class _CameraCircle extends StatelessWidget {
     // Two layers: the container CLIPS the preview to a circle behind its
     // border; the ring is painted over that border, outside the clip, so the
     // arc and the border are the same line.
+    final sideLine = cutout ? sides : null;
     return SizedBox(
       width: circleSize + 6,
       height: frameHeight + 6,
       child: Stack(
         fit: StackFit.expand,
+        // Full screen, the line runs outside the window (kRingOutset).
+        clipBehavior: Clip.none,
         children: [
-          if (cutout) _glow(context, borderColor),
           AnimatedContainer(
             duration: const Duration(milliseconds: 350),
             curve: Curves.easeOutCubic,
@@ -3172,19 +3259,11 @@ class _CameraCircle extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
+                    // Full screen the window is a plain hole in the tint: no
+                    // hairline inside it and no glow round it (web and React
+                    // Native have neither; user 2026-11-18, "remove it").
                     if (cutout)
-                      // A hairline of light just inside the edge.
-                      IgnorePointer(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            borderRadius:
-                                BorderRadius.circular(circleSize / 2),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.55),
-                            ),
-                          ),
-                        ),
-                      )
+                      const SizedBox.shrink()
                     else if (hasNative)
                       NativeCameraPreview(
                         textureId: nativeTextureId!,
@@ -3195,6 +3274,18 @@ class _CameraCircle extends StatelessWidget {
                       _CameraPreviewFill(controller: controller!)
                     else
                       _CameraPlaceholder(phase: phase),
+
+                    // Full screen: the face icon that acts out the gesture,
+                    // centred in the window and clipped by it.
+                    if (cutout && respondedAt != null)
+                      Center(
+                        child: GestureNarrator(
+                          gesture: narratedGesture,
+                          respondedAt: respondedAt!,
+                          windowWidth: circleSize,
+                          showAgain: showNarratorAgain,
+                        ),
+                      ),
 
                     // Dashed oval face guide
                     if (isReady && _showOval && !cutout)
@@ -3263,17 +3354,34 @@ class _CameraCircle extends StatelessWidget {
               ),
             ),
           ),
+          // Head directions: one part of the line per side, not drawn while
+          // the camera loads or on a failure (the web SDK's SideRing).
+          if (sideLine != null)
+            if (phase != LivenessPhase.loading && phase != LivenessPhase.failed)
+              LivenessSideLine(
+                asked: sideLine.asked,
+                done: sideLine.done,
+                run: sideLine.run,
+                // A warning turns the waiting sides red.
+                warning: borderColor == colors.primary200 ? null : borderColor,
+                green: UiColors.success,
+              )
+            else
+              const SizedBox.shrink()
+          else
           // Only the painter repaints as the ring moves.
           IgnorePointer(
             child: CustomPaint(
-              painter: _CaptureRingPainter(
+              painter: LivenessWindowLinePainter(
                 ring,
                 ringColor,
                 // Full screen, the line is green from its first pixel, and
-                // the painter draws its own track under it.
+                // the painter draws its own track under it, outside the
+                // window.
                 fixed: cutout ? UiColors.success : null,
                 track: cutout ? borderColor : null,
                 segments: cutout ? segments : 1,
+                outside: cutout,
               ),
             ),
           ),
@@ -3395,108 +3503,6 @@ class _FlashHolePainter extends CustomPainter {
   @override
   bool shouldRepaint(_FlashHolePainter oldDelegate) =>
       oldDelegate.color != color || oldDelegate.hole != hole;
-}
-
-// ─── Flash-ready progress ring ────────────────────────────────────────────────
-
-/// A solid arc sweeping clockwise from the top as the pre-flash dwell fills.
-/// Sits just inside the circle's edge so it reads as the ring "charging".
-class _CaptureRingPainter extends CustomPainter {
-  final ValueListenable<double> progress;
-  final ValueListenable<Color> color;
-
-  // `repaint` is what lets the ring move without a single widget rebuild: the
-  // painter re-paints itself when either notifier changes.
-  _CaptureRingPainter(
-    this.progress,
-    this.color, {
-    this.fixed,
-    this.track,
-    this.segments = 1,
-  }) : super(repaint: Listenable.merge([progress, color]));
-
-  /// Drawn under the arc, all the way round, when the frame has no border of
-  /// its own to be the track.
-  final Color? track;
-
-  /// Equal parts with a small gap between them. One part is an unbroken line.
-  final int segments;
-
-  /// Gap between two parts, along the line.
-  static const double _gap = 9;
-
-  /// One colour for the whole test, in place of the phase colour.
-  final Color? fixed;
-
-  /// The frame's own border width; the arc IS the border filling in.
-  static const double stroke = 3.0;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final p = progress.value.clamp(0.0, 1.0);
-    if (p <= 0 && track == null) return;
-    final paint = Paint()
-      ..color = fixed ?? color.value
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.butt; // flat ends: a border has no rounded tips
-    // Centred on the border ring, which sits in the outermost `stroke` px.
-    final rect = Rect.fromLTWH(
-      stroke / 2,
-      stroke / 2,
-      size.width - stroke,
-      size.height - stroke,
-    );
-    // The frame's own outline, clockwise from 12 o'clock: a circle in the
-    // sheet, a tall shape with round ends when full screen. Both are two half
-    // circles joined by straight sides (of no length, for the circle).
-    final r = rect.width / 2;
-    final top = Rect.fromLTWH(rect.left, rect.top, rect.width, rect.width);
-    final bottom =
-        Rect.fromLTWH(rect.left, rect.bottom - rect.width, rect.width, rect.width);
-    final outline = Path()
-      ..moveTo(rect.center.dx, rect.top)
-      ..arcTo(top, -math.pi / 2, math.pi / 2, false)
-      ..lineTo(rect.right, rect.bottom - r)
-      ..arcTo(bottom, 0, math.pi, false)
-      ..lineTo(rect.left, rect.top + r)
-      ..arcTo(top, math.pi, math.pi / 2, false);
-    final metric = outline.computeMetrics().first;
-    final parts = math.max(1, segments);
-    if (parts == 1 && track == null) {
-      canvas.drawPath(metric.extractPath(0, metric.length * p), paint);
-      return;
-    }
-    // In parts: each has its own stretch of the outline, the track under all
-    // of them and the arc over as much as the test has earned.
-    final gap = parts == 1 ? 0.0 : _gap;
-    final each = metric.length / parts;
-    final done = metric.length * p;
-    paint.strokeCap = parts == 1 ? StrokeCap.butt : StrokeCap.round;
-    final under = track == null
-        ? null
-        : (Paint()
-          ..color = track!
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = stroke
-          ..strokeCap = paint.strokeCap);
-    for (var i = 0; i < parts; i++) {
-      final from = i * each + gap / 2;
-      final to = (i + 1) * each - gap / 2;
-      if (under != null) canvas.drawPath(metric.extractPath(from, to), under);
-      if (done > from) {
-        canvas.drawPath(metric.extractPath(from, math.min(to, done)), paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_CaptureRingPainter old) =>
-      old.progress != progress ||
-      old.color != color ||
-      old.fixed != fixed ||
-      old.track != track ||
-      old.segments != segments;
 }
 
 // ─── Dashed oval face guide ───────────────────────────────────────────────────
@@ -3906,4 +3912,45 @@ class _BrightnessSampler {
       return dimThreshold + 1;
     }
   }
+}
+
+// ─── The four sides, for head directions ──────────────────────────────────────
+
+/// The side of the window each head direction lights: the person's own left
+/// and right, which on the mirrored picture are the screen's.
+const Map<LivenessChallenge, WindowSide> kSideOf = {
+  LivenessChallenge.turnLeft: WindowSide.left,
+  LivenessChallenge.turnRight: WindowSide.right,
+  LivenessChallenge.lookUp: WindowSide.top,
+  LivenessChallenge.lookDown: WindowSide.bottom,
+};
+
+/// What the four-sided line shows.
+class LivenessSides {
+  const LivenessSides({required this.asked, required this.done, required this.run});
+
+  final WindowSide? asked;
+  final List<WindowSide> done;
+  final List<WindowSide> run;
+}
+
+/// The four-sided line for a run of head directions, or null for any other
+/// test. The side asked for lights while a direction is being asked, and not
+/// while the person is asked to move back into place; the directions passed
+/// (they pass in order) are green.
+LivenessSides? sidesFor(LivenessState state) {
+  final run = state.directions;
+  if (run.isEmpty) return null;
+  final outOfPlace = state.positionGuidance != null ||
+      state.multipleFaces ||
+      state.lightingGuidance != null;
+  final asked = state.phase == LivenessPhase.challenge && !outOfPlace
+      ? kSideOf[state.activeChallenge]
+      : null;
+  final passed = math.min(state.completedCount, run.length);
+  return LivenessSides(
+    asked: asked,
+    done: [for (final d in run.take(passed)) kSideOf[d]!],
+    run: [for (final d in run) kSideOf[d]!],
+  );
 }

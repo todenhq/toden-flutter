@@ -12,6 +12,7 @@ import 'contact_verification_entry.dart';
 import 'contact_verification_parts.dart';
 import 'contact_verification_verified.dart';
 import 'contact_verification_settings.dart';
+import '../utils/journey_client.dart' show recordJourneyEvent;
 
 // ─── Contact verification screen (email / phone OTP) ──────────────────────────
 //
@@ -58,6 +59,7 @@ class _ContactVerificationScreenState
 
   /// Resend, optionally switching channel first.
   void _resend(String? switchTo) {
+    recordJourneyEvent('code_resent', detail: widget.channel);
     if (switchTo != null) setState(() => _via = switchTo);
     _send();
   }
@@ -180,6 +182,7 @@ class _ContactVerificationScreenState
           _error = 'That code is not correct. Please try again.';
           _code = '';
           _wrongEntries++;
+          recordJourneyEvent('code_invalid', detail: widget.channel);
         });
       }
     } catch (e) {
@@ -197,6 +200,7 @@ class _ContactVerificationScreenState
         if (isWrongCode(e)) {
           _code = '';
           _wrongEntries++;
+          recordJourneyEvent('code_invalid', detail: widget.channel);
         }
       });
     }

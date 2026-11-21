@@ -6,6 +6,7 @@ import '../config/capture_config.dart';
 import '../liveness/face_detection.dart';
 import '../liveness/selfie_candidates.dart';
 import '../liveness/selfie_pick.dart';
+import '../liveness/selfie_review.dart';
 import '../services/image_service.dart';
 
 // ─── The selfie, chosen from the live run (screen side) ──────────────────────
@@ -130,6 +131,41 @@ class LivenessSelfieRun {
         return StillSelfieFrame(grab());
       },
     ));
+  }
+
+  /// The whole camera frame the best selfie was cut from, and where the face
+  /// is in it, for the full-screen review (liveness/selfie_review.dart). Null
+  /// when there is no best frame or it could not be encoded. Never uploaded.
+  Future<SelfieScene?> encodeBestScene() async {
+    final best = candidates.best;
+    if (best == null) return null;
+    final image = await switch (best.frame) {
+      BgraSelfieFrame(:final bytes, :final width, :final height, :final bytesPerRow) =>
+        processSelfieSceneFrame(
+          bytes: bytes,
+          width: width,
+          height: height,
+          bytesPerRow: bytesPerRow,
+        ),
+      StillSelfieFrame(:final jpeg) => () async {
+          final bytes = await jpeg;
+          return bytes == null ? null : processSelfieSceneStill(bytes);
+        }(),
+    };
+    if (image == null) return null;
+    return SelfieScene(
+      jpeg: image.jpeg,
+      width: image.width,
+      height: image.height,
+      // Shares of the frame, so the frame's own size does not matter.
+      face: faceShareBox(
+        centreX: best.face.centreX,
+        centreY: best.face.centreY,
+        width: best.face.width,
+        frameWidth: image.width,
+        frameHeight: image.height,
+      ),
+    );
   }
 
   /// The best frame of the run, encoded and cut to the standard frame. Null

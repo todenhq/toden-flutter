@@ -219,6 +219,10 @@ class LivenessConfig {
   final int challengeCount;
   final List<ChallengeConfig>? challengePool;
   final int timeoutPerChallenge;
+
+  /// Has no effect: the gesture avatar it once switched is gone. The face
+  /// icon that acts out each gesture is switched by
+  /// [VerificationConfig.livenessGestureGuide]. Kept so existing code compiles.
   final bool enableAvatar;
 
   const LivenessConfig({
@@ -241,17 +245,28 @@ class LivenessConfig {
 /// added without a breaking change — Myaza operates across NG/GH/KE/ZA/CI, and
 /// French guidance for CI is a likely future need. Mirrors the web SDK's
 /// `VoiceGuidanceConfig`.
+///
+/// Each key left unset here takes the workflow's value (see [over]), so a
+/// host that passes only `VoiceGuidanceConfig(voice: 'rory')` keeps the
+/// workflow's [enabled] and [language].
 class VoiceGuidanceConfig {
   /// Whether spoken guidance plays. Default `true` (on for accessibility).
-  final bool enabled;
+  bool get enabled => _enabled ?? true;
+  final bool? _enabled;
 
   /// BCP-47 language tag for the spoken voice (e.g. `'en-US'`, `'fr-FR'`).
-  /// Defaults to `'en-US'`. Currently selects the TTS voice only; the spoken
-  /// text still mirrors the on-screen English instruction (localized strings
-  /// are a planned follow-up).
+  /// Defaults to `'en-US'`. Selects the device voice, and the language of the
+  /// Toden voice's clips (its primary subtag). The spoken text still mirrors
+  /// the on-screen instruction.
   final String? language;
 
-  const VoiceGuidanceConfig({this.enabled = true, this.language});
+  /// A Toden voice id (e.g. `'lyra'`): the liveness prompts are said in that
+  /// pre-recorded voice, with the device voice for any phrase it has no clip
+  /// for. Null uses the device voice alone. Normally chosen per workflow.
+  final String? voice;
+
+  const VoiceGuidanceConfig({bool? enabled, this.language, this.voice})
+      : _enabled = enabled;
 
   /// Resolved BCP-47 language, defaulting to `en-US`.
   String get resolvedLanguage => language ?? 'en-US';
@@ -259,16 +274,28 @@ class VoiceGuidanceConfig {
   /// Convenience: a config that disables spoken guidance.
   static const VoiceGuidanceConfig off = VoiceGuidanceConfig(enabled: false);
 
+  /// This config over [base], key by key: what this one sets wins, and what
+  /// it leaves unset comes from [base]. How the SDK prop sits over the
+  /// workflow.
+  VoiceGuidanceConfig over(VoiceGuidanceConfig base) => VoiceGuidanceConfig(
+        enabled: _enabled ?? base._enabled,
+        language: language ?? base.language,
+        voice: voice ?? base.voice,
+      );
+
   /// Parses a resolved workflow's `voiceGuidance` value, which may be a bare
-  /// bool (`true`/`false`) or an object (`{ enabled?, language? }`). Returns
-  /// null for anything unrecognized so the caller keeps its existing value.
+  /// bool (`true`/`false`, which sets [enabled] alone) or an object
+  /// (`{ enabled?, language?, voice? }`). Returns null for anything
+  /// unrecognized so the caller keeps its existing value.
   static VoiceGuidanceConfig? fromDynamic(Object? value) {
     if (value is bool) return VoiceGuidanceConfig(enabled: value);
     if (value is Map) {
-      final map = value.cast<String, dynamic>();
+      String? text(Object? v) => v is String && v.trim().isNotEmpty ? v.trim() : null;
+      final enabled = value['enabled'];
       return VoiceGuidanceConfig(
-        enabled: map['enabled'] as bool? ?? true,
-        language: map['language'] as String?,
+        enabled: enabled is bool ? enabled : null,
+        language: text(value['language']),
+        voice: text(value['voice']),
       );
     }
     return null;
@@ -551,10 +578,12 @@ class VerificationConfig {
   final Map<String, dynamic>? metadata;
   final LivenessConfig? livenessConfig;
 
-  /// Spoken liveness instructions (accessibility). TTS output only — no
+  /// Spoken liveness instructions (accessibility). Speech output only — no
   /// microphone is used. Default: enabled (`en-US`). Pass
-  /// `VoiceGuidanceConfig.off` to mute, or `VoiceGuidanceConfig(language: …)`
-  /// to pick a voice language.
+  /// `VoiceGuidanceConfig.off` to mute, `VoiceGuidanceConfig(language: …)`
+  /// to pick a voice language, or `VoiceGuidanceConfig(voice: 'lyra')` for a
+  /// Toden voice. Unlike other keys, what this sets wins over the workflow,
+  /// key by key.
   final VoiceGuidanceConfig voiceGuidance;
 
   /// Pre-fills form fields and personalises the welcome screen.
@@ -596,6 +625,28 @@ class VerificationConfig {
   /// (`livenessBrightScreen`, where an absent key means on). The flash check's
   /// black baseline between colours is not governed by this: it always runs.
   final bool livenessBrightScreen;
+
+  /// Gesture guide: on the liveness camera, a face icon pops up in the
+  /// window, acts out the gesture being asked for once, then goes, coming back
+  /// only if the person stops responding. The instruction is shown in words
+  /// either way. On by default; `false` turns it off. Normally set by a
+  /// workflow (`livenessGestureGuide`, where an absent key means on).
+  final bool livenessGestureGuide;
+
+  /// Which gestures the liveness camera asks for (3D Active Motion and Dual
+  /// Check). `'directions'`: head turns and looks up or down, as many as
+  /// [livenessDirectionCount] (3 unless set), always with a turn, in an order
+  /// picked for the session (by Core, when it answers; see
+  /// liveness/direction_plan.dart). `'classic'`: two or three of nod, turn,
+  /// blink and smile. Unset is `'classic'`. Normally set by a workflow
+  /// (`livenessGestureSet`), where new workflows start on `'directions'`.
+  final String? livenessGestureSet;
+
+  /// How many head directions the camera asks for with
+  /// `livenessGestureSet: 'directions'`: 2, 3 or 4. Unset (or anything else)
+  /// is 3. Every run includes at least one head turn, left or right. Normally
+  /// set by a workflow (`livenessDirectionCount`).
+  final int? livenessDirectionCount;
 
   /// Show the captured selfie, with Retake and Continue, before moving on.
   /// Off by default: the liveness capture hands straight over. Normally set
@@ -713,6 +764,9 @@ class VerificationConfig {
     this.consentStep = true,
     this.silentCapture = true,
     this.livenessBrightScreen = true,
+    this.livenessGestureGuide = true,
+    this.livenessGestureSet,
+    this.livenessDirectionCount,
     this.selfieReview,
     this.biometric,
     this.questionnaire,
@@ -770,6 +824,9 @@ class VerificationConfig {
     bool? consentStep,
     bool? silentCapture,
     bool? livenessBrightScreen,
+    bool? livenessGestureGuide,
+    String? livenessGestureSet,
+    int? livenessDirectionCount,
     bool? selfieReview,
     BiometricFlowConfig? biometric,
     QuestionnaireConfig? questionnaire,
@@ -824,6 +881,10 @@ class VerificationConfig {
         consentStep: consentStep ?? this.consentStep,
         silentCapture: silentCapture ?? this.silentCapture,
         livenessBrightScreen: livenessBrightScreen ?? this.livenessBrightScreen,
+        livenessGestureGuide: livenessGestureGuide ?? this.livenessGestureGuide,
+        livenessGestureSet: livenessGestureSet ?? this.livenessGestureSet,
+        livenessDirectionCount:
+            livenessDirectionCount ?? this.livenessDirectionCount,
         selfieReview: selfieReview ?? this.selfieReview,
         biometric: biometric ?? this.biometric,
         questionnaire: questionnaire ?? this.questionnaire,

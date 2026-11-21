@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
 import 'ui_spinner.dart';
+import '../i18n/text_scope.dart';
+import '../utils/click_log.dart';
 
 // ─── Variants ─────────────────────────────────────────────────────────────────
 
@@ -190,7 +192,13 @@ class UiButton extends StatelessWidget {
       width: fullWidth ? double.infinity : null,
       height: UiSizing.buttonHeight,
       child: ElevatedButton(
-        onPressed: isDisabled ? null : onPressed,
+        // Named by its catalogue key for the verification timeline (utils/click_log.dart).
+        onPressed: isDisabled
+            ? null
+            : () {
+                logPress([label], context.verificationText);
+                onPressed!();
+              },
         style: buttonStyle,
         child: child,
       ),

@@ -5,8 +5,9 @@
 // picked ID's name.
 
 const Map<String, String> kCaptureTextDefaults = {
-  'uploadDocument.title.scanFront': 'Capture Your {document}',
-  'uploadDocument.title.capture': 'Capture Your {document}',
+  'uploadDocument.title.scanFront': 'Scan Front of Your {document}',
+  // One-sided documents (a passport page, a one-sided card) are scanned.
+  'uploadDocument.title.capture': 'Scan Your {document}',
   'uploadDocument.title.uploadFront': 'Upload Your {document}',
   'uploadDocument.title.upload': 'Upload Your {document}',
   'uploadDocument.title.frontCaptured': 'Front Side Captured',
@@ -16,8 +17,7 @@ const Map<String, String> kCaptureTextDefaults = {
   'uploadDocument.title.review': 'Review Your {document}',
   'uploadDocument.description.scanFront':
       'Photograph your {document}. Position it within the frame and hold steady.',
-  'uploadDocument.description.capture':
-      'Photograph your {document}. Position it within the frame and hold steady.',
+  'uploadDocument.description.capture': 'Place your {document} within the frame.',
   'uploadDocument.description.uploadFront': 'Choose a clear photo of your {document} from your device.',
   'uploadDocument.description.upload': 'Choose a clear photo of your {document} from your device.',
   'uploadDocument.description.frontCaptured': 'Looks good? Tap Next to flip the card and scan the back side.',
@@ -28,6 +28,9 @@ const Map<String, String> kCaptureTextDefaults = {
   'uploadDocument.description.reviewBothAdded': 'Tap Continue to upload and submit your document.',
   'uploadDocument.description.review': 'Tap Continue to upload and submit your document.',
   'uploadDocument.camera.uploadInstead': 'Upload a photo instead',
+  // The turn-over between the two sides of a card, in the camera's hint line
+  // while the sample in the frame turns over.
+  'uploadDocument.flipBanner': 'Good. Now flip your card over to scan the back.',
   'uploadDocument.upload.hint': 'A clear, well-lit photo from your device',
   'uploadDocument.upload.tapToChoose': 'Tap to choose a photo',
   'uploadDocument.upload.tip1': 'All four corners are in the photo',
@@ -43,13 +46,13 @@ const Map<String, String> kCaptureTextDefaults = {
   'nfc.description': 'Hold your document flat against the back of your phone until it’s read.',
   'nfc.waiting': 'Waiting for the chip',
   'nfc.skip': 'Continue without the chip',
-  'presence.title': 'Face Verification',
+  'presence.title': 'Face check',
   'presence.camera.description': 'Follow the on-screen instructions',
   'presence.position.placeFace': 'Position your face in the circle',
-  'presence.challenge.nod': 'Kindly nod your head',
-  'presence.challenge.turn': 'Kindly turn your head',
+  'presence.challenge.nod': 'Nod your head',
+  'presence.challenge.turn': 'Turn your head',
   'presence.challenge.blink': 'Blink your eyes',
-  'presence.challenge.smile': 'Smile please',
+  'presence.challenge.smile': 'Smile',
   'presence.challenge.hold': 'Hold still and look at the camera',
   'presence.review.title': 'Selfie Captured',
   'presence.review.description': 'Review your selfie before continuing.',

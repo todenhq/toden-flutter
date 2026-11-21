@@ -1,6 +1,6 @@
 name: toden_flutter
 description: Toden SDK for Flutter. ID verification, liveness detection, NFC chip reading and document capture.
-version: 4.2.0
+version: 4.3.0
 
 homepage: https://github.com/todenhq/toden-flutter
 repository: https://github.com/todenhq/toden-flutter
@@ -31,6 +31,12 @@ dependencies:
   uuid: ^4.4.0
   flutter_animate: ^4.5.0
   flutter_tts: ^4.0.2
+  # Toden voices (liveness/voice_clips.dart): the pre-recorded liveness
+  # prompts, played from memory. audio_session sets the iOS session so a clip
+  # plays beside the camera and the recording's microphone without stopping or
+  # ducking them.
+  just_audio: ^0.10.5
+  audio_session: ^0.2.3
   image_picker: ^1.1.0
   # Opens the End User Terms / Privacy Policy from the consent screen. Consent
   # given by tapping Continue is only INFORMED if the documents it references
@@ -71,6 +77,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  # The liveness speaker's turn-taking runs on timers, tested in fake time.
+  fake_async: ^1.3.1
   # The presence token test fakes the path_provider platform.
   path_provider_platform_interface: ^2.1.2
   plugin_platform_interface: ^2.1.8

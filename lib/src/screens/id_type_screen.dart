@@ -12,6 +12,7 @@ import '../providers/step_order.dart';
 import '../widgets/ui_pulse_loader.dart';
 import '../widgets/icons/icons.dart';
 import 'id_country_field.dart';
+import '../utils/click_log.dart';
 
 // ─── ID type selection screen ─────────────────────────────────────────────────
 
@@ -154,6 +155,7 @@ class IdTypeScreen extends ConsumerWidget {
               // advancing and the next not was the inconsistency worth
               // removing. A mis-tap costs one Back.
               onTap: () {
+                logChoice('idType');
                 notifier.setIdType(idTypeConfig);
                 notifier.nextStep();
               },

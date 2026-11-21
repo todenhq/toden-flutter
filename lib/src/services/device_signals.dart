@@ -46,6 +46,9 @@ class DeviceSignals {
   final DeviceIntelPlatform _native;
   final String? _platform;
 
+  /// `ios` | `android`, or null where there is no platform to attest with.
+  String? get platform => _platform;
+
   String? _stableId;
   Map<String, dynamic>? _integrity;
 

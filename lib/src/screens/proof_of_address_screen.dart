@@ -22,6 +22,7 @@ import 'proof_of_address_parts.dart';
 import 'proof_of_address_pick.dart';
 import 'photo_camera.dart';
 import '../i18n/text_scope.dart';
+import '../utils/click_log.dart';
 
 part 'proof_of_address_upload.dart';
 
@@ -100,9 +101,10 @@ class _ProofOfAddressScreenState extends ConsumerState<ProofOfAddressScreen> {
         AddressCountryControl(
           value: poaCountry,
           label: t(businessKey('proofOfAddress.country.residence', business)),
-          onPick: (code) => scoped
-              ? notifier.setCountry(code)
-              : notifier.setPoaCountry(code),
+          onPick: (code) {
+            logChoice('country');
+            scoped ? notifier.setCountry(code) : notifier.setPoaCountry(code);
+          },
         ),
         const SizedBox(height: 20),
 

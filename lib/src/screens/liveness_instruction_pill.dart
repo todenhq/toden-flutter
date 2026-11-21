@@ -118,14 +118,29 @@ class LivenessStepCount extends StatelessWidget {
     super.key,
     required this.step,
     required this.total,
+    this.screenReaderOnly = false,
   });
 
   final int step;
   final int total;
 
+  /// With head directions the line round the window already shows how far
+  /// along the check is, so the count is for screen readers only (the line is
+  /// a picture to them) (user, 2026-11-18). The web SDK's sr-only StepCount.
+  final bool screenReaderOnly;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.myazaColors;
+    if (screenReaderOnly) {
+      return Semantics(
+        container: true,
+        label: 'Step $step of $total',
+        // A point, not nothing: a node with an empty rect is dropped from the
+        // platform's accessibility tree as invisible.
+        child: const SizedBox(width: 1, height: 1),
+      );
+    }
     return Center(
       child: LivenessFrostedPill(
         child: Text(

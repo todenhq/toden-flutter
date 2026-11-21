@@ -35,6 +35,25 @@ void _logSize(String label, int beforeBytes, int afterBytes) {
 /// Compresses the recorded video file at [inputPath] for upload and returns the
 /// compressed bytes. Falls back to the original file's bytes when compression
 /// is unavailable or returns null. [label] is used only for debug logging.
+/// The largest file Core's upload takes (kyc-core routes/sdk/upload.ts): a
+/// larger one is refused outright, so retrying it cannot help.
+const int kMaxUploadBytes = 25 * 1024 * 1024;
+
+/// A video made ready to upload: its bytes, and whether they were shrunk
+/// (false: the encoder failed or gave nothing smaller, and these are the
+/// original's).
+typedef PreparedVideo = ({Uint8List bytes, bool shrunk});
+
+/// [compressVideoToBytes], saying whether the result was actually shrunk. On
+/// iPhone (2026-11-18) head-directions videos never arrived: if the encoder
+/// fell back, a full-size original over [kMaxUploadBytes] was refused, and the
+/// claim could not say which step failed.
+Future<PreparedVideo> prepareVideo(String inputPath, {String label = 'video'}) async {
+  final original = await File(inputPath).length();
+  final bytes = await compressVideoToBytes(inputPath, label: label);
+  return (bytes: bytes, shrunk: bytes.isNotEmpty && bytes.length < original);
+}
+
 Future<Uint8List> compressVideoToBytes(String inputPath, {String label = 'video'}) async {
   final originalBytes = await File(inputPath).readAsBytes();
   // An empty source is never worth compressing OR uploading. A clip whose

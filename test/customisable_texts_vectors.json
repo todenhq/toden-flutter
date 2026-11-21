@@ -491,7 +491,10 @@
     {
       "key": "primer.document.title",
       "group": "primer",
-      "default": "You're about to scan your ID",
+      "default": "You're about to scan your {document}",
+      "placeholders": [
+        "document"
+      ],
       "availability": {
         "subject": "individual",
         "scopes": [
@@ -503,7 +506,10 @@
     {
       "key": "primer.document.body",
       "group": "primer",
-      "default": "We'll photograph your document and read it automatically. Nothing is shared until you submit.",
+      "default": "We'll read the details for you. Nothing is shared until you submit.",
+      "placeholders": [
+        "document"
+      ],
       "availability": {
         "subject": "individual",
         "scopes": [
@@ -515,7 +521,10 @@
     {
       "key": "primer.document.checklist1",
       "group": "primer",
-      "default": "Have your physical document with you",
+      "default": "Have your {document} with you",
+      "placeholders": [
+        "document"
+      ],
       "availability": {
         "subject": "individual",
         "scopes": [
@@ -539,7 +548,7 @@
     {
       "key": "primer.document.checklist3",
       "group": "primer",
-      "default": "Takes about a minute",
+      "default": "Takes a few seconds",
       "availability": {
         "subject": "individual",
         "scopes": [
@@ -728,7 +737,7 @@
     {
       "key": "uploadDocument.title.capture",
       "group": "uploadDocument",
-      "default": "Capture Your {document}",
+      "default": "Scan Your {document}",
       "placeholders": [
         "document"
       ],
@@ -857,7 +866,7 @@
     {
       "key": "uploadDocument.description.capture",
       "group": "uploadDocument",
-      "default": "Photograph your {document}. Position it within the frame and hold steady.",
+      "default": "Place your {document} within the frame.",
       "placeholders": [
         "document"
       ],
@@ -1136,7 +1145,7 @@
     {
       "key": "uploadDocument.flipBanner",
       "group": "uploadDocument",
-      "default": "Great! Now flip your card over to scan the back.",
+      "default": "Good. Now flip your card over to scan the back.",
       "availability": {
         "subject": "individual",
         "scopes": [
@@ -1220,7 +1229,7 @@
     {
       "key": "presence.title",
       "group": "presence",
-      "default": "Liveness Check",
+      "default": "Face check",
       "availability": {
         "subject": "individual",
         "scopes": [
@@ -1262,7 +1271,7 @@
     {
       "key": "presence.position.placeFace",
       "group": "presence",
-      "default": "Kindly position your face in the circle",
+      "default": "Position your face in the circle",
       "availability": {
         "subject": "individual",
         "scopes": [
@@ -1276,7 +1285,7 @@
     {
       "key": "presence.challenge.nod",
       "group": "presence",
-      "default": "Kindly nod your head",
+      "default": "Nod your head",
       "availability": {
         "subject": "individual",
         "scopes": [
@@ -1290,7 +1299,7 @@
     {
       "key": "presence.challenge.turn",
       "group": "presence",
-      "default": "Kindly turn your head",
+      "default": "Turn your head",
       "availability": {
         "subject": "individual",
         "scopes": [
@@ -1304,7 +1313,7 @@
     {
       "key": "presence.challenge.blink",
       "group": "presence",
-      "default": "Kindly blink your eyes",
+      "default": "Blink your eyes",
       "availability": {
         "subject": "individual",
         "scopes": [
@@ -1318,7 +1327,7 @@
     {
       "key": "presence.challenge.smile",
       "group": "presence",
-      "default": "Kindly smile",
+      "default": "Smile",
       "availability": {
         "subject": "individual",
         "scopes": [

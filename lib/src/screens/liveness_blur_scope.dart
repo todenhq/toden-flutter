@@ -31,7 +31,11 @@ class LivenessBlurScope extends InheritedWidget {
 /// on screen, and turns the blur off for good once the phone falls behind
 /// (liveness/blur_budget.dart).
 class LivenessBlurBudget extends StatefulWidget {
-  const LivenessBlurBudget({super.key, required this.child});
+  const LivenessBlurBudget({super.key, required this.judging, required this.child});
+
+  /// Whether the frames now say anything about the phone: true while the
+  /// camera is simply live, false while the photo is taken (BlurBudget.pause).
+  final bool judging;
 
   final Widget child;
 
@@ -55,6 +59,10 @@ class _LivenessBlurBudgetState extends State<LivenessBlurBudget> {
   }
 
   void _onTimings(List<FrameTiming> timings) {
+    if (!widget.judging) {
+      _budget.pause();
+      return;
+    }
     var ended = false;
     for (final timing in timings) {
       // The raster time: the blur is drawn there, not in build.

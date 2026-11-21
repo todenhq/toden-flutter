@@ -305,8 +305,8 @@ void main() {
       expect(selfieGuidanceFor(SelfieVerdict.turned), SelfieGuidance.lookStraight);
       expect(selfieGuidanceFor(SelfieVerdict.far), SelfieGuidance.moveCloser);
       expect(selfieGuidanceFor(SelfieVerdict.kept), isNull);
-      expect(defaultTextFn('presence.position.lookStraight'), 'Kindly look straight at the camera');
-      expect(defaultTextFn('presence.position.moveCloser'), 'Kindly move closer');
+      expect(defaultTextFn('presence.position.lookStraight'), 'Look straight at the camera');
+      expect(defaultTextFn('presence.position.moveCloser'), 'Move closer');
     });
   });
 }

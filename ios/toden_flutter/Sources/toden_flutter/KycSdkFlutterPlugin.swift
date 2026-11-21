@@ -42,6 +42,10 @@ public class KycSdkFlutterPlugin: NSObject, FlutterPlugin {
     // Screen brightness + AWB/AE lock for flash liveness (see CaptureTuning).
     CaptureTuning.register(with: registrar)
 
+    // One TrueDepth depth frame after the selfie, with the camera plugin's
+    // session closed (see DepthFrame).
+    DepthFrame.register(with: registrar)
+
     // Background presence tier: region monitoring + killed-app flush
     // (see PresenceChannel / PresenceMonitor).
     PresenceChannel.register(with: registrar)
@@ -117,6 +121,11 @@ public class KycSdkFlutterPlugin: NSObject, FlutterPlugin {
       }
 
       let toDeg = 180.0 / Double.pi
+      // Vision's yaw as it comes, which on this `.upMirrored` image is already
+      // ML Kit's convention (positive = the person's own LEFT). Measured on an
+      // iPhone 16 Pro Max, iOS 27.2, 2026-11-18: negated, "turn left" passed on
+      // a right turn. React Native reads a `.leftMirrored` image and must
+      // negate; this must not.
       let yawDeg = (face.yaw?.doubleValue ?? 0) * toDeg
       let rollDeg = (face.roll?.doubleValue ?? 0) * toDeg
 
@@ -278,6 +287,10 @@ public class KycSdkFlutterPlugin: NSObject, FlutterPlugin {
     let neutralGap = 0.18
     let degPerUnit = 220.0
     // gap < neutral (nose risen toward eyes) ⇒ looking down ⇒ negative.
-    return (gap - neutralGap) * degPerUnit
+    // Measured on an iPhone 16 Pro Max, iOS 27.2, 2026-11-18: the gap grows
+    // looking DOWN (the reasoning above had it shrinking), so "look up" passed
+    // only when the person looked down. The sign is set so up is positive,
+    // ML Kit's convention, which the shared code reads.
+    return (neutralGap - gap) * degPerUnit
   }
 }

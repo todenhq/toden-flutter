@@ -333,4 +333,55 @@ void main() {
       expect(find.text(kUploadCaption), findsNothing);
     });
   });
+
+  group('the turn-over between the sides', () {
+    DocumentViewfinder turning() => DocumentViewfinder(
+          controller: null,
+          isLoading: false,
+          error: null,
+          isBack: true,
+          isProcessing: false,
+          guideAspect: 1.586,
+          onCapture: () {},
+          hintLabel: 'National ID',
+          country: 'NG',
+          onBack: () {},
+          onUpload: () {},
+          turning: true,
+        );
+
+    testWidgets(
+        'plays in the frame: the turn-over line in the hint, BACK on the badge, '
+        'the sample turning, the shutter blocked with that reason',
+        (tester) async {
+      _phone(tester);
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(turning()));
+      await tester.pump();
+
+      const line = 'Good. Now flip your card over to scan the back.';
+      expect(find.text(line), findsOneWidget);
+      expect(find.text('BACK'), findsOneWidget);
+      // The frame's own sample, mounted as the turn-over, the back's from the
+      // start of it: no separate card over the camera.
+      final ghost = tester.widget<DocumentGhost>(find.byType(DocumentGhost));
+      expect(ghost.turnFrom, isNotNull);
+      expect(ghost.holding, isTrue);
+      expect(ghost.subject.side.name, 'back');
+      // Nothing to take or pick while the card is turned over.
+      final shutter = tester.getSemantics(find.byKey(kDocumentShutterKey));
+      expect(shutter.flagsCollection.isEnabled.toBoolOrNull(), isFalse);
+      expect(find.byKey(kDocumentUploadKey), findsNothing);
+      handle.dispose();
+      await tester.pump(kTurnOverHold);
+    });
+
+    testWidgets('the back keeps its sample for the back scan', (tester) async {
+      _phone(tester);
+      await tester.pumpWidget(_host(_viewfinder(isBack: true)));
+      await tester.pump();
+      expect(find.byType(DocumentGhost), findsOneWidget);
+      await tester.pump(kDocumentGhostDuration + kDocumentGhostFade);
+    });
+  });
 }

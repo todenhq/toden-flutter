@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../i18n/text_scope.dart';
 import '../providers/verification_provider.dart';
 import '../widgets/country_summary_select.dart';
+import '../utils/click_log.dart';
 
 // ─── The ID's country, on the ID-type step ────────────────────────────────────
 //
@@ -66,6 +67,7 @@ class _IdCountryFieldState extends ConsumerState<IdCountryField> {
       geoCountry: state.serverConfig.geoCountry,
       onPick: (code) {
         if (code != state.selectedCountry) {
+          logChoice('country');
           ref.read(kYCNotifierProvider.notifier).setCountry(code);
         }
       },

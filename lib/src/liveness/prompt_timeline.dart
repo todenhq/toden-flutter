@@ -13,7 +13,13 @@
 // Mirrors the web SDK (liveness/prompt-timeline.ts) and the React Native SDK
 // (liveness/promptTimeline.ts). Change all three together.
 
-const _gestures = {'turn', 'nod', 'blink', 'smile'};
+// The classic gestures and the head directions. The directions were left out
+// when they were added (2026-11-17), so no head-directions run sent its times
+// and Core had nothing to read the recording against (found 2026-11-18).
+const _gestures = {
+  'turn', 'nod', 'blink', 'smile', //
+  'turnLeft', 'turnRight', 'lookUp', 'lookDown',
+};
 
 class _Entry {
   _Entry(this.prompt, this.shownAt);

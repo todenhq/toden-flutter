@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +20,22 @@ import '../config/document_specimen.dart';
 // post-shutter crop share, so the three cannot disagree about where the document
 // goes. The drawing itself is config/document_specimen.dart. The timing mirrors
 // the React Native SDK's DocumentGhost.
+//
+// Between the two sides of a card it is also the turn-over: mounted with
+// [DocumentGhost.turnFrom], it shows the side just taken and turns over, in
+// its place in the frame and at its size, to the side asked for next, then
+// stays for that side's scan (user, 2026-11-18: a separate card turning over a
+// dimmed camera, with the frame gone until it ended, did not read as one
+// movement). The web SDK's DocumentGhost `turnFrom` and `holding`.
+
+/// How long the side just taken is shown before it turns, and the turn.
+const Duration kGhostTurnDelay = Duration(milliseconds: 600);
+const Duration kGhostTurn = Duration(milliseconds: 800);
+
+/// How long the camera waits for the card to be turned over: time to read the
+/// line, turn the document over and bring it back into frame. Nothing to tap
+/// (user, 2026-11-16): the person's hands are full.
+const Duration kTurnOverHold = Duration(seconds: 5);
 
 /// When it starts to leave if nothing is framed: long enough to read it, find
 /// the document and bring it up to the camera.
@@ -99,38 +116,76 @@ class DocumentGhost extends StatefulWidget {
     required this.accent,
     required this.subject,
     this.documentFound = false,
+    this.turnFrom,
+    this.holding = false,
   });
 
+  /// The side to turn over from, when it opens as the turn-over. Read once, at
+  /// mount: it is the same sample before and after the turn.
+  final SpecimenSide? turnFrom;
+
+  /// Stays, and its timing does not start, while true: the turn-over is still
+  /// on screen and nothing is being scanned yet.
+  final bool holding;
+
   @override
-  State<DocumentGhost> createState() => _DocumentGhostState();
+  State<DocumentGhost> createState() => DocumentGhostState();
 }
 
-class _DocumentGhostState extends State<DocumentGhost> {
+class DocumentGhostState extends State<DocumentGhost> {
   final Stopwatch _shown = Stopwatch()..start();
   Timer? _hold;
   Timer? _early;
+  Timer? _turn;
   bool _arrived = false;
   bool _leaving = false;
+  late final SpecimenSide? _from = widget.turnFrom;
+  bool _turned = false;
+
+  /// Whether the turn-over has turned to the side asked for (for tests).
+  bool get turned => _turned;
+
+  /// Whether it has begun to fade (for tests).
+  bool get leaving => _leaving;
 
   @override
   void initState() {
     super.initState();
-    _hold = Timer(kDocumentGhostDuration, _leave);
+    _startTiming();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) setState(() => _arrived = true);
     });
+    if (_from != null) {
+      _turn = Timer(kGhostTurnDelay, () {
+        if (mounted) setState(() => _turned = true);
+      });
+    }
     _watchDocument();
   }
 
   @override
-  void didUpdateWidget(DocumentGhost old) {
-    super.didUpdateWidget(old);
-    if (old.documentFound != widget.documentFound) _watchDocument();
+  void didUpdateWidget(DocumentGhost oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.holding != widget.holding) _startTiming();
+    if (oldWidget.documentFound != widget.documentFound ||
+        oldWidget.holding != widget.holding) {
+      _watchDocument();
+    }
+  }
+
+  /// Its time on screen counts from when the scan it guides starts.
+  void _startTiming() {
+    _hold?.cancel();
+    if (widget.holding) return;
+    _shown
+      ..reset()
+      ..start();
+    _hold = Timer(kDocumentGhostDuration, _leave);
   }
 
   void _watchDocument() {
     _early?.cancel();
-    if (!widget.documentFound) return;
+    if (!widget.documentFound || widget.holding) return;
     final wait = kDocumentGhostMinimum - _shown.elapsed;
     _early = Timer(wait.isNegative ? Duration.zero : wait, _leave);
   }
@@ -143,7 +198,36 @@ class _DocumentGhostState extends State<DocumentGhost> {
   void dispose() {
     _hold?.cancel();
     _early?.cancel();
+    _turn?.cancel();
     super.dispose();
+  }
+
+  Widget _face(SpecimenSide side) => SvgPicture.string(
+        specimenSvg(widget.subject, side, widget.aspect, widget.accent),
+        fit: BoxFit.fill,
+      );
+
+  /// The card turning over where it stands: the side just taken, then, edge
+  /// on half way, the side asked for. Only the face towards the camera shows,
+  /// as with a real card. With less motion it is the side asked for at once.
+  Widget _turning() {
+    final still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    return TweenAnimationBuilder<double>(
+      key: const ValueKey('document-ghost-turn'),
+      tween: Tween(end: _turned || still ? 1 : 0),
+      duration: still ? Duration.zero : kGhostTurn,
+      curve: const Cubic(0.65, 0, 0.35, 1),
+      builder: (context, turn, _) {
+        final showingNext = turn >= 0.5;
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, 0.0011)
+            ..rotateY(math.pi * (showingNext ? turn - 1 : turn)),
+          child: _face(showingNext ? widget.subject.side : _from!),
+        );
+      },
+    );
   }
 
   @override
@@ -162,11 +246,7 @@ class _DocumentGhostState extends State<DocumentGhost> {
                   opacity: _arrived && !_leaving ? kDocumentGhostOpacity : 0,
                   duration: _leaving ? kDocumentGhostFade : _fadeIn,
                   curve: Curves.easeInOut,
-                  child: SvgPicture.string(
-                    specimenSvg(widget.subject, widget.subject.side,
-                        widget.aspect, widget.accent),
-                    fit: BoxFit.fill,
-                  ),
+                  child: _from == null ? _face(widget.subject.side) : _turning(),
                 ),
               ),
             ],

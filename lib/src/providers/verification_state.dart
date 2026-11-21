@@ -69,6 +69,7 @@ class VerificationMediaIds {
   final String? documentFrontVideo;
   final String? documentBackVideo;
   final String? livenessVideo;
+  final String? livenessDepth;
   final String? proofOfAddress;
   final String? addressPhoto;
 
@@ -79,6 +80,7 @@ class VerificationMediaIds {
     this.documentFrontVideo,
     this.documentBackVideo,
     this.livenessVideo,
+    this.livenessDepth,
     this.proofOfAddress,
     this.addressPhoto,
   });
@@ -90,13 +92,14 @@ class VerificationMediaIds {
     String? documentFrontVideo,
     String? documentBackVideo,
     String? livenessVideo,
+    String? livenessDepth,
     String? proofOfAddress,
     String? addressPhoto,
     // Removing an upload has to NULL the id, which `?? this` can't express —
     // same explicit-flag pattern as VerificationState.clearSelectedIdType.
     bool clearProofOfAddress = false,
     bool clearAddressPhoto = false,
-    // Retaking the selfie drops both its uploads (see VerificationNotifier.clearSelfie).
+    // Retaking the selfie drops all its uploads (see VerificationNotifier.clearSelfie).
     bool clearSelfie = false,
   }) =>
       VerificationMediaIds(
@@ -106,6 +109,7 @@ class VerificationMediaIds {
         documentFrontVideo: documentFrontVideo ?? this.documentFrontVideo,
         documentBackVideo: documentBackVideo ?? this.documentBackVideo,
         livenessVideo: clearSelfie ? null : (livenessVideo ?? this.livenessVideo),
+        livenessDepth: clearSelfie ? null : (livenessDepth ?? this.livenessDepth),
         proofOfAddress:
             clearProofOfAddress ? null : (proofOfAddress ?? this.proofOfAddress),
         addressPhoto:
@@ -119,6 +123,7 @@ class VerificationMediaIds {
       documentFrontVideo != null ||
       documentBackVideo != null ||
       livenessVideo != null ||
+      livenessDepth != null ||
       proofOfAddress != null ||
       addressPhoto != null;
 }

@@ -103,5 +103,13 @@ bool isUntouchedProgress(
   String openingStep = 'consent',
 }) {
   if (payload['step'] != openingStep) return false;
+  // Something got in the way on the opening screen (a pressed Close, an error):
+  // that is a journey worth keeping. Coming and going alone is not.
+  final log = payload['stepLog'];
+  final events = log is Map ? log['events'] : null;
+  if (events is List &&
+      events.any((e) => e is Map && e['code'] != 'app_backgrounded' && e['code'] != 'app_foregrounded')) {
+    return false;
+  }
   return (payload['mediaIds'] as Map).isEmpty;
 }

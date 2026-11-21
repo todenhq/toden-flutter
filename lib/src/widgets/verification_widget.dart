@@ -15,6 +15,7 @@ import '../config/appearance_scheme.dart';
 import '../config/bright_screen.dart';
 import '../config/theme.dart';
 import '../liveness/liveness_types.dart';
+import '../liveness/voice_playback.dart' show preloadVoiceClips;
 import '../providers/verification_provider.dart';
 import '../providers/verification_state.dart';
 import '../providers/liveness_provider.dart';
@@ -61,6 +62,7 @@ import '../config/verification_result.dart';
 import '../services/model_readiness.dart';
 import 'icons/icons.dart';
 import '../config/scope.dart';
+import '../utils/journey_client.dart' show recordFlowClosed, recordJourneyEvent;
 
 /// Maps the appearance's initial theme to a ThemeMode. Null appearance/theme
 /// and the explicit `system` value both follow the device setting.
@@ -354,7 +356,7 @@ class _VerificationFlowWidget extends ConsumerStatefulWidget {
 }
 
 class _VerificationFlowWidgetState
-    extends ConsumerState<_VerificationFlowWidget> with PortraitLock {
+    extends ConsumerState<_VerificationFlowWidget> with PortraitLock, WidgetsBindingObserver {
   /// One stable key per step, so a step's State survives being REPARENTED.
   ///
   /// The full-bleed camera swaps the whole shell — sheet-with-chrome for a bare
@@ -389,12 +391,54 @@ class _VerificationFlowWidgetState
     // off Android and once a model is on the phone.
     primeFaceModel();
     primeTextModel();
+    // The app going to the background and back, for the drop-off journey.
+    WidgetsBinding.instance.addObserver(this);
+    // The Toden voice's clips, for the same reason: they load behind the first
+    // screens, so the liveness step's prompts are in the chosen voice from the
+    // first one. Shared with (and deduped against) the workflow gate's preload.
+    _preloadVoice();
+  }
+
+  void _preloadVoice() {
+    try {
+      preloadVoiceClips(
+        ref.read(verificationConfigProvider).voiceGuidance,
+        baseUrl: ref.read(kYCNotifierProvider.notifier).api.baseUrl,
+      );
+    } catch (_) {
+      // No usable server yet: the liveness step tries again.
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     // The orientation release is PortraitLock's.
     super.dispose();
+  }
+
+  /// Leaving the app and coming back, on the drop-off journey. `paused`, not
+  /// `inactive`: iOS's own permission prompt only makes the app inactive.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState lifecycle) {
+    if (lifecycle == AppLifecycleState.paused) {
+      recordJourneyEvent('app_backgrounded');
+    } else if (lifecycle == AppLifecycleState.resumed) {
+      recordJourneyEvent('app_foregrounded');
+    }
+  }
+
+  /// An error the flow reports to the host app, on the drop-off journey too
+  /// (by its code only).
+  void _reportError(VerificationError error) {
+    recordJourneyEvent('error_shown', detail: error.code);
+    widget.onError?.call(error);
+  }
+
+  /// The applicant closing the flow, on the drop-off journey, then the host told.
+  void _closePressed() {
+    recordFlowClosed();
+    widget.onClose?.call();
   }
 
   @override
@@ -549,7 +593,7 @@ class _VerificationFlowWidgetState
         message: configError,
       );
       WidgetsBinding.instance
-          .addPostFrameCallback((_) => widget.onError?.call(verificationError));
+          .addPostFrameCallback((_) => _reportError(verificationError));
     }
 
     // ── Cancelled by the organisation (config/session_cancelled.dart) ─────
@@ -562,7 +606,7 @@ class _VerificationFlowWidgetState
       final verificationError = VerificationError(
           code: kSessionCancelledCode, message: cancelledMessage);
       WidgetsBinding.instance
-          .addPostFrameCallback((_) => widget.onError?.call(verificationError));
+          .addPostFrameCallback((_) => _reportError(verificationError));
     }
 
     // ── Declined by the server (config/session_declined.dart) ────────────
@@ -576,7 +620,7 @@ class _VerificationFlowWidgetState
       final verificationError = VerificationError(
           code: kSessionDeclinedCode, message: declined.message);
       WidgetsBinding.instance
-          .addPostFrameCallback((_) => widget.onError?.call(verificationError));
+          .addPostFrameCallback((_) => _reportError(verificationError));
     }
     final blockingMessage =
         configError ?? cancelledMessage ?? declined?.message;
@@ -592,7 +636,7 @@ class _VerificationFlowWidgetState
                 : UiIcons.circleAlert,
             message: blockingMessage,
             onClose: () {
-              widget.onClose?.call();
+              _closePressed();
               if (Navigator.of(context).canPop()) {
                 Navigator.of(context).pop();
               }
@@ -605,7 +649,7 @@ class _VerificationFlowWidgetState
     // the header shows no X (widgets/flow_close.dart).
     final VoidCallback? flowClose = canDismiss
         ? () {
-            widget.onClose?.call();
+            _closePressed();
             final nav = Navigator.of(context);
             if (nav.canPop()) nav.pop();
           }
@@ -727,7 +771,7 @@ class _VerificationFlowWidgetState
                     // then pop past the step-back guard.
                     onClose: canDismiss
                         ? () {
-                            widget.onClose?.call();
+                            _closePressed();
                             final nav = Navigator.of(context);
                             if (nav.canPop()) nav.pop();
                           }
@@ -920,15 +964,15 @@ class _VerificationFlowWidgetState
             : const CountrySelectScreen(),
         VerificationStep.idType => const IdTypeScreen(),
         VerificationStep.documentCapture =>
-          DocumentCaptureScreen(onError: widget.onError),
+          DocumentCaptureScreen(onError: _reportError),
         VerificationStep.idInput => const IdInputScreen(),
-        VerificationStep.liveness => LivenessScreen(onError: widget.onError),
+        VerificationStep.liveness => LivenessScreen(onError: _reportError),
         VerificationStep.submitted => SubmittedScreen(
             onSubmitted: widget.onSubmit,
-            onError: widget.onError,
+            onError: _reportError,
             onResult: widget.onResult,
             onDone: () {
-              widget.onClose?.call();
+              _closePressed();
               if (Navigator.of(context).canPop()) {
                 Navigator.of(context).pop();
               }
@@ -943,7 +987,7 @@ class _VerificationFlowWidgetState
         VerificationStep.businessKeyPeople => const BusinessKeyPeopleScreen(),
         VerificationStep.applicantRole => const ApplicantRoleScreen(),
         VerificationStep.businessDocuments => BusinessDocumentsScreen(
-            onError: (e) => widget.onError?.call(
+            onError: (e) => _reportError(
               e is VerificationError
                   ? e
                   : const VerificationError(
@@ -952,7 +996,7 @@ class _VerificationFlowWidgetState
             ),
           ),
         VerificationStep.supportingDocuments => SupportingDocumentsScreen(
-            onError: (e) => widget.onError?.call(
+            onError: (e) => _reportError(
               e is VerificationError
                   ? e
                   : const VerificationError(
@@ -961,7 +1005,7 @@ class _VerificationFlowWidgetState
             ),
           ),
         VerificationStep.proofOfAddress => ProofOfAddressScreen(
-            onError: (e) => widget.onError?.call(
+            onError: (e) => _reportError(
                   e is VerificationError
                       ? e
                       : const VerificationError(

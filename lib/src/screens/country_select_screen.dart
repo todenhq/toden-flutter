@@ -7,6 +7,7 @@ import '../providers/verification_provider.dart';
 import '../providers/step_order.dart' show countrySelectOptions;
 import '../widgets/country_option_tile.dart';
 import '../widgets/country_region_picker.dart';
+import '../utils/click_log.dart';
 
 // ─── Country select screen ────────────────────────────────────────────────────
 //
@@ -31,6 +32,7 @@ class CountrySelectScreen extends ConsumerWidget {
     final selected = state.selectedCountry;
 
     void pick(String code) {
+      logChoice('country');
       notifier.setCountry(code);
       notifier.nextStep();
     }

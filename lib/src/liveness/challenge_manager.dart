@@ -55,22 +55,47 @@ class ChallengeManager {
   factory ChallengeManager.passive() =>
       ChallengeManager._(pool: const [kHoldChallenge], count: 1);
 
+  /// Head directions (`livenessGestureSet: 'directions'`): [count] of the four
+  /// (2 to 4, anything else is [kDefaultDirectionCount]), always with a head
+  /// turn, in a shuffled order. A reset picks again.
+  factory ChallengeManager.directions({int? count, Random? random}) {
+    final n = directionCountOf(count);
+    return ChallengeManager._(
+      pool: kDirectionPool,
+      count: n,
+      pick: () => pickDirections(n, random)..shuffle(random),
+    );
+  }
+
   /// The prompts the workflow's liveness method asks for. The flash is not a
   /// prompt here: the screen runs it at the capture seam.
   factory ChallengeManager.forMode(
     String livenessMode, {
     List<ChallengeConfig>? pool,
     int count = 2,
+    String? gestureSet,
+    int? directionCount,
   }) =>
       switch (livenessMode) {
         'flash' => ChallengeManager.none(),
         'passive' => ChallengeManager.passive(),
+        _ when gestureSet == kGestureSetDirections =>
+          ChallengeManager.directions(count: directionCount),
         _ => ChallengeManager(pool: pool, count: count),
       };
 
-  ChallengeManager._({required this.pool, required this.count}) {
-    _selected = _pickRandom();
+  ChallengeManager._({
+    required this.pool,
+    required this.count,
+    List<ChallengeConfig> Function()? pick,
+  }) : _pick = pick {
+    _selected = _pickNext();
   }
+
+  /// How this manager picks its prompts, when not from [pool] at random.
+  final List<ChallengeConfig> Function()? _pick;
+
+  List<ChallengeConfig> _pickNext() => _pick?.call() ?? _pickRandom();
 
   // ── Accessors ───────────────────────────────────────────────────────────────
 
@@ -110,7 +135,17 @@ class ChallengeManager {
     _currentIndex = 0;
     _selected
       ..clear()
-      ..addAll(_pickRandom());
+      ..addAll(_pickNext());
+  }
+
+  /// Asks exactly [challenges], in that order, from the first: Core's plan for
+  /// this attempt (direction_plan.dart). Only before the first instruction has
+  /// been given, which the caller makes sure of.
+  void replaceWith(List<ChallengeConfig> challenges) {
+    _currentIndex = 0;
+    _selected
+      ..clear()
+      ..addAll(challenges);
   }
 
   // ── Internal ─────────────────────────────────────────────────────────────────
@@ -148,6 +183,62 @@ class ChallengeManager {
     // The turn went first to guarantee it; shuffle so its position is random.
     return picked..shuffle(random);
   }
+}
+
+/// A run asks for this many head directions unless the workflow says otherwise.
+const int kDefaultDirectionCount = 3;
+
+/// The workflow's `livenessDirectionCount` as a count to use: 2 to 4, anything
+/// else (unset included) 3.
+int directionCountOf(Object? count) =>
+    count is int && count >= 2 && count <= kDirectionPool.length
+        ? count
+        : kDefaultDirectionCount;
+
+/// PURE given [random]. The directions of a run, [count] of the four (2 to 4,
+/// anything else is 3), always with at least one head turn, left or right. A
+/// turn is what tells a head from a flat picture: Core only calls a capture
+/// flat when a turn was asked for, and a photo can be tilted up and down but
+/// not turned. The rest are picked at random from the other three, so which
+/// directions and their order are what a recording made earlier cannot know.
+/// Returned in the pool's order; the caller shuffles. The web SDK's
+/// pickDirections.
+List<ChallengeConfig> pickDirections([int count = kDefaultDirectionCount, Random? random]) {
+  final rng = random ?? Random();
+  final n = directionCountOf(count);
+  final turns = kDirectionPool
+      .where((c) =>
+          c.type == LivenessChallenge.turnLeft ||
+          c.type == LivenessChallenge.turnRight)
+      .toList();
+  final turn = turns[rng.nextInt(turns.length)];
+  final rest = kDirectionPool.where((c) => c != turn).toList();
+  // A partial Fisher-Yates with the same random source: n - 1 of the other three.
+  for (var i = 0; i < n - 1; i++) {
+    final j = i + rng.nextInt(rest.length - i);
+    final held = rest[i];
+    rest[i] = rest[j];
+    rest[j] = held;
+  }
+  final chosen = {turn, ...rest.take(n - 1)};
+  return kDirectionPool.where(chosen.contains).toList();
+}
+
+/// The prompts for a plan Core picked (direction_plan.dart): its gestures,
+/// head directions or classic, in its order. A classic gesture takes the
+/// integration's own [pool] entry when it has one, so its wording and timeout
+/// stand, else this SDK's. The flash is not a prompt here (it runs at the
+/// capture seam), so Dual Check needs nothing added. Unknown names are left
+/// out.
+List<ChallengeConfig> planChallenges(
+  List<LivenessChallenge> prompts, {
+  List<ChallengeConfig>? pool,
+}) {
+  final known = [...kDirectionPool, ...?pool, ...kDefaultChallengePool];
+  return [
+    for (final type in prompts)
+      for (final c in known.where((c) => c.type == type).take(1)) c,
+  ];
 }
 
 /// The prompts a run used, in order, as wire names for the liveness claim

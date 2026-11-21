@@ -49,18 +49,23 @@ const Map<String, String> kWelcomeTextDefaults = {
   'selectDocument.idType.title': 'Select ID Type',
   'selectDocument.idType.description': "Choose the type of identification document you'd like to use.",
   'selectDocument.idInput.description': 'We’ll check this against the official record.',
-  'primer.document.title': "You're about to scan your ID",
+  // {document} is the short name of the document the person chose
+  // ("Passport", "National ID Card"). The title and the sentence show only
+  // where a workflow has written its own (ReadyPrimer ownTitleOnly and
+  // ownBodyOnly): the step's heading above already says them.
+  'primer.document.title': "You're about to scan your {document}",
   'primer.document.body':
-      "We'll photograph your document and read it automatically. Nothing is shared until you submit.",
-  'primer.document.checklist1': 'Have your physical document with you',
+      "We'll read the details for you. Nothing is shared until you submit.",
+  'primer.document.checklist1': 'Have your {document} with you',
   'primer.document.checklist2': 'Find even lighting, avoid glare',
-  'primer.document.checklist3': 'Takes about a minute',
+  'primer.document.checklist3': 'Takes a few seconds',
   'primer.selfie.title': "Let's confirm you're really here",
+  // Shown only where a workflow has written its own (ReadyPrimer
+  // ownBodyOnly): the picture above the title shows what is about to happen.
   'primer.selfie.body':
       "You'll follow a few short prompts on screen. This proves a real person is present, not a photo or a recording.",
   'primer.selfie.bodyPassive':
       "You'll hold still and look at the camera for a moment. This proves a real person is present, not a photo or a recording.",
-  'primer.selfie.checklist1': 'Put your face in the circle',
   'primer.selfie.checklist2': 'Take off glasses, hats, caps or anything covering your face',
   'primer.selfie.checklist4':
       'Choose a bright spot, with the light in front of you',

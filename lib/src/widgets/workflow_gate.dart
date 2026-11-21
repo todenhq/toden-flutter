@@ -4,6 +4,7 @@ import '../config/appearance_scheme.dart';
 import '../config/verification_config.dart';
 import '../config/theme.dart';
 import '../config/workflow_merge.dart';
+import '../liveness/voice_playback.dart' show preloadVoiceClips;
 import '../config/chosen_only_ids.dart';
 import '../providers/verification_state.dart';
 import '../services/api_service.dart';
@@ -45,6 +46,9 @@ Future<WorkflowGateResult> resolveWorkflowResult(VerificationConfig config) asyn
       mergeWorkflowIntoConfig(config, res.config),
       res.applicantWorkflow,
     );
+    // The workflow's Toden voice starts loading now, before the flow mounts,
+    // so its clips are in by the liveness step's first prompt.
+    preloadVoiceClips(merged.voiceGuidance, baseUrl: api.baseUrl);
     return WorkflowGateResult(
       config: merged,
       // Every capability fact the /config path carries rides here too: a

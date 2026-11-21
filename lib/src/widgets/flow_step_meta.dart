@@ -13,6 +13,7 @@ import '../providers/verification_state.dart';
 import '../providers/step_order.dart';
 import '../screens/contact_verification_channel.dart' show kChannelLabels;
 import '../config/address_flow.dart' show kAddressFlowOrder;
+import 'document_info_pill.dart' show shortDocumentLabel;
 
 // The sheet header's title and description for each step, split from
 // verification_widget.dart (200-line rule). The customisable ones are catalogue
@@ -195,7 +196,8 @@ StepMeta _contactMeta(VerificationStep step, StepMeta meta, VerificationConfig c
 /// the web SDK chooses (front of a two-sided ID, a single side, the preview,
 /// the back, the review), so a workflow can reword each whole.
 StepMeta _documentMeta(VerificationConfig config, VerificationState state, TextFn t) {
-  final doc = {'document': state.selectedIdType?.label ?? 'Document'};
+  // What the step calls it: "Passport", not "International Passport".
+  final doc = {'document': shortDocumentLabel(state.selectedIdType, 'Document')};
   final twoSided = state.selectedIdType?.scanSides == ScanSides.frontAndBack;
   final up = documentCaptureMethodsFor(config).uploadOnly;
   // The loading screen carries its own title.

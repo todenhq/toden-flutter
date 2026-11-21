@@ -38,6 +38,18 @@ const double kMinShiftMagnitude = 3.0;
 /// boosted channel(s).
 const double kDominanceThreshold = 0.55;
 
+/// The palette colours by name, in the given order (Core's pick); null when
+/// any is unknown or none is given.
+List<FlashColor>? flashSequenceNamed(List<String> names) {
+  final colours = <FlashColor>[];
+  for (final name in names) {
+    final colour = kFlashPalette.where((c) => c.name == name).firstOrNull;
+    if (colour == null) return null;
+    colours.add(colour);
+  }
+  return colours.isEmpty ? null : colours;
+}
+
 /// Picks [count] distinct colors from the palette in random order. Pass a [rng]
 /// for deterministic tests. The sequence is unknowable in advance — that's the
 /// anti-replay property.

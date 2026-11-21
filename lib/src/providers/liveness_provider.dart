@@ -5,22 +5,29 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../liveness/challenge_manager.dart';
+import '../liveness/direction_plan.dart';
+import '../liveness/head_directions.dart';
+import '../liveness/ready_pause.dart';
 import '../liveness/face_detection.dart';
 import '../liveness/flash_challenge.dart';
+import '../liveness/flash_detector.dart';
 import '../liveness/flash_outcome.dart';
 import '../liveness/flash_ready_gate.dart';
 import '../liveness/flash_timeline.dart';
 import '../liveness/face_continuity.dart';
 import '../liveness/selfie_pick.dart' show SelfieFace;
+import '../liveness/selfie_review.dart' show SelfieScene;
 import '../liveness/selfie_shutter.dart' show SelfieGuidance;
 import '../liveness/liveness_types.dart';
 import '../liveness/capture_pose.dart';
 import '../liveness/face_window.dart';
 import '../liveness/passive_hold.dart';
 import '../liveness/prompt_timeline.dart';
+import '../liveness/response_watch.dart';
 import '../liveness/sharpest_still.dart';
 import '../services/image_service.dart';
 import 'verification_provider.dart';
+import '../utils/journey_client.dart' show recordJourneyEvent, livenessFailureDetail;
 
 part 'liveness_provider.g.dart';
 
@@ -45,18 +52,23 @@ class LivenessState {
   final bool faceDetected;
 
   /// The challenge type currently being attempted, or null when not in a
-  /// challenge phase. Consumed by LivenessAvatar to drive its animation.
+  /// challenge phase. The gesture narrator acts it out.
   final LivenessChallenge? activeChallenge;
 
   /// Base64-encoded JPEG selfie captured after all challenges pass.
   /// Only non-null when [phase] == [LivenessPhase.complete].
   final String? selfieBase64;
 
+  /// The camera frame the selfie was cut from, for the full-screen review
+  /// (liveness/selfie_review.dart). Null when the selfie is a whole frame of
+  /// its own (a fallback still) or the frame could not be kept. Never uploaded.
+  final SelfieScene? selfieScene;
+
   final String? error;
 
   /// Distance guidance — mirrors the web SDK's position check.
-  ///   'too_far'   → face width < 0.28 → "Kindly move closer"
-  ///   'too_close' → face width > 0.7  → "Kindly move further away"
+  ///   'too_far'   → face width < 0.28 → "Move closer"
+  ///   'too_close' → face width > 0.7  → "Move further away"
   ///   'off_centre' → full screen only: the face is beside the window
   ///   null        → correct distance
   /// Checked per-frame during positioning and challenge phases.
@@ -83,6 +95,18 @@ class LivenessState {
   /// getting-ready ring so the flash never feels like it jumps out.
   final double flashReadyProgress;
 
+  /// How far through the ready pause before the first gesture, 0..1
+  /// (liveness/ready_pause.dart). Fills the positioning part of the line.
+  final double readyProgress;
+
+  /// Counts each time the person has held a head direction the wrong way:
+  /// the narrator shows the way again when it changes. Never a failure.
+  final int wrongWayCount;
+
+  /// The head directions this run asks for, in order; empty for any other
+  /// gesture set. The line round the window is four sides when it is not.
+  final List<LivenessChallenge> directions;
+
   const LivenessState({
     this.phase = LivenessPhase.loading,
     this.instruction = '',
@@ -92,12 +116,16 @@ class LivenessState {
     this.faceDetected = false,
     this.activeChallenge,
     this.selfieBase64,
+    this.selfieScene,
     this.error,
     this.positionGuidance,
     this.wrongGesture = false,
     this.multipleFaces = false,
     this.lightingGuidance,
     this.flashReadyProgress = 0,
+    this.readyProgress = 0,
+    this.wrongWayCount = 0,
+    this.directions = const [],
   });
 
   double get progress =>
@@ -116,6 +144,7 @@ class LivenessState {
     LivenessChallenge? activeChallenge,
     bool clearActiveChallenge = false,
     String? selfieBase64,
+    SelfieScene? selfieScene,
     String? error,
     String? positionGuidance,
     bool clearPositionGuidance = false,
@@ -124,6 +153,9 @@ class LivenessState {
     String? lightingGuidance,
     bool clearLightingGuidance = false,
     double? flashReadyProgress,
+    double? readyProgress,
+    int? wrongWayCount,
+    List<LivenessChallenge>? directions,
   }) =>
       LivenessState(
         phase: phase ?? this.phase,
@@ -136,6 +168,7 @@ class LivenessState {
             ? null
             : (activeChallenge ?? this.activeChallenge),
         selfieBase64: selfieBase64 ?? this.selfieBase64,
+        selfieScene: selfieScene ?? this.selfieScene,
         error: error, // explicit null clears error
         positionGuidance:
             clearPositionGuidance ? null : (positionGuidance ?? this.positionGuidance),
@@ -145,6 +178,9 @@ class LivenessState {
             ? null
             : (lightingGuidance ?? this.lightingGuidance),
         flashReadyProgress: flashReadyProgress ?? this.flashReadyProgress,
+        readyProgress: readyProgress ?? this.readyProgress,
+        wrongWayCount: wrongWayCount ?? this.wrongWayCount,
+        directions: directions ?? this.directions,
       );
 }
 
@@ -208,6 +244,16 @@ class LivenessNotifier extends _$LivenessNotifier {
   bool _fellBackToGestures = false;
   bool get fellBackToGestures => _fellBackToGestures;
 
+  /// Whether the person is doing anything with their face (response_watch.dart).
+  /// The gesture narrator comes back to show a gesture only to someone who has
+  /// stopped responding.
+  final ResponseWatch _responseWatch = ResponseWatch();
+
+  /// When the person last did anything with their face, on
+  /// [responseClockMs] (0 for never). A getter, not state: it changes on
+  /// almost every frame and the narrator reads it on a timer.
+  int get respondedAt => _responseWatch.respondedAt;
+
   /// When each prompt appeared and passed, for the claim (prompt_timeline.dart).
   final PromptTimeline _prompts = PromptTimeline();
 
@@ -226,6 +272,64 @@ class LivenessNotifier extends _$LivenessNotifier {
   // the flash gate must not treat an unmeasured dim room as acceptable.
   bool _lightingSampled = false;
 
+  // ── Head directions ────────────────────────────────────────────────────────
+
+  /// What each attempt of this run asks Core for: head directions or classic
+  /// gestures, in gestures or both, and the flash colours whenever a flash
+  /// runs (a flash-only check asks for colours alone). Null asks nothing
+  /// (passive, or a gestures-only integration pool with no gesture Core can
+  /// plan).
+  PlanRequest? _planRequest;
+
+  /// The integration's own challenge pool, for the classic plan's prompts.
+  List<ChallengeConfig>? _challengePool;
+
+  /// Frames of the asked direction, and of its opposite (head_directions.dart).
+  final DirectionWatch _directionWatch = DirectionWatch();
+
+  /// Where the person's pitch rests, taken as they hold still before the first
+  /// gesture: looking up and down are measured against it.
+  double? _restPitch;
+
+  /// Core's plan for the current attempt (liveness/direction_plan.dart). One
+  /// request per attempt; an answer for an earlier attempt is ignored.
+  DirectionPlanStatus _planStatus = DirectionPlanStatus.none;
+  int _planAskedAt = 0;
+  int _planAttempt = 0;
+  String? _planId;
+  List<ChallengeConfig>? _planned;
+  List<FlashColor>? _plannedFlash;
+
+  /// Set once the first instruction of the attempt has been given: a plan
+  /// that arrives after it is not used, so the directions never change once
+  /// asking has begun.
+  bool _challengeStarted = false;
+
+  /// When the face first held in place, for the ready pause; null while it is
+  /// not in place.
+  int? _readyAt;
+
+  bool _disposed = false;
+
+  /// The clock the ready pause and the plan's wait run on, in milliseconds.
+  @visibleForTesting
+  int Function() clock = responseClockMs;
+
+  /// The head-direction plan Core picked for this attempt, when its
+  /// directions are the ones asked; null when the SDK picked its own.
+  String? get directionPlanId => _planId;
+
+  /// The flash colours Core picked for this attempt, in its order; null when
+  /// no usable plan came in time, and the SDK then picks its own (which Core
+  /// records as unplanned).
+  List<FlashColor>? get plannedFlash => _plannedFlash;
+
+  /// The head directions this run asks for, in order (empty otherwise).
+  List<LivenessChallenge> get _runDirections => [
+        for (final c in _manager.selectedChallenges)
+          if (isDirectionChallenge(c.type)) c.type,
+      ];
+
   @override
   LivenessState build() {
     final config = ref.read(verificationConfigProvider);
@@ -243,13 +347,45 @@ class LivenessNotifier extends _$LivenessNotifier {
     _flashGate = flashOnly ? FlashReadyGate() : null;
     // Passive Liveness runs the single hold prompt through the same machinery,
     // so recording, the progress ring and capture work unchanged.
+    final asksGestures =
+        config.livenessMode != 'flash' && config.livenessMode != 'passive';
+    _challengePool = livenessConfig?.challengePool;
+    // Core also picks the flash colours (2026-11-19), so a modified client
+    // cannot choose colours to match a replayed recording.
+    final flashCount =
+        config.livenessMode.runsFlash ? config.flashSequenceLength : null;
+    final flashOnlyRequest =
+        flashCount == null ? null : PlanRequest.flashOnly(flashCount);
+    _planRequest = !asksGestures
+        ? flashOnlyRequest
+        : config.livenessGestureSet == kGestureSetDirections
+            ? PlanRequest.directions(
+                directionCountOf(config.livenessDirectionCount),
+                flash: flashCount)
+            // A pool with nothing Core can plan still asks for the colours.
+            : classicPlanRequest(
+                    livenessConfig?.challengeCount ?? 2, _challengePool,
+                    flash: flashCount) ??
+                flashOnlyRequest;
     _manager = ChallengeManager.forMode(
       config.livenessMode,
       pool: livenessConfig?.challengePool,
       count: livenessConfig?.challengeCount ?? 2,
+      gestureSet: config.livenessGestureSet,
+      directionCount: config.livenessDirectionCount,
     );
 
-    ref.onDispose(_cleanup);
+    ref.onDispose(() {
+      _disposed = true;
+      _cleanup();
+    });
+
+    // Each failed attempt goes on the drop-off journey, with why it failed.
+    listenSelf((previous, next) {
+      if (previous?.phase != LivenessPhase.failed && next.phase == LivenessPhase.failed) {
+        recordJourneyEvent('liveness_failed', detail: livenessFailureDetail(next.error, multipleFaces: next.multipleFaces));
+      }
+    });
 
     return const LivenessState();
   }
@@ -263,11 +399,62 @@ class LivenessNotifier extends _$LivenessNotifier {
     _continuity.reset();
     _integrityBroken = false;
     _runGeneration++;
+    _readyAt = null;
+    _askPlan();
     state = LivenessState(
       phase: LivenessPhase.positioning,
       instruction: 'Position your face in the circle',
       totalCount: _displayTotal,
+      directions: _runDirections,
     );
+  }
+
+  /// Core picks the gestures, head directions or classic, and the flash
+  /// colours, one plan per attempt. The manager's own pick stands in until the
+  /// plan arrives, and is replaced if the first instruction (or a flash-only
+  /// check's flash) has not been given yet; that waits a moment for it
+  /// ([planGateWaits]). No plan: the SDK's own pick, and no plan named.
+  void _askPlan() {
+    final attempt = ++_planAttempt;
+    _challengeStarted = false;
+    _planId = null;
+    _planned = null;
+    _plannedFlash = null;
+    final asked = _planRequest;
+    final request =
+        asked == null ? null : ref.read(directionPlanRequestProvider);
+    if (asked == null || request == null) {
+      _planStatus = DirectionPlanStatus.none;
+      return;
+    }
+    _planStatus = DirectionPlanStatus.pending;
+    _planAskedAt = clock();
+    () async {
+      DirectionPlan? plan;
+      try {
+        plan = await request(asked);
+      } catch (_) {
+        plan = null;
+      }
+      if (_disposed || attempt != _planAttempt) return;
+      if (plan == null || _challengeStarted) {
+        _planStatus = DirectionPlanStatus.failed;
+        return;
+      }
+      _plannedFlash =
+          plan.flash.isEmpty ? null : flashSequenceNamed(plan.flash);
+      _planId = plan.planId;
+      _planStatus = DirectionPlanStatus.ready;
+      // A flash-only plan names the colours alone: the gestures stand.
+      if (asked.set == PlanSet.none) return;
+      final planned = planChallenges(plan.prompts, pool: _challengePool);
+      _manager.replaceWith(planned);
+      _planned = planned;
+      state = state.copyWith(
+        totalCount: _displayTotal,
+        directions: _runDirections,
+      );
+    }();
   }
 
   /// The flash sequence finished, so its step in the progress indicator is done.
@@ -315,6 +502,8 @@ class LivenessNotifier extends _$LivenessNotifier {
         break;
     }
 
+    _responseWatch.seen(data, responseClockMs());
+
     // Check face size and update position guidance on every frame.
     _checkFacePosition(data);
 
@@ -325,13 +514,11 @@ class LivenessNotifier extends _$LivenessNotifier {
           _updateFlashReady(gate);
           return;
         }
-        // Gesture / both: advance as soon as framed + lit — the challenges
-        // themselves give the feedback and re-check framing. Flash-only can't
-        // rely on that (nothing follows but the flash), so it runs the dwell
-        // gate above instead.
-        if (state.positionGuidance == null && state.lightingGuidance == null) {
-          _startNextChallenge();
-        }
+        // Gesture / both / passive: once framed + lit, the ready pause, then
+        // the first prompt. The challenges themselves give the feedback and
+        // re-check framing. Flash-only can't rely on that (nothing follows but
+        // the flash), so it runs the dwell gate above instead.
+        _holdForReady(data);
         return;
 
       case LivenessPhase.challenge:
@@ -373,6 +560,8 @@ class LivenessNotifier extends _$LivenessNotifier {
     // Pause the challenge timer so a second face can't run out the clock.
     _cancelTimer();
     _hold.reset();
+    // The ready pause is one person holding still: it starts again.
+    _readyAt = null;
     // A second face invalidates the flash hold — restart it when we're back to
     // one, rather than resuming a hold that spanned two people.
     _flashGate?.reset();
@@ -439,7 +628,16 @@ class LivenessNotifier extends _$LivenessNotifier {
     }
     _cancelTimer();
     _flashGate?.reset();
-    _manager.reset();
+    // Core's plan is this attempt's: the same directions start again from the
+    // first, rather than a pick of the SDK's own under the plan's name.
+    final planned = _planned;
+    if (planned != null) {
+      _manager.replaceWith(planned);
+    } else {
+      _manager.reset();
+    }
+    _readyAt = null;
+    _directionWatch.reset();
     _xHistory.clear();
     _earHistory.clear();
     _hold.reset();
@@ -450,6 +648,8 @@ class LivenessNotifier extends _$LivenessNotifier {
       completedCount: 0,
       clearActiveChallenge: true,
       flashReadyProgress: 0,
+      readyProgress: 0,
+      directions: _runDirections,
     );
   }
 
@@ -463,6 +663,7 @@ class LivenessNotifier extends _$LivenessNotifier {
         _xHistory.clear();
         _earHistory.clear();
         _hold.reset();
+        _directionWatch.reset();
         _challengeProcessing = false;
         final timeout = _timeoutFor(challenge);
         state = state.copyWith(instruction: challenge.instruction);
@@ -511,6 +712,7 @@ class LivenessNotifier extends _$LivenessNotifier {
     // would otherwise leave `framed` true with no face in the gate.)
     _flashGate?.reset();
     _hold.reset();
+    _readyAt = null;
     state = state.copyWith(
       faceDetected: false,
       clearPositionGuidance: true, // no face → no distance guidance
@@ -535,15 +737,18 @@ class LivenessNotifier extends _$LivenessNotifier {
   /// Like [captureSelfie] but for an already-enhanced/encoded JPEG (e.g. from the
   /// stream-frame fast path, where the worker already ran the selfie pipeline).
   /// Skips re-processing and just stores it.
-  void captureSelfieEncoded(Uint8List jpegBytes) {
+  ///
+  /// [scene] is the camera frame the selfie was cut from, for the review.
+  void captureSelfieEncoded(Uint8List jpegBytes, {SelfieScene? scene}) {
     if (state.phase != LivenessPhase.capturing) return;
-    _completeWithSelfie(jpegBytes);
+    _completeWithSelfie(jpegBytes, scene: scene);
   }
 
-  void _completeWithSelfie(Uint8List jpegBytes) {
+  void _completeWithSelfie(Uint8List jpegBytes, {SelfieScene? scene}) {
     state = state.copyWith(
       phase: LivenessPhase.complete,
       selfieBase64: base64Encode(jpegBytes),
+      selfieScene: scene,
       // No line at all. The ring closing green on the same frame as the
       // shutter IS the completion signal, and the review follows within the
       // beat — narrating the upload over it said nothing the user needed.
@@ -559,11 +764,20 @@ class LivenessNotifier extends _$LivenessNotifier {
   void startFallbackGestures() {
     final livenessConfig = ref.read(verificationConfigProvider).livenessConfig;
     _fellBackToGestures = true;
-    _manager = ChallengeManager(
-      pool: livenessConfig?.challengePool,
-      count: livenessConfig?.challengeCount ?? 2,
+    final config = ref.read(verificationConfigProvider);
+    // The workflow's gesture set, as the web SDK's pickFallbackGestures keeps
+    // it. No plan is asked for: the attempt began as a flash.
+    _manager = config.livenessGestureSet == kGestureSetDirections
+        ? ChallengeManager.directions(count: config.livenessDirectionCount)
+        : ChallengeManager(
+            pool: livenessConfig?.challengePool,
+            count: livenessConfig?.challengeCount ?? 2,
+          );
+    _restPitch = null;
+    state = state.copyWith(
+      totalCount: _displayTotal,
+      directions: _runDirections,
     );
-    state = state.copyWith(totalCount: _displayTotal);
     _startNextChallenge();
   }
 
@@ -608,11 +822,17 @@ class LivenessNotifier extends _$LivenessNotifier {
     _xHistory.clear();
     _earHistory.clear();
     _hold.reset();
+    _directionWatch.reset();
+    _readyAt = null;
+    _restPitch = null;
     _challengeProcessing = false;
+    // A retry is a new attempt: it asks Core for a new plan.
+    _askPlan();
     state = LivenessState(
       phase: LivenessPhase.positioning,
       instruction: 'Position your face in the circle',
       totalCount: _displayTotal,
+      directions: _runDirections,
     );
   }
 
@@ -652,9 +872,11 @@ class LivenessNotifier extends _$LivenessNotifier {
         faceWidth: faceSizeRatio,
         centreX: data.faceCenterX,
         centreY: data.faceCenterY,
+        // A head direction moves the head off the centre on purpose too.
         moving: state.phase == LivenessPhase.challenge &&
             (_manager.current?.type == LivenessChallenge.turn ||
-                _manager.current?.type == LivenessChallenge.nod),
+                _manager.current?.type == LivenessChallenge.nod ||
+                isDirectionChallenge(_manager.current?.type)),
       );
     } else if (faceSizeRatio < _tooFarThreshold) {
       newGuidance = 'too_far';
@@ -689,7 +911,11 @@ class LivenessNotifier extends _$LivenessNotifier {
       now: DateTime.now(),
     );
 
-    if (result.ready) {
+    // Ready, but Core's colours are on their way: hold a moment longer for
+    // them, as the first gesture does. Once the flash begins a late plan is
+    // not used, so the colours shown are always the colours named.
+    if (result.ready && !planGateWaits(_planStatus, _planAskedAt, clock())) {
+      _challengeStarted = true;
       state = state.copyWith(flashReadyProgress: 1);
       _startNextChallenge(); // → capturing → flash
       return;
@@ -755,6 +981,45 @@ class LivenessNotifier extends _$LivenessNotifier {
     );
   }
 
+  /// The ready pause (liveness/ready_pause.dart): a framed, lit face holds
+  /// still for a moment before the first prompt, and with gestures the first
+  /// prompt waits a little longer for Core's plan. Moving out of place
+  /// starts the pause again.
+  void _holdForReady(LivenessFaceData data) {
+    final inPlace =
+        state.positionGuidance == null && state.lightingGuidance == null;
+    if (!inPlace) {
+      _readyAt = null;
+      if (state.readyProgress != 0 ||
+          state.instruction == kHoldStillInstruction) {
+        state = state.copyWith(
+          readyProgress: 0,
+          instruction: 'Position your face in the circle',
+        );
+      }
+      return;
+    }
+    final now = clock();
+    final ready = readyPauseStep(_readyAt, now);
+    _readyAt = ready.readyAt;
+    if (!ready.go || planGateWaits(_planStatus, _planAskedAt, now)) {
+      final share = ready.go ? 1.0 : readyPauseShare(_readyAt, now);
+      if (state.instruction != kHoldStillInstruction ||
+          (state.readyProgress - share).abs() >= 0.02) {
+        state = state.copyWith(
+          instruction: kHoldStillInstruction,
+          readyProgress: share,
+        );
+      }
+      return;
+    }
+    // Held still and facing the camera: this is the person at rest.
+    _restPitch = data.headEulerAngleX;
+    _challengeStarted = true;
+    state = state.copyWith(readyProgress: 1);
+    _startNextChallenge();
+  }
+
   void _startNextChallenge() {
     final challenge = _manager.current;
     if (challenge == null) {
@@ -774,6 +1039,7 @@ class LivenessNotifier extends _$LivenessNotifier {
     _xHistory.clear();
     _earHistory.clear();
     _hold.reset();
+    _directionWatch.reset();
     _challengeProcessing = false;
 
     state = state.copyWith(
@@ -800,6 +1066,26 @@ class LivenessNotifier extends _$LivenessNotifier {
     final challenge = _manager.current;
     if (challenge == null) return;
 
+    // Head directions. The wrong way is never a failure and never a red
+    // warning: it does not count, and after a second of it the narrator shows
+    // the way again.
+    if (isDirectionChallenge(challenge.type)) {
+      final step = _directionWatch.update(
+        challenge.type,
+        data,
+        _restPitch ?? data.headEulerAngleX,
+      );
+      if (step == DirectionStep.done) {
+        _onChallengePassed();
+        return;
+      }
+      if (step == DirectionStep.wrongWay) {
+        state = state.copyWith(wrongWayCount: state.wrongWayCount + 1);
+      }
+      if (state.wrongGesture) state = state.copyWith(wrongGesture: false);
+      return;
+    }
+
     final detected = switch (challenge.type) {
       LivenessChallenge.nod   => detectNod(_xHistory),
       LivenessChallenge.turn  => detectTurn(data.headEulerAngleY),
@@ -810,6 +1096,12 @@ class LivenessNotifier extends _$LivenessNotifier {
           inPosition: holdFrameInPosition(data),
           now: DateTime.now(),
         ),
+      // Judged above.
+      LivenessChallenge.turnLeft ||
+      LivenessChallenge.turnRight ||
+      LivenessChallenge.lookUp ||
+      LivenessChallenge.lookDown =>
+        false,
     };
 
     if (detected) {
@@ -830,6 +1122,11 @@ class LivenessNotifier extends _$LivenessNotifier {
       LivenessChallenge.smile => isTurning,
       // Holding still has no wrong gesture; a turned head just delays the hold.
       LivenessChallenge.hold => false,
+      LivenessChallenge.turnLeft ||
+      LivenessChallenge.turnRight ||
+      LivenessChallenge.lookUp ||
+      LivenessChallenge.lookDown =>
+        false,
     };
 
     if (wrong != state.wrongGesture) {
@@ -845,7 +1142,7 @@ class LivenessNotifier extends _$LivenessNotifier {
 
     state = state.copyWith(
       phase: LivenessPhase.challengePassed,
-      instruction: 'Great!',
+      instruction: 'Good.',
       completedCount: _manager.completedCount,
       timeoutRemaining: 0,
       clearPositionGuidance: true,
@@ -907,3 +1204,12 @@ class LivenessNotifier extends _$LivenessNotifier {
     _cancelTimer();
   }
 }
+
+/// Asks Core for one attempt's gestures, head directions or classic
+/// (liveness/direction_plan.dart). Null asks nothing (the SDK picks its own).
+/// Overridden in tests.
+final directionPlanRequestProvider =
+    Provider<Future<DirectionPlan?> Function(PlanRequest plan)?>(
+  (ref) => (plan) =>
+      ref.read(kYCNotifierProvider.notifier).api.livenessDirections(plan),
+);

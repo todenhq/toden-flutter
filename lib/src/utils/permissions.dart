@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'journey_client.dart';
+
 /// Camera authorization, asked of AVFoundation directly on iOS.
 ///
 /// `permission_handler` compiles each iOS permission behind a macro that
@@ -22,6 +24,7 @@ const MethodChannel _channel =
 
 Future<bool> requestCameraPermission() async {
   final status = await Permission.camera.request();
+  if (!status.isGranted) recordJourneyEvent('camera_denied');
   return status.isGranted;
 }
 
@@ -33,10 +36,11 @@ Future<bool> requestCameraPermission() async {
 /// first. Android reports an undeclared permission as refused.
 Future<bool> requestDocumentMicrophone() async {
   try {
-    if (Platform.isIOS) {
-      return await _channel.invokeMethod<bool>('requestMicrophone') ?? false;
-    }
-    return (await Permission.microphone.request()).isGranted;
+    final granted = Platform.isIOS
+        ? await _channel.invokeMethod<bool>('requestMicrophone') ?? false
+        : (await Permission.microphone.request()).isGranted;
+    if (!granted) recordJourneyEvent('microphone_denied');
+    return granted;
   } on PlatformException {
     return false;
   } on MissingPluginException {

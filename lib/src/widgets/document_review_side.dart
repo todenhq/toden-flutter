@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import 'icons/icons.dart';
 import '../i18n/text_scope.dart';
+import '../utils/click_log.dart';
 
 // ─── One captured side, and its enlarged view ─────────────────────────────────
 //
@@ -107,7 +108,13 @@ class DocumentReviewThumb extends StatelessWidget {
         // people did not read as a button. Naming it costs a few pixels and
         // is the difference between a discoverable action and a decoration.
         TextButton.icon(
-          onPressed: isBusy ? null : side.onRetake,
+          // Still disabled when the side offers no retake, as before.
+          onPressed: isBusy || side.onRetake == null
+              ? null
+              : () {
+                  uploadOnly ? logControl('document.replace', 'Replace') : logKey('common.retake');
+                  side.onRetake?.call();
+                },
           icon: const UiIcon(UiIcons.rotateCcw, size: 14),
           label: Text(uploadOnly ? 'Replace' : context.verificationText('common.retake'),
               style: text.bodySmall),

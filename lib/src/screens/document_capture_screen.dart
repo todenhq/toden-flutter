@@ -45,7 +45,8 @@ import '../utils/permissions.dart';
 import 'document_handover.dart';
 import 'document_turn_reading.dart';
 import '../widgets/document_capture_check_notice.dart';
-import '../widgets/document_ghost.dart' show DocumentSpecimenSubject;
+import '../widgets/document_ghost.dart' show DocumentSpecimenSubject, kTurnOverHold;
+import '../widgets/document_info_pill.dart' show shortDocumentLabel;
 import '../widgets/document_review.dart';
 import '../widgets/document_upload_only_view.dart';
 import '../widgets/camera_permission_view.dart';
@@ -55,14 +56,15 @@ import '../widgets/ready_primer_content.dart';
 import '../widgets/ui_alert.dart';
 import '../widgets/document_cropper.dart';
 import '../widgets/document_viewfinder.dart';
-import '../widgets/turn_over_prompt.dart';
 import '../config/same_face.dart';
 import '../widgets/ui_button.dart';
 import '../services/model_readiness.dart';
 import '../widgets/icons/icons.dart';
 import '../i18n/text_scope.dart';
+import '../utils/click_log.dart';
 import '../widgets/ui_spinner.dart';
 import '../config/scope.dart';
+import '../utils/journey_client.dart' show recordJourneyEvent, captureRejectionDetail;
 
 // ─── Scan phase ───────────────────────────────────────────────────────────────
 //
@@ -467,6 +469,25 @@ class _DocumentCaptureScreenState
     }
     final native = _nativeCamera;
     if (native == null) {
+      // The plugin's camera is still open from the side just taken (a front
+      // to back turn-over, or a retake without the review): start the next
+      // side's clip on it rather than closing and reopening the camera, which
+      // read as the camera ending and starting again.
+      final plugin = ref.read(cameraNotifierProvider.notifier).controller;
+      if (plugin != null &&
+          plugin.value.isInitialized &&
+          !plugin.value.isRecordingVideo) {
+        _restartingClip = true;
+        try {
+          await _startVideoRecording();
+        } catch (_) {
+          // Could not record on the open camera: open it afresh.
+          if (mounted) await _restartCamera();
+        } finally {
+          _restartingClip = false;
+        }
+        return;
+      }
       await _restartCamera();
       return;
     }
@@ -865,10 +886,13 @@ class _DocumentCaptureScreenState
 
   DateTime? _armedAt;
 
-  /// The back followed the front with no tap: waiting for it to be turned over.
+  /// The back followed the front with no tap: waiting for it to be turned
+  /// over. Played IN the camera's frame: the camera keeps running from the
+  /// front to the back, and the frame's own sample turns over where it stands
+  /// (DocumentGhost.turnFrom). It used to be a separate card over a dimmed
+  /// camera, and the back's sample was then hidden for the back's scan (user,
+  /// 2026-11-18: one movement, and the frame shows where the back goes).
   bool _turningOver = false;
-  // The prompt has shown the back, so the guide need not show it again.
-  bool _backAnnounced = false;
   Timer? _turnOverTimer;
 
   /// What the front said, so a back that reads the same can be told from it.
@@ -1305,14 +1329,11 @@ class _DocumentCaptureScreenState
     return code.isEmpty ? null : countryLabel(code);
   }
 
-  /// Holds auto-capture and asks for the back. See TurnOverPrompt.
+  /// Holds auto-capture and the shutter, and asks for the back in the frame.
   void _beginTurnOver() {
     _turnOverTimer?.cancel();
     _turnOverTimer = Timer(kTurnOverHold, _endTurnOver);
-    setState(() {
-      _turningOver = true;
-      _backAnnounced = true;
-    });
+    setState(() => _turningOver = true);
   }
 
   void _endTurnOver() {
@@ -1463,6 +1484,8 @@ class _DocumentCaptureScreenState
       final problems = captureCheckProblems(await Future.wait(checks));
       if (!mounted) return;
       if (problems.isNotEmpty) {
+        // On the drop-off journey: the first problem, the one a retake fixes first.
+        recordJourneyEvent('capture_rejected', detail: captureRejectionDetail(problems.first.kind));
         // Stay on the review. The uploads are kept: "Continue anyway" advances
         // without sending them again.
         _stopHandover();
@@ -1584,7 +1607,7 @@ class _DocumentCaptureScreenState
           // The web shows which document is expected on this screen too — it
           // is the last point before the camera where the user can still go
           // back and pick a different ID.
-          _RequiredPill(idTypeLabel: idTypeConfig.label),
+          _RequiredPill(idTypeLabel: shortDocumentLabel(idTypeConfig)),
           const SizedBox(height: UiSpacing.md),
           // Expanded, because the step now fills the viewport rather than
           // sitting inside the sheet's scroll view: the primer scrolls itself,
@@ -1592,7 +1615,20 @@ class _DocumentCaptureScreenState
           // scrolling — which is exactly how it broke on a short screen.
           Expanded(
             child: ReadyPrimer(
-              content: readyDocument,
+              // The document the person chose, being read in the camera's
+              // frame, and its short name in the words.
+              content: documentReady(
+                name: shortDocumentLabel(idTypeConfig),
+                subject: DocumentSpecimenSubject(
+                  idType: idTypeConfig.key,
+                  title: specimenTitle(idTypeConfig.key, idTypeConfig.label),
+                  country: _specimenCountry(),
+                  side: SpecimenSide.front,
+                ),
+                aspect: documentGuideAspect(idTypeConfig),
+                twoSided: _needsBack,
+                accent: context.myazaColors.primary,
+              ),
               onReady: () {
                 setState(() => _ready = true);
                 _maybePrime(); // now: OS prompt, or straight to the camera
@@ -1694,10 +1730,16 @@ class _DocumentCaptureScreenState
           idType: idTypeConfig,
           country: effectiveCountry(ref.read(verificationConfigProvider),
               ref.read(kYCNotifierProvider)),
-          showSpecimen: !(isBack && _backAnnounced),
+          // The side's sample in the frame, the back's included.
+          showSpecimen: true,
+          turning: _turningOver,
           // The corners rule holds the manual shutter too, saying why.
+          // A tap on the shutter is the applicant's press; auto-capture (above) is not.
           onCapture: isReady && !_isCapturing && !_corners.blocksCapture
-              ? _onCapture
+              ? () {
+                  logControl('capture.shutter', 'Take photo');
+                  _onCapture();
+                }
               : null,
           shutterDisabledReason: _corners.hint == null
               ? null
@@ -1734,25 +1776,7 @@ class _DocumentCaptureScreenState
           _textGate.reset();
           _turn.syncNative(_nativeCamera);
         }
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            viewfinder(),
-            if (_turningOver)
-              TurnOverPrompt(
-                aspect: _screenGuideAspect(idTypeConfig),
-                band: _guideBand,
-                accent: context.myazaColors.primary,
-                subject: DocumentSpecimenSubject(
-                  idType: idTypeConfig.key,
-                  title: specimenTitle(idTypeConfig.key, idTypeConfig.label),
-                  country: _specimenCountry(),
-                  side: SpecimenSide.back,
-                ),
-                onDone: _endTurnOver,
-              ),
-          ],
-        );
+        return viewfinder();
       },
     );
   }
@@ -1790,7 +1814,7 @@ class _DocumentCaptureScreenState
       onDismissError: () => setState(() => _pickError = null),
       onPick: _onUpload,
       header: _RequiredPill(
-        idTypeLabel: idTypeConfig.label,
+        idTypeLabel: shortDocumentLabel(idTypeConfig),
         sideBadge: isTwoSided ? (isBack ? 'Back Side' : 'Front Side') : null,
         stepLabel: isTwoSided ? (isBack ? 'Step 2 of 2' : 'Step 1 of 2') : null,
       ),
@@ -1805,7 +1829,7 @@ class _DocumentCaptureScreenState
       children: [
         // Required pill + step label
         _RequiredPill(
-          idTypeLabel: idTypeConfig.label,
+          idTypeLabel: shortDocumentLabel(idTypeConfig),
           sideBadge: 'Front Side',
           stepLabel: 'Step 1 of 2',
         ),
@@ -1904,7 +1928,7 @@ class _DocumentCaptureScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _RequiredPill(idTypeLabel: idTypeConfig.label),
+        _RequiredPill(idTypeLabel: shortDocumentLabel(idTypeConfig)),
         const SizedBox(height: UiSpacing.md),
         Expanded(
           child: DocumentReview(

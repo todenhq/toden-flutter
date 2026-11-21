@@ -39,8 +39,8 @@ class LivenessFaceData {
 
   /// Normalized face width relative to the display frame (0.0–1.0).
   /// Mirrors the web SDK's faceWidth metric:
-  ///   < 0.28 → too far   ("Kindly move closer")
-  ///   > 0.7  → too close ("Kindly move further away")
+  ///   < 0.28 → too far   ("Move closer")
+  ///   > 0.7  → too close ("Move further away")
   ///   0.28–0.7 → correct distance
   final double faceSizeRatio;
 

@@ -4,7 +4,9 @@ import 'dart:ui' show Offset;
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../liveness/depth_frame.dart';
 import '../liveness/flash_timeline.dart';
+import '../utils/journey_client.dart';
 
 part 'camera_provider.g.dart';
 
@@ -70,6 +72,15 @@ class CameraNotifier extends _$CameraNotifier {
   /// tears the stream down — `stopImageStream` must not be called separately.
   bool _streamingViaRecording = false;
 
+  /// The last plugin camera's close, across every notifier: the provider is
+  /// auto-disposed, so the close that matters may belong to one already gone.
+  static Future<void> _lastClose = Future.value();
+
+  /// Resolves once the camera plugin has let the camera go. The iPhone depth
+  /// frame opens the front camera natively and must not start before
+  /// (liveness/depth_frame.dart).
+  static Future<void> get closed => _lastClose;
+
   @override
   CameraState build() {
     // Dispose the controller when the provider is auto-disposed (screen exit).
@@ -115,6 +126,9 @@ class CameraNotifier extends _$CameraNotifier {
 
     state = state.copyWith(status: CameraStatus.loading);
     await _disposeController();
+    // An iPhone depth frame may hold the front camera for a moment after the
+    // selfie; opening it under that capture would interrupt one of the two.
+    await depthCameraFree();
 
     try {
       final cameras = await availableCameras();
@@ -123,6 +137,7 @@ class CameraNotifier extends _$CameraNotifier {
       // user-facing message rather than letting `cameras.first` throw a raw
       // "Bad state: No element" into the error UI.
       if (cameras.isEmpty) {
+        recordJourneyEvent('camera_unavailable', detail: 'not_found');
         state = state.copyWith(
           status: CameraStatus.error,
           error: 'No camera available on this device.',
@@ -186,17 +201,20 @@ class CameraNotifier extends _$CameraNotifier {
         'CameraAccessRestricted',
       };
       if (deniedCodes.contains(e.code)) {
+        recordJourneyEvent('camera_denied');
         state = state.copyWith(
           status: CameraStatus.permissionDenied,
           error: 'Camera access is required. Please allow camera access to continue.',
         );
       } else {
+        recordJourneyEvent('camera_unavailable', detail: cameraFailureDetail(e.code, e.description));
         state = state.copyWith(
           status: CameraStatus.error,
           error: e.description ?? 'Camera initialisation failed',
         );
       }
     } catch (e) {
+      recordJourneyEvent('camera_unavailable', detail: 'other');
       state = state.copyWith(
         status: CameraStatus.error,
         error: 'Camera initialisation failed: $e',
@@ -363,7 +381,8 @@ class CameraNotifier extends _$CameraNotifier {
   /// next [initialize] opens it again.
   Future<void> release() async {
     await _disposeController();
-    state = const CameraState();
+    // A camera opened while this one closed keeps its own state.
+    if (_controller == null && !state.isLoading) state = const CameraState();
   }
 
   // ── Internal ───────────────────────────────────────────────────────────────
@@ -376,6 +395,17 @@ class CameraNotifier extends _$CameraNotifier {
     _streamingViaRecording = false;
     _imageStreamActive = false;
     if (ctrl == null) return;
+    final closing = _close(ctrl, hadStandaloneStream: hadStandaloneStream);
+    // Kept with any close still running, so [closed] waits for both.
+    _lastClose = Future.wait([_lastClose, closing]).then((_) {});
+    await closing;
+  }
+
+  /// Stops and disposes [ctrl]. Never throws.
+  static Future<void> _close(
+    CameraController ctrl, {
+    required bool hadStandaloneStream,
+  }) async {
     if (ctrl.value.isRecordingVideo) {
       try {
         await ctrl.stopVideoRecording();

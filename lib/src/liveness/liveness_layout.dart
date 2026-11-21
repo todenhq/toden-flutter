@@ -3,15 +3,15 @@ import 'dart:ui' show Size;
 
 import '../config/theme.dart';
 
-// ─── How big the selfie circle and the gesture avatar may be ────────────────
+// ─── How big the selfie circle may be ────────────────────────────────────────
 //
 // The circle was a fixed [UiSizing.cameraCircleSize], which is right on a
 // tall phone. On a Samsung S24 (360×780 dp, 176 dp shorter than an iPhone 16
-// Pro Max) it owned most of the sheet and the avatar demonstrating the gesture
-// sat below the fold — the one thing the step exists to show. So the HEIGHT
-// bounds it too: whatever the chrome, the instruction, the step dots, the
-// avatar and the footer leave over is what the circle may take, and when it
-// is the height that bound the circle, the avatar shrinks with it.
+// Pro Max) it owned most of the sheet. So the HEIGHT bounds it too: whatever
+// the chrome, the instruction, the step dots and the footer leave over is what
+// the circle may take. (A gesture avatar used to stand under the circle and
+// shrink with it; it is gone, and the budget is kept so the circle keeps its
+// size.)
 //
 // Mirrored in the React Native SDK's lib/livenessLayout.ts; the real phones in
 // liveness_layout_test.dart are the shared vectors. Change a number in one and
@@ -25,8 +25,8 @@ const double kLivenessCircleMax = UiSizing.cameraCircleSize;
 const double kLivenessCircleMin = 200;
 
 /// Everything on the sheet that is NOT the circle: banner + brand row + title
-/// + step bar (~250), the instruction line, the dots, the large avatar, the
-/// gaps, the step padding and the footer. The same budget as React Native —
+/// + step bar (~250), the instruction line, the dots, the room the gesture
+/// avatar had, the gaps, the step padding and the footer. The same budget as React Native —
 /// the two sheets carry the same chrome.
 const double kLivenessCircleHeightBudget = 540;
 
@@ -37,17 +37,7 @@ class LivenessLayout {
   /// Diameter of the camera circle, dp.
   final double circle;
 
-  /// Diameter of the gesture avatar badge, dp.
-  final double avatar;
-
-  /// The fallback icon inside the avatar when the GIF cannot load.
-  final double avatarIcon;
-
-  const LivenessLayout({
-    required this.circle,
-    required this.avatar,
-    required this.avatarIcon,
-  });
+  const LivenessLayout({required this.circle});
 }
 
 LivenessLayout livenessLayout(Size window) {
@@ -56,12 +46,5 @@ LivenessLayout livenessLayout(Size window) {
   final circle = math.min(math.min(byWidth, byHeight), kLivenessCircleMax)
       .clamp(kLivenessCircleMin, kLivenessCircleMax)
       .toDouble();
-  // Only a SHORT screen shrinks the avatar: a narrow one that is tall enough
-  // has the room for it whatever the width did to the circle.
-  final large = byHeight >= kLivenessCircleMax;
-  return LivenessLayout(
-    circle: circle,
-    avatar: large ? 80 : 64,
-    avatarIcon: large ? 40 : 30,
-  );
+  return LivenessLayout(circle: circle);
 }

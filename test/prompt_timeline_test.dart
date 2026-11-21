@@ -2,6 +2,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:toden_flutter/src/liveness/prompt_timeline.dart';
 
 void main() {
+  test('reports the head directions too, which it once left out', () {
+    final t = PromptTimeline();
+    const prompts = ['turnRight', 'turnLeft', 'lookDown', 'lookUp'];
+    for (var i = 0; i < prompts.length; i++) {
+      t
+        ..shown(prompts[i], 2000 + i * 3000)
+        ..passed(3000 + i * 3000);
+    }
+    expect(t.report(1000)!.map((p) => p['prompt']).toList(), prompts);
+  });
+
   test('reports each prompt against the start of the recording', () {
     final t = PromptTimeline()
       ..shown('turn', 2000)

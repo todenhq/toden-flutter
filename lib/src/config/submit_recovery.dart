@@ -37,6 +37,7 @@ const Map<String, VerificationStep> _stepForMediaKey = {
   'documentBack': VerificationStep.documentCapture,
   'selfie': VerificationStep.liveness,
   'livenessVideo': VerificationStep.liveness,
+  'livenessDepth': VerificationStep.liveness,
   'proofOfAddress': VerificationStep.proofOfAddress,
   'addressPhoto': VerificationStep.addressEntrance,
 };

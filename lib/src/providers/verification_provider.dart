@@ -30,7 +30,9 @@ import 'session_restore.dart';
 import '../config/key_people_prefill.dart';
 import '../services/api_service.dart';
 import '../services/device_metadata_service.dart';
+import '../services/device_intel_platform.dart';
 import '../services/device_signals.dart';
+import '../liveness/signed_capture.dart';
 import '../services/fingerprint_payload.dart';
 import '../services/fingerprint_service.dart';
 import '../services/nfc_reader.dart';
@@ -41,6 +43,7 @@ import '../services/validators.dart';
 import '../utils/address_current_location.dart';
 import '../utils/resolve_url.dart';
 import '../utils/step_log.dart';
+import '../utils/journey_client.dart';
 import 'verification_state.dart';
 import 'address_book_provider.dart';
 import 'address_step_order.dart';
@@ -160,6 +163,10 @@ class VerificationNotifier extends _$VerificationNotifier {
       }
       _scheduleProgressSave(next);
     });
+    // The drop-off journey: which SDK and device (no identifiers), and an
+    // immediate save when something gets in the way (utils/step_log.dart).
+    unawaited(recordJourneyClient());
+    StepLog.onSaveNeeded = _saveProgressNow;
 
     // The attempt session: minted at launch (a fresh provider lifecycle IS a
     // fresh attempt). Best-effort by contract — sessions power resumability,
@@ -173,6 +180,7 @@ class VerificationNotifier extends _$VerificationNotifier {
     ref.onDispose(() {
       _progressTimer?.cancel();
       _disposed = true;
+      if (StepLog.onSaveNeeded == _saveProgressNow) StepLog.onSaveNeeded = null;
     });
 
     // When the launcher resolved a workflow before mount, its idTypes/branding
@@ -418,6 +426,7 @@ class VerificationNotifier extends _$VerificationNotifier {
       mediaIds: VerificationMediaIds(
         selfie: media.selfie,
         livenessVideo: media.livenessVideo,
+        livenessDepth: media.livenessDepth,
         proofOfAddress: media.proofOfAddress,
       ),
       documentScanPhase: 'front',
@@ -574,7 +583,8 @@ class VerificationNotifier extends _$VerificationNotifier {
 
   /// Stores the mediaId returned by /api/v1/upload for the given [type].
   /// [type] must be one of: 'documentFront', 'documentBack', 'selfie',
-  /// 'documentFrontVideo', 'documentBackVideo', 'livenessVideo'.
+  /// 'documentFrontVideo', 'documentBackVideo', 'livenessVideo',
+  /// 'livenessDepth'.
   void setMediaId(String type, String mediaId) {
     final current = state.mediaIds;
     final updated = switch (type) {
@@ -584,6 +594,7 @@ class VerificationNotifier extends _$VerificationNotifier {
       'documentFrontVideo' => current.copyWith(documentFrontVideo: mediaId),
       'documentBackVideo'  => current.copyWith(documentBackVideo: mediaId),
       'livenessVideo'      => current.copyWith(livenessVideo: mediaId),
+      'livenessDepth'      => current.copyWith(livenessDepth: mediaId),
       _ => current,
     };
     state = state.copyWith(mediaIds: updated);
@@ -641,6 +652,19 @@ class VerificationNotifier extends _$VerificationNotifier {
     );
   }
 
+  // ── Signed capture (liveness/signed_capture.dart) ────────────────────────
+  //
+  // Each upload's SHA-256 kept with the media id it came back as; submit signs
+  // only those the verification still names (signableUploads).
+  final Map<String, UploadHash> _uploadSha256 = {};
+
+  /// Records the SHA-256 of the bytes uploaded as [mediaId] for [slot]
+  /// (`selfie`, `livenessVideo` or `livenessDepth`).
+  void setUploadSha256(String slot,
+      {required String mediaId, required String sha256}) {
+    _uploadSha256[slot] = (mediaId: mediaId, sha256: sha256);
+  }
+
   /// The selfie upload's progress report. The liveness screen writes it; the
   /// submitted screen waits on it when the review is hidden (the biometric
   /// scopes hand over before the upload lands). See
@@ -661,6 +685,7 @@ class VerificationNotifier extends _$VerificationNotifier {
       mediaIds: VerificationMediaIds(
         selfie: media.selfie,
         livenessVideo: media.livenessVideo,
+        livenessDepth: media.livenessDepth,
         proofOfAddress: media.proofOfAddress,
         addressPhoto: media.addressPhoto,
       ),
@@ -1065,8 +1090,11 @@ class VerificationNotifier extends _$VerificationNotifier {
     ?..remove('requestId');
 
   // Rich device metadata (+ fingerprint when Device Intelligence is on).
-  // Best-effort — never blocks submission.
-  Future<Map<String, dynamic>?> _collectDeviceMetadata() async {
+  // Best-effort — never blocks submission. [signsCapture] is off for a request
+  // that sends no selfie or liveness video: Core would find the signed files
+  // missing from it and fail the proof.
+  Future<Map<String, dynamic>?> _collectDeviceMetadata(
+      {bool signsCapture = true}) async {
     try {
       final collected = await DeviceMetadataService.instance.collect();
       // The integrity claim rides here regardless of Device Intelligence: it
@@ -1102,9 +1130,35 @@ class VerificationNotifier extends _$VerificationNotifier {
         ),
       );
 
+      // Signed capture: the platform's proof over the uploaded selfie and
+      // video. Asked AFTER the fingerprint's attestation, never beside it, so
+      // an iPhone's first App Attest key is made once rather than raced.
+      // Best-effort and bounded like it: no proof leaves the claim as it was.
+      final signable = signsCapture
+          ? signableUploads(
+              sent: {
+                'selfie': state.mediaIds.selfie,
+                'livenessVideo': state.mediaIds.livenessVideo,
+                'livenessDepth': state.mediaIds.livenessDepth,
+              },
+              uploaded: _uploadSha256,
+            )
+          : const <String, String>{};
+      final captureProof = await signCapture(
+        media: signable,
+        platform: DeviceSignals.instance.platform,
+        native: const MethodChannelDeviceIntel(),
+        fetchChallenge: client.deviceChallenge,
+        cloudProjectNumber: state.serverConfig.playIntegrityCloudProjectNumber,
+      );
+      final claim = {
+        ...integrity,
+        if (captureProof != null) 'captureProof': captureProof,
+      };
+
       return {
         ...collected,
-        if (integrity.isNotEmpty) 'integrity': integrity,
+        if (claim.isNotEmpty) 'integrity': claim,
         if (stepLog != null) 'stepLog': stepLog,
         if (fingerprint != null) 'fingerprint': fingerprint,
       };
@@ -1217,7 +1271,7 @@ class VerificationNotifier extends _$VerificationNotifier {
           if ((state.businessSandboxOutcome ?? '').isNotEmpty)
             'sandboxOutcome': state.businessSandboxOutcome!,
         },
-        device: await _collectDeviceMetadata(),
+        device: await _collectDeviceMetadata(signsCapture: false),
       ),
     );
 
@@ -1334,6 +1388,7 @@ class VerificationNotifier extends _$VerificationNotifier {
               documentFrontVideo: mediaIds.documentFrontVideo,
               documentBackVideo: mediaIds.documentBackVideo,
               livenessVideo: mediaIds.livenessVideo,
+              livenessDepth: mediaIds.livenessDepth,
               silentCaptures: silentCaptureMediaIds(silentFrames),
             )
           : null,
@@ -1493,6 +1548,7 @@ class VerificationNotifier extends _$VerificationNotifier {
               documentFrontVideo: carried ? null : mediaIds.documentFrontVideo,
               documentBackVideo: carried ? null : mediaIds.documentBackVideo,
               livenessVideo: mediaIds.livenessVideo,
+              livenessDepth: mediaIds.livenessDepth,
               proofOfAddress: mediaIds.proofOfAddress,
               // A picked saved address carries no photo: the book keeps its own.
               addressPhoto: reuse != null ? null : mediaIds.addressPhoto,
@@ -1736,10 +1792,24 @@ class VerificationNotifier extends _$VerificationNotifier {
       return;
     }
     _progressTimer?.cancel();
-    _progressTimer = Timer(const Duration(milliseconds: 800), () {
+    _progressTimer = Timer(const Duration(milliseconds: 800), _saveProgressNow);
+  }
+
+  /// Writes the progress now. The debounced save above calls it, and so does
+  /// the step log when something got in the way (utils/step_log.dart): a
+  /// refused camera or a pressed Close must reach the server even when the
+  /// applicant never comes back.
+  void _saveProgressNow() {
+    if (_disposed) return;
+    {
       final s = state;
       final sessionId = s.sessionId;
-      if (sessionId == null) return;
+      if (sessionId == null ||
+          s.sessionCancelledMessage != null ||
+          s.sessionDeclined != null) {
+        return;
+      }
+      _progressTimer?.cancel();
       final payload = progressFromState(
         s,
         effectiveCountryValue: effectiveCountry(_config, s),
@@ -1760,7 +1830,7 @@ class VerificationNotifier extends _$VerificationNotifier {
       api.saveProgress(sessionId, payload).catchError((Object e) {
         endOnSessionRefusal(e);
       });
-    });
+    }
   }
 
   /// The paid registry check for the typed company, run at selection so the

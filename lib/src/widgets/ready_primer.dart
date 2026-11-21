@@ -6,6 +6,7 @@ import 'ui_button.dart';
 import 'pulse_ring.dart';
 import 'ready_primer_content.dart';
 import '../i18n/text_scope.dart';
+import '../i18n/translate.dart' show defaultText;
 import 'icons/icons.dart';
 
 /// "Here's what happens next" screen, shown once before a capture step opens
@@ -41,6 +42,24 @@ class ReadyPrimer extends StatelessWidget {
     final text = context.myazaText;
     final t = context.verificationText;
 
+    final vars = content.textVars;
+    // A workflow's own words always show. The stock ones are left out where
+    // the content says the screen already says them (ownTitleOnly,
+    // ownBodyOnly): the picture, or the step's heading above.
+    String own(String key, bool ownOnly) {
+      final written = t(key, vars: vars);
+      return ownOnly && written == defaultText(key, vars: vars) ? '' : written;
+    }
+
+    final heading = own(content.titleKey, content.ownTitleOnly);
+    final description = own(content.bodyKey, content.ownBodyOnly);
+    final hero = content.hero;
+    // The liveness picture stands on the page by itself: its own window is
+    // its frame, and a tinted box round it would be a frame round a frame. A
+    // glyph keeps the box, which gives it something to sit on, and so does
+    // the document's picture (heroBoxed; user, 2026-11-16).
+    final boxed = hero == null || content.heroBoxed;
+
     // TOP-ALIGNED, like the web. The sheet body guarantees the child at least
     // the viewport height, so a Center here parked the whole primer in the
     // middle of the sheet and left a dead band under the step indicator.
@@ -50,48 +69,62 @@ class ReadyPrimer extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Hero — matches the permission primer's icon treatment so the two
-            // screens read as one sequence rather than two different designs.
+            // Hero. Whatever moves here (the ring, or the step's own picture)
+            // is the ONLY looping element on the screen; more than one
+            // competing animation reads as noise.
             Container(
-              // px-6 py-9
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
-              decoration: BoxDecoration(
-                color: colors.primary.withValues(alpha: 0.05),
-                border: Border.all(color: colors.primary.withValues(alpha: 0.15)),
-                borderRadius: BorderRadius.circular(UiRadius.lg),
-              ),
+              padding: !boxed
+                  ? const EdgeInsets.fromLTRB(8, 8, 8, 4) // px-2 pt-2 pb-1
+                  : hero != null
+                      ? const EdgeInsets.symmetric(horizontal: 16, vertical: 24)
+                      : const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+              decoration: boxed
+                  ? BoxDecoration(
+                      color: colors.primary.withValues(alpha: 0.05),
+                      border: Border.all(
+                          color: colors.primary.withValues(alpha: 0.15)),
+                      borderRadius: BorderRadius.circular(UiRadius.lg),
+                    )
+                  : null,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Ring behind the glyph — the web's `animate-pulse-ring`.
-                  SizedBox(
-                    width: 80,
-                    height: 80,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        const PulseRing(),
-                        Container(
-                          width: 64, // h-16 w-16
-                          height: 64,
-                          decoration: BoxDecoration(
-                            color: colors.primary.withValues(alpha: 0.15),
-                            shape: BoxShape.circle,
-                          ),
-                          child: UiIcon(content.icon,
-                              size: 28, color: colors.primary), // h-7 w-7
+                  hero ??
+                      // Ring behind the glyph — the web's `animate-pulse-ring`.
+                      SizedBox(
+                        width: 80,
+                        height: 80,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            const PulseRing(),
+                            Container(
+                              width: 64, // h-16 w-16
+                              height: 64,
+                              decoration: BoxDecoration(
+                                color: colors.primary.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: UiIcon(content.icon,
+                                  size: 28, color: colors.primary), // h-7 w-7
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
+                  if (heading.isNotEmpty || description.isNotEmpty)
+                    const SizedBox(height: UiSpacing.md), // gap-4
+                  if (heading.isNotEmpty)
+                    Text(heading,
+                        style: text.heading3, textAlign: TextAlign.center),
+                  if (heading.isNotEmpty && description.isNotEmpty)
+                    const SizedBox(height: 6), // space-y-1.5
+                  if (description.isNotEmpty)
+                    Text(
+                      description,
+                      style:
+                          text.bodySmall.copyWith(color: colors.textSecondary),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
-                  const SizedBox(height: UiSpacing.md), // gap-4
-                  Text(t(content.titleKey),
-                      style: text.heading3, textAlign: TextAlign.center),
-                  const SizedBox(height: 6), // space-y-1.5
-                  Text(
-                    t(content.bodyKey),
-                    style: text.bodySmall.copyWith(color: colors.textSecondary),
-                    textAlign: TextAlign.center,
-                  ),
                 ],
               ),
             ),
@@ -113,7 +146,8 @@ class ReadyPrimer extends StatelessWidget {
                   ),
                   const SizedBox(width: 12), // gap-3
                   Expanded(
-                    child: Text(t(item.labelKey), style: text.bodyMedium),
+                    child: Text(t(item.labelKey, vars: vars),
+                        style: text.bodyMedium),
                   ),
                 ],
               ),

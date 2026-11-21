@@ -12,7 +12,7 @@ Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  toden_flutter: ^4.2.0
+  toden_flutter: ^4.3.0
 ```
 
 Then run `flutter pub get`.
@@ -272,12 +272,15 @@ void startVerification(BuildContext context) {
 | `enableLiveness`        | `bool`                  | `true`                | Run the liveness challenge step. Server can disable it per ID type.                                             |
 | `livenessAudio`         | `bool`                  | `false`               | Record sound in the liveness video. Needs the microphone declared (see Platform setup); a clip without it is silent. |
 | `selfieReview`         | `bool?`                 | `false`               | Show the selfie with Retake and Continue after the liveness capture. Off by default: the capture hands straight on to the next step. |
-| `voiceGuidance`         | `VoiceGuidanceConfig`   | enabled (`en-US`)     | Spoken liveness instructions (accessibility, TTS **output** — no microphone). `VoiceGuidanceConfig.off` mutes it; `VoiceGuidanceConfig(language: 'fr-FR')` sets the voice. See [Robustness & error handling](#robustness--error-handling). |
+| `livenessGestureGuide` | `bool`                  | `true`                | On the liveness camera, a face icon pops up in the window, acts out the gesture being asked for once, then goes, coming back only if the person stops responding. The instruction is shown in words either way. Normally set by a workflow. |
+| `livenessGestureSet` | `String?` | `null` (classic) | Which gestures the liveness camera asks for: `'directions'` (head turns left and right, looking up and down, always with a turn; the Toden server picks each attempt's directions when it can) or `'classic'` (nod, turn, blink, smile). Normally set by a workflow. |
+| `livenessDirectionCount` | `int?` | `null` (3) | How many head directions with `'directions'`: 2, 3 or 4. Normally set by a workflow. |
+| `voiceGuidance`         | `VoiceGuidanceConfig`   | enabled (`en-US`)     | Spoken liveness instructions (accessibility, speech **output**, no microphone). `VoiceGuidanceConfig.off` mutes it; `VoiceGuidanceConfig(language: 'fr-FR')` sets the language; `VoiceGuidanceConfig(voice: 'lyra')` picks a Toden voice. Normally set by the workflow; what you set here wins over it key by key. See [Toden voices](#toden-voices). |
 | `appearance`            | `VerificationAppearance?`   | brand defaults        | Brand & theme the flow — colors, logo, light/dark. See [Appearance & theming](#appearance--theming).            |
 | `consent`               | `VerificationConsentContent?`    | built-in copy         | Override the consent/welcome screen `title` and `description`. See [Consent screen copy](#consent-screen-copy). |
 | `success`               | `VerificationSuccessContent?`    | built-in copy         | Override the success/submitted screen `title` and `description`. See [Success screen copy](#success-screen-copy). |
 | `metadata`              | `Map<String, dynamic>?` | —                     | Forwarded with every verify request.                                                                            |
-| `livenessConfig`        | `LivenessConfig?`       | 2 challenges, 8s each | Tune challenge count, pool, timeout, avatar.                                                                    |
+| `livenessConfig`        | `LivenessConfig?`       | 2 challenges, 8s each | Tune challenge count, pool, timeout.                                                                    |
 | `userData`              | `UserData?`             | —                     | Pre-fills the user's details.                                                                                   |
 
 ## Environment
@@ -464,6 +467,39 @@ onError: (VerificationError error) {
 > Voice guidance is TTS **output** and never records audio. A refused microphone
 > for document audio only silences the clip, so there is **no microphone error
 > code**.
+
+### Toden voices
+
+The liveness prompts ("Nod your head", "Move closer", "Hold still") can be said
+in a Toden voice, pre-recorded by Toden, instead of the device's speech engine.
+An organisation picks the voice per workflow in the dashboard; the host app can
+also set it:
+
+```dart
+VerificationConfig(
+  apiKey: 'pk_live_...',
+  voiceGuidance: const VoiceGuidanceConfig(voice: 'lyra'), // e.g. lyra, rory, tolani, keith
+);
+```
+
+`voiceGuidance` is the one setting where the host's value wins over the
+workflow's, key by key: `VoiceGuidanceConfig(voice: 'rory')` keeps the
+workflow's `enabled` and `language`, and `VoiceGuidanceConfig.off` mutes the
+prompts whatever the workflow says.
+
+When the liveness step opens, the SDK fetches the voice list from the Toden
+server (3 s at most, no key) and loads the voice's clips into the app's
+temporary directory in the background. A clip plays only when the text to say
+is exactly its text; everything else (a prompt a workflow reworded, a language
+with no clips, a clip that has not loaded or will not play) is said by the
+device voice, which uses the device's Enhanced voice for the language when one
+is installed. Nothing waits on the clips, and a failure never stops the flow.
+On iOS the clips play beside the camera and the liveness recording's microphone
+without stopping or lowering either; on Android they take no audio focus.
+
+Toden voices need the matching Toden server release; until it serves the voice
+list, every prompt uses the device voice. Older SDKs ignore `voice` and use the
+device voice.
 
 ### Network resilience
 
@@ -771,3 +807,7 @@ if (check == null) {
 
 It never throws. `presenceStatus()` above answers for the phone (permissions,
 pin, tier); this answers for the check itself.
+
+## Credits
+
+The cartoon person on the screen before the liveness camera is "Toon Head" by [Johan Melin](https://www.johanmelin.com), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). It has been changed: it is cut into parts so it can move, it is painted in shades of the workflow's colour, and its long hair is replaced with short hair of our own.

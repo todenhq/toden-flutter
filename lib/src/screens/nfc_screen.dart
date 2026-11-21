@@ -21,6 +21,7 @@ import 'nfc_intro_view.dart';
 import '../config/nfc_intro.dart';
 import '../i18n/text_scope.dart';
 import '../widgets/ui_spinner.dart';
+import '../utils/journey_client.dart' show recordJourneyEvent, nfcFailureDetail;
 
 // ─── NFC chip step ────────────────────────────────────────────────────────────
 //
@@ -195,6 +196,8 @@ class _NfcScreenState extends ConsumerState<NfcScreen> {
       // tell whether it worked.
       setState(() => _phase = _Phase.success);
     } on NfcReadException catch (e) {
+      final detail = nfcFailureDetail(e.code, e.message);
+      if (detail != null) recordJourneyEvent('nfc_failed', detail: detail);
       if (!mounted) return;
       _closeSheet();
       setState(() {

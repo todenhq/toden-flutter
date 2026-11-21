@@ -11,6 +11,7 @@ import '../config/trust_attribution.dart';
 import 'powered_by.dart';
 import 'step_header.dart';
 import 'icons/icons.dart';
+import '../utils/journey_client.dart' show recordFlowClosed;
 
 // ─── Bottom sheet container ───────────────────────────────────────────────────
 //
@@ -163,6 +164,7 @@ class VerificationBottomSheet extends StatelessWidget {
       canPop: canSystemClose,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) {
+          recordFlowClosed();
           onClose?.call();
           return;
         }
@@ -253,6 +255,7 @@ class VerificationBottomSheet extends StatelessWidget {
                               // PopScope (canPop is false on mid-flow steps, so
                               // maybePop would be swallowed there).
                               onTap: () {
+                                recordFlowClosed();
                                 onClose?.call();
                                 final nav = Navigator.of(context);
                                 if (nav.canPop()) nav.pop();

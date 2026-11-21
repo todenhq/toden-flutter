@@ -33,8 +33,9 @@ const Map<String, String> kNotShownTexts = {
   'contact.code.label': 'The code boxes carry no label above them.',
   'uploadDocument.camera.havingTrouble': 'The camera shows its upload link without a lead-in line.',
   'uploadDocument.upload.addFromGallery': 'The upload card is titled with the side being added.',
-  'uploadDocument.flipBanner': 'The back is introduced by the step header, not a banner.',
   'presence.intro.description': 'One header description for the step, the camera one.',
+  'primer.selfie.checklist1':
+      "The face check's list leaves it out: the picture above shows the window, and the camera says so when the face is not in it.",
   'result.success.redirectLabel': _hosted,
   'result.success.closeTabNote': _hosted,
   'result.completed.approved.title': _completed,
