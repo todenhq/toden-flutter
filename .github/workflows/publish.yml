@@ -32,10 +32,16 @@ jobs:
       # `pub publish` reads it, for Flutter's Dart as well.
       - uses: dart-lang/setup-dart@v1
 
-      - name: Setup Flutter (stable)
+      # The Flutter the monorepo's CI analyzes and tests the package on
+      # (.github/workflows/ci.yml in toden-sdks), so a release is judged by the
+      # same analyzer that passed it. An unpinned "stable" moved under the
+      # 4.2.0 release: Flutter 3.47 deprecates package:flutter/material.dart,
+      # and the analyze gate below failed the publish on that one notice.
+      # Bump this with ci.yml.
+      - name: Setup Flutter (3.44.8, as CI)
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: '3.44.8'
 
       - name: The tag matches the pubspec version
         run: |
