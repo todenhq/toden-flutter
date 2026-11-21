@@ -401,9 +401,20 @@ class _LivenessScreenState extends ConsumerState<LivenessScreen>
     } catch (_) {
       baseUrl = null; // no usable server: the device voice says everything
     }
+    final config = ref.read(verificationConfigProvider);
+    String? country;
+    try {
+      // The country of the document being verified: the voice is chosen for it.
+      final code = effectiveCountry(config, ref.read(kYCNotifierProvider));
+      country = code.isEmpty ? null : code;
+    } catch (_) {
+      country = null;
+    }
     return createLivenessSpeaker(
-      ref.read(verificationConfigProvider).voiceGuidance,
+      config.voiceGuidance,
       baseUrl: baseUrl,
+      country: country,
+      userId: config.userId,
     );
   }
 

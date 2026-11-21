@@ -174,6 +174,10 @@ class _DocumentCaptureScreenState
   // into that window (see _resumeCaptureForSide).
   bool _restartingClip = false;
 
+  /// When the side's clip went live; null while nothing is recording. No photo
+  /// is taken until it has run [kMinRecorded] (config/document_recordings.dart).
+  DateTime? _clipStartedAt;
+
   // Auto-capture: native detector + the framing/stability policy.
   final _detector = DocumentDetectionService();
   late final DocumentFramingGate _gate = DocumentFramingGate(
@@ -392,6 +396,7 @@ class _DocumentCaptureScreenState
         return false;
       }
       await camera.startRecording(audio: _recordAudio);
+      _clipStartedAt = DateTime.now();
       if (!mounted) {
         unawaited(camera.dispose());
         return true;
@@ -498,9 +503,11 @@ class _DocumentCaptureScreenState
     try {
       // A clip may still be open if the user backed out of a side without
       // capturing; stopping first is a no-op when there isn't one.
+      _clipStartedAt = null;
       await native.stopRecording();
       if (!mounted) return;
       await native.startRecording(audio: _recordAudio);
+      _clipStartedAt = DateTime.now();
     } finally {
       _restartingClip = false;
     }
@@ -515,6 +522,7 @@ class _DocumentCaptureScreenState
     // Frames ride the RECORDING's stream — the camera can't serve a separate
     // image stream while recording, and the side video is not optional.
     await cameraNotifier.startVideoRecording(onImage: _onDetectionFrame);
+    _clipStartedAt = DateTime.now();
   }
 
   // ── Auto-capture ───────────────────────────────────────────────────────────
@@ -844,6 +852,7 @@ class _DocumentCaptureScreenState
   /// currently being captured. Returns silently if no recording is active.
   /// The video is compressed later, at upload time, under the loading state.
   Future<void> _stopAndStoreVideoForCurrentSide() async {
+    _clipStartedAt = null;
     final String? path;
     final native = _nativeCamera;
     if (native != null) {
@@ -902,9 +911,12 @@ class _DocumentCaptureScreenState
   /// guiding, they just may not pull the trigger yet.
   bool get _autoCaptureArmed {
     final armed = _armedAt;
+    final now = DateTime.now();
     return !_turningOver &&
         armed != null &&
-        DateTime.now().difference(armed) >= _settleDelay;
+        now.difference(armed) >= _settleDelay &&
+        // And never before the side's clip is long enough to be checked.
+        recordingShortBy(_clipStartedAt, now) == Duration.zero;
   }
 
   void _resetAutoCapture() {
@@ -994,6 +1006,19 @@ class _DocumentCaptureScreenState
     // Read at press time too: a shutter drawn enabled a frame ago must not take
     // a document whose corners have since gone out of view.
     if (_corners.blocksCapture) return;
+    // The shutter waits for the side's clip as auto-capture does, and the photo
+    // is taken at the end of the wait, so it is still the clip's last moment.
+    final short = recordingShortBy(_clipStartedAt, DateTime.now());
+    if (short > Duration.zero) {
+      setState(() => _isCapturing = true);
+      await Future<void>.delayed(short);
+      if (!mounted) return;
+      // The side was left, or its corners went out of view, while waiting.
+      if (!_inCameraPhase || _corners.blocksCapture) {
+        setState(() => _isCapturing = false);
+        return;
+      }
+    }
     // The corners that allowed this photo, taken now: frames keep arriving
     // while the still is being taken.
     final cropQuad = _corners.cropQuad;
@@ -1008,7 +1033,7 @@ class _DocumentCaptureScreenState
         // so nothing has to be torn down for it and the clip ends up covering
         // the moment of capture.
         bytes = await native.captureStill(
-          quality: CaptureConfig.documentImageQuality,
+          quality: CaptureConfig.documentCaptureHandoverQuality,
         );
         if (!mounted) return;
         await _stopAndStoreVideoForCurrentSide();
@@ -1027,8 +1052,9 @@ class _DocumentCaptureScreenState
       // Crop the full camera frame down to the card-guide rectangle.
       // viewW = screen width minus the bottom sheet's 16 px left+right padding;
       // viewH is the shared constant the viewfinder is built from.
-      // A large maxBytes keeps the crop at full quality here — the OCR-grade
-      // sizing happens in compressDocumentImage below (quality 90, ≥1080 px).
+      // The crop writes the photo that is uploaded, once, at the document
+      // quality and inside the size limit (encodeDocumentStill). A large
+      // maxBytes keeps its size loop from compressing it again.
       final idType = ref.read(kYCNotifierProvider).selectedIdType!;
       // Measured during build; the fallback only covers a capture fired before
       // the first layout, which the shutter and the gate both make impossible.
@@ -1060,10 +1086,9 @@ class _DocumentCaptureScreenState
       if (!mounted) return;
       // A slip framed upright is turned back to landscape here, so the review,
       // the upload and the server all see an ordinary slip.
-      final croppedRaw =
+      // Not compressed again: the crop above already wrote it for upload.
+      final cropped =
           await rotateJpegClockwise(framedRaw, _turn.captureUndoDegrees);
-      if (!mounted) return;
-      final cropped = await compressDocumentImage(croppedRaw);
       if (!mounted) return;
 
       if (_phase == _ScanPhase.cameraFront) {
@@ -1105,7 +1130,9 @@ class _DocumentCaptureScreenState
     // a clip nothing will ever record into.
     final native = _nativeCamera;
     if (native != null && _inCameraPhase) {
-      unawaited(native.startRecording(audio: _recordAudio));
+      unawaited(native
+          .startRecording(audio: _recordAudio)
+          .then((_) => _clipStartedAt = DateTime.now()));
     }
   }
 
@@ -1242,6 +1269,7 @@ class _DocumentCaptureScreenState
       // a representation of what the camera was filming. Upload-only has no
       // camera at all, so there is nothing to stop.
       final native = _nativeCamera;
+      _clipStartedAt = null;
       if (native != null) {
         await native.stopRecording();
       } else if (!_uploadOnly) {
@@ -1323,10 +1351,15 @@ class _DocumentCaptureScreenState
     ref.read(kYCNotifierProvider.notifier).setDocReviewPhase('review');
   }
 
-  String? _specimenCountry() {
+  String? _specimenCountryCode() {
     final code = effectiveCountry(ref.read(verificationConfigProvider),
         ref.read(kYCNotifierProvider));
-    return code.isEmpty ? null : countryLabel(code);
+    return code.isEmpty ? null : code;
+  }
+
+  String? _specimenCountry() {
+    final code = _specimenCountryCode();
+    return code == null ? null : countryLabel(code);
   }
 
   /// Holds auto-capture and the shutter, and asks for the back in the frame.
@@ -1623,6 +1656,7 @@ class _DocumentCaptureScreenState
                   idType: idTypeConfig.key,
                   title: specimenTitle(idTypeConfig.key, idTypeConfig.label),
                   country: _specimenCountry(),
+                  countryCode: _specimenCountryCode(),
                   side: SpecimenSide.front,
                 ),
                 aspect: documentGuideAspect(idTypeConfig),

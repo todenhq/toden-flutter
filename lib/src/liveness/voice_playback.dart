@@ -28,15 +28,32 @@ final VoicePreloads _preloads = VoicePreloads();
 /// workflow resolving, or the flow opening), so they are in by the liveness
 /// step's first prompt (user, 2026-11-20: the device voice said the first
 /// prompts before the Toden voice took over). Asking again for the same
-/// server, voice and language reuses the load. Null, and nothing fetched, with
-/// guidance off, no voice or no server. Never throws or waits.
-VoiceClipLoad? preloadVoiceClips(VoiceGuidanceConfig config, {required String? baseUrl}) {
-  final voice = config.voice;
-  if (!config.enabled || voice == null || baseUrl == null || baseUrl.isEmpty) return null;
+/// server, settings and person reuses the load. Null, and nothing fetched,
+/// with guidance off, the device's voice chosen, or no server. Never throws or
+/// waits.
+///
+/// The voice is chosen for [country] (the document's, as far as the flow knows
+/// it) and [userId] once the manifest is in: from 4.4.0 a Toden voice from the
+/// person's country, a neighbour's, the workflow's own, then an American one.
+VoiceClipLoad? preloadVoiceClips(
+  VoiceGuidanceConfig config, {
+  required String? baseUrl,
+  String? country,
+  String? userId,
+}) {
+  if (!config.enabled || config.deviceVoice || baseUrl == null || baseUrl.isEmpty) return null;
   final language = config.resolvedLanguage;
-  final id = '$baseUrl|$voice|${primaryVoiceLanguage(language)}';
+  final voice = config.workflowVoice;
+  final applicant = VoiceApplicant.of(
+    choice: config.resolvedLocalVoice,
+    neighbours: config.localVoiceNeighbours,
+    country: country,
+    userId: userId,
+  );
+  final id = '$baseUrl|${voice ?? ''}|${primaryVoiceLanguage(language)}|${applicant.id}';
   try {
-    return _preloads.obtain(id, () => VoiceClipLoad(HttpVoiceAssets(baseUrl), voice: voice, language: language));
+    return _preloads.obtain(
+        id, () => VoiceClipLoad(HttpVoiceAssets(baseUrl), voice: voice, language: language, applicant: applicant));
   } catch (_) {
     return null; // never the flow's problem: the device voice speaks
   }
@@ -48,16 +65,18 @@ VoiceClipLoad? preloadVoiceClips(VoiceGuidanceConfig config, {required String? b
 LivenessSpeaker createLivenessSpeaker(
   VoiceGuidanceConfig config, {
   required String? baseUrl,
+  String? country,
+  String? userId,
 }) {
   final language = config.resolvedLanguage;
-  final clips = preloadVoiceClips(config, baseUrl: baseUrl);
+  final clips = preloadVoiceClips(config, baseUrl: baseUrl, country: country, userId: userId);
   final speaker = LivenessSpeaker(
     enabled: config.enabled,
     device: config.enabled ? FlutterTtsDeviceVoice(language) : const _Silent(),
     player: clips != null ? JustAudioClipPlayer() : null,
     clips: clips,
   );
-  speaker.start(voice: config.voice, language: language);
+  speaker.start(voice: config.workflowVoice, language: language, deviceVoice: config.deviceVoice);
   return speaker;
 }
 

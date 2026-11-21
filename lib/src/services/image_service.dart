@@ -8,6 +8,7 @@ import 'package:image/image.dart' as img;
 
 import '../config/capture_config.dart';
 import '../liveness/selfie_pick.dart' show SelfieFace, selfieFrame, selfieOutputSize;
+import 'document_quad_crop.dart' show encodeDocumentStill;
 
 // ─── Isolate param/result types ───────────────────────────────────────────────
 // compute() requires top-level functions, so we pass everything as plain maps.
@@ -567,10 +568,12 @@ Uint8List _cropCardWorker(_CropCardParams p) {
     height: cropH,
   );
 
-  return _compressWorker(_CompressParams(
-    bytes: Uint8List.fromList(img.encodeJpg(cropped, quality: 95)),
-    maxBytes: p.maxBytes,
-  ));
+  // Written once. It used to be encoded at 95 and then decoded and encoded
+  // again at 85 by the size loop, whatever its size. The loop now runs only
+  // when the photo really is over [maxBytes].
+  final once = encodeDocumentStill(cropped);
+  if (once.length <= p.maxBytes) return once;
+  return _compressWorker(_CompressParams(bytes: once, maxBytes: p.maxBytes));
 }
 
 /// Crops [bytes] to the card-guide rectangle as rendered in the document

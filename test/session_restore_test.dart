@@ -11,6 +11,21 @@ import 'package:toden_flutter/src/providers/session_restore.dart';
 void main() {
   _resumeGuards();
 
+  test('does not resume progress saved in a country the flow no longer offers', () {
+    // 2026-11-21: a flow locked to South Africa resumed into the country picked
+    // the day before, with no picker to change it.
+    const fresh = VerificationState();
+    final progress = {
+      'step': 'id-input',
+      'data': {'selectedCountry': 'NG', 'selectedIdType': 'bvn'},
+    };
+    final locked = restoredState(fresh, progress, offeredCountries: const ['ZA']);
+    expect(identical(locked, fresh), isTrue);
+    // Still offered, or a flow that lists no countries: resumed as before.
+    expect(restoredState(fresh, progress, offeredCountries: const ['ZA', 'ng']).selectedCountry, 'NG');
+    expect(restoredState(fresh, progress).selectedCountry, 'NG');
+  });
+
   test('restores step, captures and typed data', () {
     final s = restoredState(const VerificationState(), {
       'step': 'id-input',

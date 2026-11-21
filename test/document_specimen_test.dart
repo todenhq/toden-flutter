@@ -56,7 +56,7 @@ void main() {
       'nin-slip': SpecimenKind.ninSlip,
       'ghana-card': SpecimenKind.nationalId,
       'cni': SpecimenKind.nationalId,
-      'pvc': SpecimenKind.voterCard,
+      'pvc': SpecimenKind.pvc,
       'voters': SpecimenKind.voterCard,
       'residence-card': SpecimenKind.residencePermit,
     };
@@ -202,6 +202,98 @@ void main() {
     for (final kind in SpecimenKind.values.where((k) => !oneSided.contains(k))) {
       expect(documentSpecimen(_with(kind: kind, side: SpecimenSide.back)),
           isNot(documentSpecimen(_with(kind: kind))));
+    }
+  });
+
+  /// Where each barcode bar sits down the card, from the drawing itself.
+  List<(double, double)> barcodeBars(String xml) => RegExp(
+          r'<rect x="[\d.]+" y="([\d.]+)" width="[\d.]+" height="([\d.]+)" fill="#12141F"/>')
+      .allMatches(xml)
+      .map((bar) => (
+            double.parse(bar[1]!),
+            double.parse(bar[1]!) + double.parse(bar[2]!)
+          ))
+      .toList();
+
+  test(
+      "puts a PVC's two barcodes where the card has them: the top half of the back, the linear one first",
+      () {
+    final bars = barcodeBars(documentSpecimen(
+        _with(kind: SpecimenKind.pvc, side: SpecimenSide.back)));
+    final linear = bars.where((bar) => bar.$2 - bar.$1 == 84).toList();
+    final stacked = bars.where((bar) => bar.$2 - bar.$1 < 84).toList();
+    expect(linear.length, greaterThan(20));
+    expect(stacked.length, greaterThan(100));
+    final height = (1000 / _base.aspect).round();
+    for (final bar in bars) {
+      expect(bar.$2, lessThan(height * 0.55));
+    }
+    final linearFoot = linear.map((bar) => bar.$2).reduce((a, b) => a > b ? a : b);
+    for (final bar in stacked) {
+      expect(bar.$1, greaterThanOrEqualTo(linearFoot));
+    }
+  });
+
+  test("draws no barcode on a PVC's front: both of the card's barcodes are on its back", () {
+    expect(barcodeBars(documentSpecimen(_with(kind: SpecimenKind.pvc))), isEmpty);
+  });
+
+  test(
+      "puts a Nigerian licence's barcodes in the top half of its back: a short linear one at the right, the block under it",
+      () {
+    final xml = documentSpecimen(
+        _with(kind: SpecimenKind.driversLicenseNg, side: SpecimenSide.back));
+    final bars = barcodeBars(xml);
+    final linear = bars.where((bar) => bar.$2 - bar.$1 == 44).toList();
+    final block = bars.where((bar) => bar.$2 - bar.$1 != 44).toList();
+    expect(linear.length, greaterThan(10));
+    expect(block.length, greaterThan(100));
+    final height = (1000 / _base.aspect).round();
+    for (final bar in bars) {
+      expect(bar.$2, lessThan(height * 0.56));
+    }
+    for (final bar in block) {
+      expect(bar.$1, greaterThanOrEqualTo(136 + 44));
+    }
+    // The linear barcode keeps to the right half, as on the card.
+    final lefts = RegExp(
+            r'<rect x="([\d.]+)" y="136" width="[\d.]+" height="44" fill="#12141F"/>')
+        .allMatches(xml)
+        .map((bar) => double.parse(bar[1]!));
+    expect(lefts.reduce((a, b) => a < b ? a : b), greaterThanOrEqualTo(450));
+  });
+
+  test("draws a licence as Nigeria's own card only for Nigeria", () {
+    expect(specimenKind('drivers-license', 'NG'), SpecimenKind.driversLicenseNg);
+    expect(specimenKind('drivers-license', 'ng'), SpecimenKind.driversLicenseNg);
+    expect(specimenKind('drivers-license', 'GH'), SpecimenKind.driversLicense);
+    expect(specimenKind('drivers-license', null), SpecimenKind.driversLicense);
+    expect(specimenKind('drivers-license'), SpecimenKind.driversLicense);
+    // The country changes nothing for an ID that has no card of its own drawn.
+    expect(specimenKind('passport', 'NG'), SpecimenKind.passport);
+  });
+
+  test(
+      "keeps any other country's licence barcode as one block in the lower half of its back",
+      () {
+    final bars = barcodeBars(documentSpecimen(
+        _with(kind: SpecimenKind.driversLicense, side: SpecimenSide.back)));
+    final height = (1000 / _base.aspect).round();
+    expect(bars.length, greaterThan(100));
+    for (final bar in bars) {
+      expect(bar.$1, greaterThanOrEqualTo(300));
+    }
+    expect(bars.map((bar) => bar.$2).reduce((a, b) => a > b ? a : b),
+        greaterThan(height * 0.8));
+  });
+
+  test("leaves any other voter card's barcode along the foot of its back", () {
+    final bars = barcodeBars(documentSpecimen(
+        _with(kind: SpecimenKind.voterCard, side: SpecimenSide.back)));
+    expect(bars.length, greaterThan(20));
+    final height = (1000 / _base.aspect).round();
+    for (final bar in bars) {
+      expect(bar.$1, greaterThan(height / 2));
     }
   });
 

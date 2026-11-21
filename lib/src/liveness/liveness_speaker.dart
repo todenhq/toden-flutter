@@ -81,16 +81,22 @@ abstract interface class VoiceAssets {
 class VoiceClipLoad {
   VoiceClipLoad(
     this._assets, {
-    required this.voice,
+    this.voice,
     required this.language,
+    this.applicant,
     Duration manifestTimeout = kVoiceManifestTimeout,
   }) {
     settled = _run(manifestTimeout);
   }
 
   final VoiceAssets _assets;
-  final String voice;
+
+  /// The workflow's own Toden voice: who speaks when the person's country and its neighbours have none.
+  final String? voice;
   final String language;
+
+  /// Who the prompts are for; the voice is chosen from them once the manifest is in ([pickVoice]).
+  final VoiceApplicant? applicant;
 
   final Completer<Map<String, String>?> _keys = Completer();
   final Map<String, Future<String?>> _clips = {};
@@ -113,8 +119,10 @@ class VoiceClipLoad {
   Future<void> _run(Duration manifestTimeout) async {
     try {
       final manifest = await _assets.manifest().timeout(manifestTimeout);
-      final keys = manifest.phraseKeysByText(voice, language);
-      if (keys == null) {
+      // Only now is it known who speaks: the manifest says which voices are whose.
+      final chosen = pickVoice(manifest, voice: voice, language: language, applicant: applicant);
+      final keys = chosen == null ? null : manifest.phraseKeysByText(chosen, language);
+      if (chosen == null || keys == null) {
         _failed = true;
         _keys.complete(null);
         return;
@@ -122,7 +130,7 @@ class VoiceClipLoad {
       final lang = primaryVoiceLanguage(language);
       for (final key in keys.values.toSet()) {
         _clips[key] = _assets
-            .clip(VoiceClipRef(version: manifest.version, voice: voice, language: lang, phraseKey: key))
+            .clip(VoiceClipRef(version: manifest.version, voice: chosen, language: lang, phraseKey: key))
             .then<String?>((path) => path, onError: (Object _) => null);
       }
       _keys.complete(keys);
@@ -216,17 +224,19 @@ class LivenessSpeaker {
   @visibleForTesting
   Future<void> get clipsLoaded => _clipsLoaded ?? Future<void>.value();
 
-  /// Starts loading [voice]'s clips in [language], in the background. No
-  /// voice, guidance off or no player leaves every phrase to the device voice
-  /// and fetches nothing.
-  void start({String? voice, required String language}) {
+  /// Starts loading the clips of the voice chosen for [applicant] in
+  /// [language], in the background ([voice] is the workflow's own). Guidance
+  /// off, the device's voice chosen, or no player leaves every phrase to the
+  /// device voice and fetches nothing.
+  void start({String? voice, required String language, VoiceApplicant? applicant, bool deviceVoice = false}) {
     final player = _player;
-    if (!_enabled || voice == null || player == null) return;
+    if (!_enabled || deviceVoice || player == null) return;
     if (_clipsLoaded != null) return;
     final load = _preloaded ??
         (_assets == null
             ? null
-            : VoiceClipLoad(_assets, voice: voice, language: language, manifestTimeout: _manifestTimeout));
+            : VoiceClipLoad(_assets,
+                voice: voice, language: language, applicant: applicant, manifestTimeout: _manifestTimeout));
     if (load == null) return;
     _load = load;
     _clipsLoaded = _loadClips(load);

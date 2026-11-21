@@ -18,11 +18,22 @@ const String kApiKey = String.fromEnvironment(
 );
 const String kDevServer = String.fromEnvironment('TODEN_DEV_SERVER');
 const String kWorkflowId = String.fromEnvironment('TODEN_WORKFLOW_ID');
+
+/// The country this person is from (ISO-2), e.g. `--dart-define=TODEN_COUNTRY=ZA`.
+/// On a workflow that offers several countries the picker opens on it; with
+/// `TODEN_LOCK_COUNTRY=true` there is no picker.
+const String kCountry = String.fromEnvironment('TODEN_COUNTRY');
+const bool kLockCountry = bool.fromEnvironment('TODEN_LOCK_COUNTRY');
 // The org's user reference. Address presence reports only for a named user.
 const String kUserId = String.fromEnvironment('TODEN_USER_ID', defaultValue: 'usr_123');
 // The person's email, passed as userData. Optional: it also lets the flow
 // offer an address they saved before without an email step.
 const String kUserEmail = String.fromEnvironment('TODEN_USER_EMAIL');
+// The person's name, passed as userData, so the flow greets them and checks
+// the name on their ID against it. Optional, like the email.
+const String kFirstName = String.fromEnvironment('TODEN_FIRST_NAME');
+const String kLastName = String.fromEnvironment('TODEN_LAST_NAME');
+const bool kHasUserData = kUserEmail != '' || kFirstName != '' || kLastName != '';
 
 void main() => runApp(const ExampleApp());
 
@@ -55,13 +66,20 @@ class HomeScreen extends StatelessWidget {
         devUrl: kDevServer.isEmpty ? null : kDevServer,
         workflowId: kWorkflowId.isEmpty ? null : kWorkflowId,
         userId: kUserId,
-        userData: kUserEmail.isEmpty ? null : const UserData(email: kUserEmail),
+        userData: kHasUserData
+            ? const UserData(
+                firstName: kFirstName == '' ? null : kFirstName,
+                lastName: kLastName == '' ? null : kLastName,
+                email: kUserEmail == '' ? null : kUserEmail,
+              )
+            : null,
         // A workflow declares its own countries and ID types, so these are
         // omitted when one is set. Passing them anyway narrows a multi-region
         // flow to this hardcoded list: such a flow keeps its ID types per
         // country and leaves the top-level list unset, and the merge treats
         // "unset" as "the flow did not define it" and keeps the prop.
-        country: kWorkflowId.isEmpty ? 'NG' : null,
+        country: kCountry.isNotEmpty ? kCountry : (kWorkflowId.isEmpty ? 'NG' : null),
+        lockCountry: kLockCountry,
         idTypes: kWorkflowId.isEmpty ? const ['bvn', 'nin', 'passport'] : null,
         enableSelfie: true,
         enableDocumentCapture: true,

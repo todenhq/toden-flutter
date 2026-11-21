@@ -10,8 +10,9 @@ import '../i18n/text_scope.dart';
 //
 // Takes Continue's place in the review footer when the server's capture check
 // could not read a side (see config/document_capture_check.dart): one retake per
-// side at fault, then "Continue anyway", because a detector can miss and this
-// must never be a dead end.
+// side at fault, then "Continue anyway", because a face or barcode detector
+// can miss. A cut-off document offers the retake alone: the verification
+// would fail it.
 //
 // Shaped like UiAlert's warning, but inked for contrast. Bright amber text on
 // the pale amber ground measures about 1.5:1, and these lines are instructions
@@ -84,12 +85,14 @@ class DocumentCaptureCheckNotice extends StatelessWidget {
               ],
             ],
           ),
-        const SizedBox(height: UiSpacing.sm),
-        UiButton.outline(
-          label: context.verificationText('common.continueAnyway'),
-          onPressed: onContinueAnyway,
-          leadingIcon: const UiIcon(UiIcons.arrowRight),
-        ),
+        if (canContinueAnyway(problems)) ...[
+          const SizedBox(height: UiSpacing.sm),
+          UiButton.outline(
+            label: context.verificationText('common.continueAnyway'),
+            onPressed: onContinueAnyway,
+            leadingIcon: const UiIcon(UiIcons.arrowRight),
+          ),
+        ],
       ],
     );
 

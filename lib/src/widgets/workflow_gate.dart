@@ -4,6 +4,7 @@ import '../config/appearance_scheme.dart';
 import '../config/verification_config.dart';
 import '../config/theme.dart';
 import '../config/workflow_merge.dart';
+import '../config/app_country.dart';
 import '../liveness/voice_playback.dart' show preloadVoiceClips;
 import '../config/chosen_only_ids.dart';
 import '../providers/verification_state.dart';
@@ -42,13 +43,19 @@ Future<WorkflowGateResult> resolveWorkflowResult(VerificationConfig config) asyn
     // KYB: the mapped applicant workflow's capture template overlays the
     // merged config (and its id is recorded for stamping) — see
     // overlayApplicantWorkflow.
-    final merged = overlayApplicantWorkflow(
-      mergeWorkflowIntoConfig(config, res.config),
-      res.applicantWorkflow,
+    // The merge lets the workflow's country replace the app's, so the app's
+    // own `country` is applied last, onto the countries the workflow offers
+    // (config/app_country.dart).
+    final merged = applyAppCountry(
+      overlayApplicantWorkflow(
+        mergeWorkflowIntoConfig(config, res.config),
+        res.applicantWorkflow,
+      ),
+      config.country,
     );
     // The workflow's Toden voice starts loading now, before the flow mounts,
     // so its clips are in by the liveness step's first prompt.
-    preloadVoiceClips(merged.voiceGuidance, baseUrl: api.baseUrl);
+    preloadVoiceClips(merged.voiceGuidance, baseUrl: api.baseUrl, country: merged.country, userId: merged.userId);
     return WorkflowGateResult(
       config: merged,
       // Every capability fact the /config path carries rides here too: a

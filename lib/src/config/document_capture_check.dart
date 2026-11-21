@@ -10,9 +10,13 @@ import '../services/api_service.dart' show DocumentCaptureCheckResult;
 // details are read from a barcode). A miss is caught here, while the applicant
 // is still holding the document, instead of as a decline once they have gone.
 //
-// A NOTICE, NEVER A GATE. A detector can miss, so "Continue anyway" is always
-// offered, and anything the server could not answer (null, an error, a
-// timeout) reads as no problem at all.
+// A NOTICE, NOT A GATE, WITH ONE EXCEPTION. A face or barcode detector can
+// miss, so "Continue anyway" is offered past those. Not past a cut-off
+// document (user decision 2026-11-21): the server only says so when the
+// document clearly runs off the photo, and the verification then fails it
+// (`document_cut_off`), so continuing would only spend the attempt. Anything
+// the server could not answer (null, an error, a timeout) reads as no problem
+// at all.
 //
 // Mirrored in the web and React Native SDKs: keep the copy word for word.
 
@@ -68,6 +72,11 @@ List<CaptureProblem> captureCheckProblems(
     ],
   ];
 }
+
+/// Whether the applicant may go on with the photos as they are. Never with a
+/// cut-off document: that one must be taken again.
+bool canContinueAnyway(List<CaptureProblem> problems) =>
+    !problems.any((p) => p.kind == CaptureProblemKind.notComplete);
 
 /// The sides that need a retake, in report order, each once.
 List<String> captureProblemSides(List<CaptureProblem> problems) => [

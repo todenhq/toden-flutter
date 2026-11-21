@@ -46,6 +46,11 @@ String _field(num x, num y, num caption, num value) =>
     '<rect x="$x" y="$y" width="$caption" height="9" rx="4.5" fill="$_bar" opacity="0.55"/>'
     '<rect x="$x" y="${y + 19}" width="$value" height="14" rx="7" fill="$_muted"/>';
 
+/// One line of print with nothing to read in it: a name, a number, a notice.
+String specimenPrintLine(num x, num y, num width,
+        {num height = 14, bool pale = false}) =>
+    '<rect x="$x" y="$y" width="$width" height="$height" rx="${height / 2}" fill="${pale ? _bar : _muted}"/>';
+
 /// Rows of fields, as a document prints them. Each pair is (caption, value).
 String fieldRows(num x, num y, List<List<(num, num)>> rows,
     {num step = 66, num gap = 34}) {

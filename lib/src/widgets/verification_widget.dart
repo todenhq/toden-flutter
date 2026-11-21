@@ -401,9 +401,12 @@ class _VerificationFlowWidgetState
 
   void _preloadVoice() {
     try {
+      final config = ref.read(verificationConfigProvider);
       preloadVoiceClips(
-        ref.read(verificationConfigProvider).voiceGuidance,
+        config.voiceGuidance,
         baseUrl: ref.read(kYCNotifierProvider.notifier).api.baseUrl,
+        country: config.country,
+        userId: config.userId,
       );
     } catch (_) {
       // No usable server yet: the liveness step tries again.

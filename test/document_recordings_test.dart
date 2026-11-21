@@ -191,4 +191,46 @@ void main() {
     // A shot with no clip stores none, never an earlier try's.
     expect(src, isNot(contains('if (path == null) return;')));
   });
+
+  // The server reads a side's recording twice a second and needs three
+  // readings; a back photographed a second after its clip began was "not
+  // checked" on 4 of 11 two-sided captures.
+  group('a recording long enough to be checked', () {
+    final began = DateTime(2026, 11, 21, 12);
+
+    test('asks for more than a second of recording, enough for three readings',
+        () {
+      expect(kMinRecorded, greaterThanOrEqualTo(const Duration(seconds: 2)));
+      expect(recordingShortBy(began, began), kMinRecorded);
+      expect(
+          recordingShortBy(
+              began, began.add(kMinRecorded - const Duration(milliseconds: 300))),
+          const Duration(milliseconds: 300));
+      expect(recordingShortBy(began, began.add(kMinRecorded)), Duration.zero);
+      expect(recordingShortBy(began, began.add(const Duration(minutes: 1))),
+          Duration.zero);
+    });
+
+    test('keeps nobody waiting where nothing is recording', () {
+      expect(recordingShortBy(null, began), Duration.zero);
+    });
+
+    test('holds auto-capture and the shutter in the screen', () {
+      final screen =
+          File('lib/src/screens/document_capture_screen.dart').readAsStringSync();
+      expect(
+          screen,
+          contains(
+              'recordingShortBy(_clipStartedAt, now) == Duration.zero;'));
+      expect(
+          screen,
+          contains(
+              'final short = recordingShortBy(_clipStartedAt, DateTime.now());'));
+      // Every clip that starts is timed, and a stopped one is forgotten.
+      expect('_clipStartedAt = DateTime.now()'.allMatches(screen).length,
+          greaterThanOrEqualTo(4));
+      expect('_clipStartedAt = null;'.allMatches(screen).length,
+          greaterThanOrEqualTo(3));
+    });
+  });
 }

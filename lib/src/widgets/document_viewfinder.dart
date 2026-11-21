@@ -183,6 +183,7 @@ class DocumentViewfinder extends StatelessWidget {
                 country: country == null || country!.isEmpty
                     ? null
                     : countryLabel(country!),
+                countryCode: country,
                 side: isBack ? SpecimenSide.back : SpecimenSide.front,
               ),
               documentFound: framing != DocumentFraming.none &&

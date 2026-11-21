@@ -12,7 +12,7 @@ Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  toden_flutter: ^4.3.0
+  toden_flutter: ^4.4.0
 ```
 
 Then run `flutter pub get`.
@@ -261,6 +261,7 @@ void startVerification(BuildContext context) {
 | `apiKey`                | `String`                | —                     | **Required.** Sent as `Authorization: Bearer`. The **environment is derived from the key prefix** (`pk_test_…` → sandbox, `pk_live_…` → production); an unrecognized prefix throws. |
 | `workflowId`            | `String?`               | —                     | **Recommended.** Id of a **published** workflow (`wf_…`) built in the dashboard. Its configuration is resolved on mount and **takes precedence over these fields**; makes `country` optional. Required for [business (KYB)](#business-verification-kyb) verification. |
 | `country`               | `String?` (ISO-2)       | —                     | **Required unless `workflowId` is set** (the workflow carries its own country). Any ISO-2 code works (`'NG'`, `'GH'`, …) — the org's grants are enforced server-side. |
+| `lockCountry`           | `bool`                  | `false`               | With `country`, on a workflow that offers several countries: fix the flow to that country, with no country picker. Ignored when no `country` is passed or the workflow does not offer it. On such a workflow `country` alone makes the picker open on that country, listed first (4.4.0 and later). |
 | `idTypes`               | `List<String>?`         | all for country       | Subset of ID-type keys to offer (`['bvn', 'passport']` — the same kebab-case keys as the React SDKs). `null` shows all for `country`. |
 | `userId`                | `String?`               | —                     | Your own reference for the person or business being verified. Sent with the verification so results correlate back to your record. Not matched against the ID. |
 | `enableSelfie`          | `bool`                  | `true`                | Capture a selfie during liveness.                                                                               |
@@ -281,7 +282,7 @@ void startVerification(BuildContext context) {
 | `success`               | `VerificationSuccessContent?`    | built-in copy         | Override the success/submitted screen `title` and `description`. See [Success screen copy](#success-screen-copy). |
 | `metadata`              | `Map<String, dynamic>?` | —                     | Forwarded with every verify request.                                                                            |
 | `livenessConfig`        | `LivenessConfig?`       | 2 challenges, 8s each | Tune challenge count, pool, timeout.                                                                    |
-| `userData`              | `UserData?`             | —                     | Pre-fills the user's details.                                                                                   |
+| `userData`              | `UserData?`             | —                     | Pre-fills the user's details: `firstName`, `lastName`, `dateOfBirth`, `gender`, `address`, `phoneNumber`, `email` (all optional). `email` is never asked for in the flow: pass it when you hold it, so your organisation can have the applicant emailed about a decision. |
 
 ## Environment
 
@@ -470,17 +471,25 @@ onError: (VerificationError error) {
 
 ### Toden voices
 
-The liveness prompts ("Nod your head", "Move closer", "Hold still") can be said
-in a Toden voice, pre-recorded by Toden, instead of the device's speech engine.
-An organisation picks the voice per workflow in the dashboard; the host app can
-also set it:
+From 4.4.0 the liveness prompts ("Nod your head", "Move closer", "Hold still")
+are said by default in a Toden voice, pre-recorded by Toden, chosen for each
+person: a voice from the country of the document being verified (a Nigerian
+hears a Nigerian voice, a Kenyan a Kenyan one), else a neighbouring country's
+(Toden's own short list), else the workflow's `voice`, else an American voice.
+One voice per person (by `userId` when you pass one), kept for the session. An
+organisation sets this per workflow in the dashboard; the host app can also set it:
 
 ```dart
 VerificationConfig(
   apiKey: 'pk_live_...',
-  voiceGuidance: const VoiceGuidanceConfig(voice: 'lyra'), // e.g. lyra, rory, tolani, keith
+  // Lyra for anyone with no voice from their country; 'any' (default), 'female', 'male' or 'off'.
+  voiceGuidance: const VoiceGuidanceConfig(voice: 'lyra', localVoice: 'female'),
 );
 ```
+
+`VoiceGuidanceConfig(voice: 'device')` uses the device's own voice for everyone,
+and `localVoiceNeighbours: false` skips the neighbouring country's voice. Before
+4.4.0 a workflow with no voice spoke with the device's voice.
 
 `voiceGuidance` is the one setting where the host's value wins over the
 workflow's, key by key: `VoiceGuidanceConfig(voice: 'rory')` keeps the

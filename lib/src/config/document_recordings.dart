@@ -64,3 +64,28 @@ Future<bool> uploadDocumentSides({
   }
   return true;
 }
+
+// ─── A recording long enough to be checked ───────────────────────────────────
+//
+// The server reads a side's recording twice a second and needs three readings
+// to compare the photo with it; a shorter recording is "not checked", which
+// lets an injected side through unexamined (4 of 11 two-sided captures on the
+// back, measured 2026-11-21). So no photo of a side is taken until its
+// recording has run this long: auto-capture stays unarmed and the shutter
+// waits out the remainder. Here the back's clip already starts with the
+// turn-over, so the wait is not added to it.
+//
+// Mirrors the web SDK's lib/document-recordings.ts and React Native's
+// lib/documentRecordings.ts.
+
+/// The least a side's recording runs before its photo is taken.
+const Duration kMinRecorded = Duration(milliseconds: 2200);
+
+/// How much longer the photo must wait for its recording: nothing once it has
+/// run long enough, or when nothing is recording ([startedAt] is null), so a
+/// device that cannot record keeps nobody waiting.
+Duration recordingShortBy(DateTime? startedAt, DateTime now) {
+  if (startedAt == null) return Duration.zero;
+  final left = kMinRecorded - now.difference(startedAt);
+  return left.isNegative ? Duration.zero : left;
+}

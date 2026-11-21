@@ -29,7 +29,10 @@ class CountrySelectScreen extends ConsumerWidget {
     // Multi-region flows carry `countries`; the KYB applicant leg does not,
     // so it offers the org's GRANTED countries — see countrySelectOptions.
     final codes = countrySelectOptions(config, state);
-    final selected = state.selectedCountry;
+    // The country the app passed is marked and listed first, ahead of the
+    // location guess. The person can still pick another.
+    final named = config.appCountry;
+    final selected = state.selectedCountry ?? named;
 
     void pick(String code) {
       logChoice('country');
@@ -42,6 +45,7 @@ class CountrySelectScreen extends ConsumerWidget {
         codes: codes,
         selected: selected,
         geoCountry: state.serverConfig.geoCountry,
+        appCountry: named,
         onSelect: pick,
       );
     }

@@ -35,12 +35,18 @@ class CountryRegionPicker extends StatefulWidget {
   /// thing they see rather than something to scroll for.
   final String? geoCountry;
 
+  /// The country the app passed (config/app_country.dart). It takes the top
+  /// row in place of the location guess, without the "Your location" tag: the
+  /// app said so, the visitor's IP did not.
+  final String? appCountry;
+
   const CountryRegionPicker({
     super.key,
     required this.codes,
     required this.selected,
     required this.onSelect,
     this.geoCountry,
+    this.appCountry,
   });
 
   @override
@@ -67,7 +73,7 @@ class _CountryRegionPickerState extends State<CountryRegionPicker> {
       for (final code in widget.codes)
         if (q.isEmpty || _matches(code, q)) code.toUpperCase(),
     ];
-    final split = pinGeoRow(visible, widget.geoCountry, (c) => c);
+    final split = pinGeoRow(visible, widget.appCountry ?? widget.geoCountry, (c) => c);
     final pinned = split.pinned;
     final groups = groupCountriesByRegion(split.rest);
     final empty = groups.isEmpty && pinned == null;
@@ -102,7 +108,7 @@ class _CountryRegionPickerState extends State<CountryRegionPicker> {
                           label: countryLabel(pinned),
                           isSelected:
                               widget.selected?.toUpperCase() == pinned,
-                          badge: 'Your location',
+                          badge: widget.appCountry == null ? 'Your location' : null,
                           onTap: () => widget.onSelect(pinned),
                         ),
                       ),

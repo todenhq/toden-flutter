@@ -9,7 +9,8 @@ import 'icons/icons.dart';
 //
 // One selectable country row: a bordered card holding the country's flag, its
 // name, and a trailing chevron. Mirrors the web SDK's country button
-// (`rounded-xl border p-4`, 32px flag, `ChevronRight`).
+// (`rounded-xl border p-4`, 40px flag, `ChevronRight`): a 72px row, big enough
+// for a thumb to land on the row it aimed at.
 //
 // Shared on purpose by BOTH country-select paths — the flat list (≤5 offered
 // countries) and the searchable region picker (above that). They previously
@@ -66,12 +67,12 @@ class CountryOptionTile extends StatelessWidget {
             padding: const EdgeInsets.all(UiSpacing.md),
             child: Row(
               children: [
-                UiCountryFlag(country: code, size: 32),
-                const SizedBox(width: 12),
+                UiCountryFlag(country: code, size: 40),
+                const SizedBox(width: UiSpacing.md),
                 Expanded(
                   child: Text(
                     label,
-                    style: text.label.copyWith(fontWeight: FontWeight.w500),
+                    style: text.body.copyWith(fontWeight: FontWeight.w500),
                   ),
                 ),
                 if (badge != null) ...[

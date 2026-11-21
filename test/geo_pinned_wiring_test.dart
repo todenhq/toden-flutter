@@ -16,7 +16,7 @@ void main() {
     expect(read('screens/country_select_screen.dart'),
         contains('geoCountry: state.serverConfig.geoCountry'));
     expect(read('widgets/country_region_picker.dart'),
-        contains("badge: 'Your location'"));
+        contains("badge: widget.appCountry == null ? 'Your location' : null"));
   });
 
   test('the phone field pins it in the dial-code sheet, on both mounts', () {

@@ -65,6 +65,9 @@ class DocumentSpecimenSubject {
   final String? idType;
   final String title;
   final String? country;
+
+  /// The country's ISO-2 code: a few IDs are drawn as that country's own card.
+  final String? countryCode;
   final SpecimenSide side;
 
   const DocumentSpecimenSubject({
@@ -72,6 +75,7 @@ class DocumentSpecimenSubject {
     required this.title,
     required this.country,
     required this.side,
+    this.countryCode,
   });
 }
 
@@ -83,7 +87,7 @@ String specimenSvg(
   Color accent,
 ) =>
     documentSpecimen(SpecimenInput(
-      kind: specimenKind(subject.idType),
+      kind: specimenKind(subject.idType, subject.countryCode),
       title: subject.title,
       country: subject.country,
       side: side,

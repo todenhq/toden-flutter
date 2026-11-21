@@ -35,7 +35,7 @@ part 'api_device.dart';
 // which SDK versions are in the wild and gate breaking API changes by version.
 // Keep in sync with pubspec.yaml `version`.
 
-const String kSdkVersion = '4.3.0';
+const String kSdkVersion = '4.4.0';
 
 // ─── Exception ────────────────────────────────────────────────────────────────
 

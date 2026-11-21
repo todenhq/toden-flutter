@@ -260,13 +260,50 @@ class VoiceGuidanceConfig {
   /// the on-screen instruction.
   final String? language;
 
-  /// A Toden voice id (e.g. `'lyra'`): the liveness prompts are said in that
-  /// pre-recorded voice, with the device voice for any phrase it has no clip
-  /// for. Null uses the device voice alone. Normally chosen per workflow.
+  /// Who speaks to everyone the person's country and its neighbours have no
+  /// Toden voice for: a Toden voice id (e.g. `'lyra'`), normally chosen per
+  /// workflow, or `'device'` for the device's own voice for everyone. Null: an
+  /// American Toden voice is the last fallback.
+  ///
+  /// From 4.4.0 the prompts are spoken, in order, by a Toden voice from the
+  /// country of the document being verified, a neighbouring country's, this
+  /// voice, then an American one, with the device voice for any phrase without
+  /// a clip. Before 4.4.0 a null voice meant the device's voice.
   final String? voice;
 
-  const VoiceGuidanceConfig({bool? enabled, this.language, this.voice})
-      : _enabled = enabled;
+  /// How the voice is matched to the person's country: `'any'` (the default),
+  /// `'female'` or `'male'` of that country's Toden voices, or `'off'` to skip
+  /// their country and its neighbours. Where the country has no voice of the
+  /// gender asked for, one of its other voices speaks. One voice per person,
+  /// kept for the session.
+  final String? localVoice;
+
+  /// Whether a person whose country Toden has no voice from hears a
+  /// neighbouring country's voice (Toden's own short list). Default `true`.
+  bool get localVoiceNeighbours => _localVoiceNeighbours ?? true;
+  final bool? _localVoiceNeighbours;
+
+  const VoiceGuidanceConfig({
+    bool? enabled,
+    this.language,
+    this.voice,
+    this.localVoice,
+    bool? localVoiceNeighbours,
+  })  : _enabled = enabled,
+        _localVoiceNeighbours = localVoiceNeighbours;
+
+  /// The `voice` that means the device's own speech, chosen by the admin.
+  static const String deviceVoiceId = 'device';
+
+  /// The admin chose the device's own voice: no Toden voice speaks.
+  bool get deviceVoice => voice == deviceVoiceId;
+
+  /// The workflow's own Toden voice; null for none, or with the device's voice.
+  String? get workflowVoice => deviceVoice ? null : voice;
+
+  /// How the voice is matched to the person's country: `any` unless set otherwise.
+  String get resolvedLocalVoice =>
+      const {'female', 'male', 'off'}.contains(localVoice) ? localVoice! : 'any';
 
   /// Resolved BCP-47 language, defaulting to `en-US`.
   String get resolvedLanguage => language ?? 'en-US';
@@ -281,21 +318,26 @@ class VoiceGuidanceConfig {
         enabled: _enabled ?? base._enabled,
         language: language ?? base.language,
         voice: voice ?? base.voice,
+        localVoice: localVoice ?? base.localVoice,
+        localVoiceNeighbours: _localVoiceNeighbours ?? base._localVoiceNeighbours,
       );
 
   /// Parses a resolved workflow's `voiceGuidance` value, which may be a bare
   /// bool (`true`/`false`, which sets [enabled] alone) or an object
-  /// (`{ enabled?, language?, voice? }`). Returns null for anything
+  /// (`{ enabled?, language?, voice?, localVoice?, localVoiceNeighbours? }`). Returns null for anything
   /// unrecognized so the caller keeps its existing value.
   static VoiceGuidanceConfig? fromDynamic(Object? value) {
     if (value is bool) return VoiceGuidanceConfig(enabled: value);
     if (value is Map) {
       String? text(Object? v) => v is String && v.trim().isNotEmpty ? v.trim() : null;
       final enabled = value['enabled'];
+      final neighbours = value['localVoiceNeighbours'];
       return VoiceGuidanceConfig(
         enabled: enabled is bool ? enabled : null,
         language: text(value['language']),
         voice: text(value['voice']),
+        localVoice: text(value['localVoice']),
+        localVoiceNeighbours: neighbours is bool ? neighbours : null,
       );
     }
     return null;
@@ -447,6 +489,19 @@ class VerificationConfig {
   /// flow. The picked country becomes the effective country for the rest of the
   /// flow.
   final List<WorkflowCountryOption>? countries;
+
+  /// With [country], on a flow that offers several countries: fix the flow to
+  /// that country, with no country picker at all. Ignored when no [country] is
+  /// passed, or when the flow does not offer it (the picker then shows as
+  /// usual). On such a flow [country] itself opens the picker on the country
+  /// your app already knows this person is from, when the flow offers it
+  /// (config/app_country.dart).
+  final bool lockCountry;
+
+  /// Set by the SDK, never by your code: the offered country your [country]
+  /// named on a multi-country flow, so the country step can mark it and list
+  /// it first (config/app_country.dart).
+  final String? appCountry;
 
   /// Multi-ID policy: several ID checks in one run, judged by a pass policy.
   /// KYC only — publish rejects it on a KYB workflow.
@@ -734,6 +789,8 @@ class VerificationConfig {
     this.applicantWorkflowId,
     this.devUrl,
     this.countries,
+    this.lockCountry = false,
+    this.appCountry,
     this.multiId,
     this.idTypes,
     this.idSelectionLayout,
@@ -791,6 +848,7 @@ class VerificationConfig {
   VerificationConfig copyWith({
     String? country,
     List<WorkflowCountryOption>? countries,
+    String? appCountry,
     MultiIdConfig? multiId,
     List<String>? idTypes,
     /// Set `idTypes` to null instead of keeping the current value.
@@ -850,6 +908,8 @@ class VerificationConfig {
         applicantWorkflowId: applicantWorkflowId ?? this.applicantWorkflowId,
         devUrl: devUrl,
         countries: countries ?? this.countries,
+        lockCountry: lockCountry,
+        appCountry: appCountry ?? this.appCountry,
         multiId: multiId ?? this.multiId,
         idTypes: clearIdTypes ? null : (idTypes ?? this.idTypes),
         idSelectionLayout: idSelectionLayout ?? this.idSelectionLayout,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:toden_flutter/src/widgets/country_flag.dart';
 import 'package:toden_flutter/src/widgets/country_option_tile.dart';
 import 'package:toden_flutter/src/widgets/country_region_picker.dart';
 import 'package:toden_flutter/src/widgets/geo_badge.dart';
@@ -22,6 +23,21 @@ List<String> tileCodes(WidgetTester tester) =>
 
 void main() {
   const codes = ['NG', 'GH', 'FR', 'US', 'KE', 'BR'];
+
+  testWidgets('a country row is big enough for a thumb: a 40px flag in a 72px row',
+      (tester) async {
+    await tester.pumpWidget(host(CountryRegionPicker(
+      codes: codes,
+      selected: null,
+      onSelect: (_) {},
+    )));
+    await tester.pump();
+
+    final row = find.byType(CountryOptionTile).first;
+    expect(tester.getSize(row).height, greaterThanOrEqualTo(72));
+    final flag = find.descendant(of: row, matching: find.byType(UiCountryFlag));
+    expect(tester.widget<UiCountryFlag>(flag).size, 40);
+  });
 
   testWidgets('the geo country is first, tagged, and not repeated in its region',
       (tester) async {

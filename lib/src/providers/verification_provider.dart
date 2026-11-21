@@ -1653,6 +1653,7 @@ class VerificationNotifier extends _$VerificationNotifier {
           // its photo slot off, or a platform that stopped serving search, no
           // longer has the screen the snapshot names.
           offeredAddressSteps: addressStepsFor(_config, state),
+          offeredCountries: [for (final c in _config.countries ?? const <WorkflowCountryOption>[]) c.country],
           // Where the applicant goes when the flow has no address region at
           // all: the first step AFTER where the region would sit that the real
           // order actually contains. Computed from the order, never guessed.

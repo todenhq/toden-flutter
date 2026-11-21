@@ -16,7 +16,13 @@ enum SpecimenKind {
   nationalId,
   ninSlip,
   driversLicense,
+
+  /// Nigeria's driver's licence: a licence on the front, and a back of its own.
+  driversLicenseNg,
   voterCard,
+
+  /// Nigeria's voter card: a voter card on the front, and a back of its own.
+  pvc,
   residencePermit,
   generic,
 }
@@ -30,14 +36,21 @@ const Map<String, SpecimenKind> _kinds = {
   'nin-slip': SpecimenKind.ninSlip,
   'ghana-card': SpecimenKind.nationalId,
   'cni': SpecimenKind.nationalId,
-  'pvc': SpecimenKind.voterCard,
+  'pvc': SpecimenKind.pvc,
   'voters': SpecimenKind.voterCard,
   'residence-card': SpecimenKind.residencePermit,
   'residence-permit': SpecimenKind.residencePermit,
 };
 
-SpecimenKind specimenKind(String? idType) =>
-    _kinds[idType] ?? SpecimenKind.generic;
+/// The drawing for an ID. A few are drawn as one country's own card, measured
+/// off real ones: [country] is the document's ISO-2 code, and without it (or for
+/// any other country) the ID's general drawing is used.
+SpecimenKind specimenKind(String? idType, [String? country]) {
+  final kind = _kinds[idType] ?? SpecimenKind.generic;
+  return kind == SpecimenKind.driversLicense && country?.toUpperCase() == 'NG'
+      ? SpecimenKind.driversLicenseNg
+      : kind;
+}
 
 /// The name written across the sample. The step's own label when it has a real
 /// one; "Document" says nothing on a document, so that falls back to the ID's
@@ -187,6 +200,7 @@ String _cardFront(SpecimenInput i) {
   ];
   switch (i.kind) {
     case SpecimenKind.driversLicense:
+    case SpecimenKind.driversLicenseNg:
       parts.addAll([
         fieldRows(312, 158, _tallFields, step: 72),
         fieldRows(756, 158, const [
@@ -200,12 +214,16 @@ String _cardFront(SpecimenInput i) {
         fieldRows(_inset, 520, _wideRow),
       ]);
     case SpecimenKind.voterCard:
+    case SpecimenKind.pvc:
       parts.addAll([
         fieldRows(312, 158, _tallFields, step: 72),
         '<circle cx="840" cy="226" r="76" fill="#FFFFFF" fill-opacity="0.6" stroke="$accent" stroke-width="8"/>'
             '<path d="M806 226L830 254L878 198" fill="none" stroke="$accent" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>',
         specimenSignature(320, 392, 1.05),
-        specimenBarcode(_inset, 512, _width - _inset * 2, 72),
+        // A PVC's front carries no barcode: both of its barcodes are on the back.
+        i.kind == SpecimenKind.pvc
+            ? fieldRows(_inset, 520, _wideRow)
+            : specimenBarcode(_inset, 512, _width - _inset * 2, 72),
       ]);
     case SpecimenKind.residencePermit:
       parts.addAll([
@@ -230,12 +248,75 @@ String _cardFront(SpecimenInput i) {
   return parts.join();
 }
 
+/// The back of Nigeria's Permanent Voter's Card, laid out as the card is
+/// (measured off real backs: both barcodes sat in the top half of all twelve).
+/// The linear barcode comes first, the two-dimensional block directly under it,
+/// both starting further in from the left edge than they stop short of the
+/// right. Then the security strip across the card, and the print at the foot:
+/// two centred lines, the emblem with the batch and serial numbers, the notice.
+String _pvcBack(SpecimenInput i, int height) {
+  final accent = i.accent;
+  const codeX = 160;
+  const codeWidth = _width - codeX - 76;
+  const stripTop = 348;
+  final stripHeight = height - 199 - stripTop < 40 ? 40 : height - 199 - stripTop;
+  final strip = StringBuffer();
+  for (var x = 40; x < _width - 60; x += 62) {
+    strip.write(
+        'M$x ${stripTop + stripHeight * 0.42}l30 -11M${x + 31} ${stripTop + stripHeight * 0.8}l30 -11');
+  }
+  final row = height - 96;
+  return [
+    _cardBand(i),
+    specimenBarcode(codeX, 140, codeWidth, 84),
+    specimenStackedBarcode(codeX, 240, codeWidth, 90),
+    '<rect x="11" y="$stripTop" width="${_width - 22}" height="$stripHeight" fill="$accent" fill-opacity="0.1"/>',
+    '<path d="$strip" fill="none" stroke="$accent" stroke-opacity="0.4" stroke-width="5" stroke-linecap="round"/>',
+    '<rect x="${_inset + 20}" y="${height - 181}" width="${_width - (_inset + 20) * 2}" height="3" fill="$specimenInk" fill-opacity="0.3"/>',
+    specimenPrintLine(280, height - 165, 440),
+    specimenPrintLine(365, height - 135, 270, height: 12),
+    _crest(_inset + 62, row + 6, 30, accent),
+    specimenPrintLine(190, row + 2, 80, height: 10, pale: true),
+    specimenPrintLine(284, row, 190),
+    '<rect x="518" y="${row - 6}" width="4" height="26" rx="2" fill="$specimenInk" fill-opacity="0.3"/>',
+    specimenPrintLine(560, row + 2, 120, height: 10, pale: true),
+    specimenPrintLine(_width - _inset - 150, row, 150),
+    specimenPrintLine(180, height - 52, 640, height: 10, pale: true),
+  ].join();
+}
+
+/// The back of Nigeria's driver's licence (measured off real backs): a short linear barcode at the top right with its number beside it,
+/// the large two-dimensional block directly under it across the card, both in
+/// the top half. Below them the class of licence, then the notes at the foot
+/// with the crest at their right.
+String _licenceBack(SpecimenInput i, int height) {
+  final notes = height - 123;
+  final classes = height - 229;
+  return [
+    _cardBand(i),
+    specimenPrintLine(190, 152, 190, height: 10, pale: true),
+    specimenBarcode(470, 136, _width - _inset - 470, 44),
+    specimenStackedBarcode(
+        _inset, 188, _width - _inset * 2, height - 281 - 188),
+    specimenPrintLine(_inset, classes, 800, height: 12),
+    specimenPrintLine(_inset, classes + 26, 690, height: 12),
+    specimenPrintLine(_inset, classes + 52, 330, height: 12),
+    for (final (n, width) in const [(0, 720), (1, 640), (2, 700), (3, 660)])
+      specimenPrintLine(_inset, notes + n * 24, width, height: 10, pale: true),
+    _crest(_width - _inset - 60, height - 88, 46, i.accent),
+  ].join();
+}
+
 String _cardBack(SpecimenInput i, int height) {
+  if (i.kind == SpecimenKind.pvc) return _pvcBack(i, height);
+  if (i.kind == SpecimenKind.driversLicenseNg) return _licenceBack(i, height);
   final band = _cardBand(i);
   const twoRows = <List<(num, num)>>[
     [(130, 400), (100, 300)],
     [(110, 330), (130, 370)],
   ];
+  // Any other country's licence: its fields, then one large barcode block. Not
+  // measured off a real card, so it claims no one country's layout.
   if (i.kind == SpecimenKind.driversLicense) {
     return band +
         fieldRows(_inset, 148, twoRows, step: 70) +

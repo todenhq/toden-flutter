@@ -288,10 +288,10 @@ void main() {
       });
     });
 
-    test('no voice fetches no manifest', () {
+    test("the device's voice, chosen by the admin, fetches no manifest", () {
       fakeAsync((async) {
         final assets = _Assets();
-        final s = speaker(assets)..start(language: 'en-US');
+        final s = speaker(assets)..start(language: 'en-US', deviceVoice: true);
         async.flushMicrotasks();
         say(async, s, 'Hold still');
         expect(assets.manifestCalls, 0);

@@ -95,8 +95,21 @@ VerificationState restoredState(
   String? fallbackCountry,
   List<VerificationStep> offeredAddressSteps = const [],
   VerificationStep? addressExit,
+  List<String> offeredCountries = const [],
 }) {
   final data = (progress['data'] as Map?)?.cast<String, dynamic>() ?? const {};
+  // A country picked before that this flow no longer offers (the app has since
+  // named or locked another: config/app_country.dart) makes the saved position
+  // meaningless: its ID type and captures belong to that country. Start again
+  // rather than resume into a country the flow cannot change away from.
+  // [offeredCountries] is the flow's own list; empty means it lists none and
+  // any country stands.
+  final savedCountry = data['selectedCountry'];
+  if (savedCountry is String &&
+      offeredCountries.isNotEmpty &&
+      !offeredCountries.any((c) => c.toUpperCase() == savedCountry.trim().toUpperCase())) {
+    return s;
+  }
   final mediaIds = (progress['mediaIds'] as Map?)?.cast<String, dynamic>() ?? const {};
   final business = (data['business'] as Map?)?.cast<String, dynamic>() ?? const {};
   final app = (data['businessApplication'] as Map?)?.cast<String, dynamic>() ?? const {};

@@ -3,6 +3,7 @@ import 'dart:ui' show Rect, Size;
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 
+import '../config/capture_config.dart';
 import 'document_corners.dart';
 
 // ─── Crop a still to the detected document, plus the bleed ────────────────────
@@ -55,7 +56,26 @@ Uint8List? _quadCropWorker(_QuadCropParams p) {
     width: crop.width,
     height: crop.height,
   );
-  return Uint8List.fromList(img.encodeJpg(cropped, quality: 95));
+  return encodeDocumentStill(cropped);
+}
+
+/// The document photo's ONE lossy write after the camera's own: brought inside
+/// the size limit when it is over it, then encoded at the document quality.
+/// What this returns is uploaded as it is (the server reads a card's barcode
+/// from it, and a second compression costs the barcode its bars).
+Uint8List encodeDocumentStill(img.Image image) {
+  final to = documentStillResize(image.width, image.height);
+  final sized = to == null
+      ? image
+      : img.copyResize(
+          image,
+          width: to.width,
+          height: to.height,
+          interpolation: img.Interpolation.cubic,
+        );
+  return Uint8List.fromList(
+    img.encodeJpg(sized, quality: CaptureConfig.documentImageQuality),
+  );
 }
 
 /// Crops a still to [quad] plus the bleed. Null when the still cannot be read

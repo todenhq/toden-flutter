@@ -94,6 +94,32 @@ class CaptureConfig {
 
   /// Don't downscale the document below ~1080p — keeps OCR text legible. Raised
   /// alongside [documentResolution] so the sharper capture isn't shrunk away.
+  /// Applies to a photo picked from the device ([compressDocumentImage]).
   static const int documentMinWidth = 1440;
   static const int documentMinHeight = 1440;
+
+  /// The longer side a camera photo of a document may have, the web SDK's:
+  /// above what a crop of the camera's photo gives, so it is never scaled down
+  /// and a card's barcode keeps its bars.
+  static const int documentMaxDimension = 2600;
+
+  /// The quality the native camera hands its photo over at, before the crop.
+  /// That copy is never uploaded (the crop writes the one that is), so it is
+  /// kept whole: turning it upright re-encodes it, and at 95 that was a lossy
+  /// pass the barcode paid for.
+  static const int documentCaptureHandoverQuality = 100;
+}
+
+/// The size that brings a [width] by [height] document photo inside
+/// [CaptureConfig.documentMaxDimension] by its longer side, keeping its shape;
+/// null when it is already inside. Pure, for tests.
+({int width, int height})? documentStillResize(int width, int height) {
+  const limit = CaptureConfig.documentMaxDimension;
+  final longest = width > height ? width : height;
+  if (longest <= limit || longest <= 0) return null;
+  final scale = limit / longest;
+  return (
+    width: (width * scale).round().clamp(1, limit),
+    height: (height * scale).round().clamp(1, limit),
+  );
 }

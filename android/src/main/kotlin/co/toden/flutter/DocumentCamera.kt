@@ -377,11 +377,12 @@ class DocumentCamera(
     val PREVIEW_SIZE = Size(1080, 1920)
     val ANALYSIS_SIZE = Size(720, 1280)
 
-    /** ~1080p, matching what the plugin path asked for (`ResolutionPreset
-     *  .veryHigh`) so OCR sharpness is at worst unchanged — and in practice
-     *  better, since dropping VideoCapture stops CameraX downgrading it. The
-     *  one knob to raise if OCR ever needs more. */
-    val CAPTURE_SIZE = Size(1080, 1920)
+    /** 1440 by 2560, the web SDK's document size (was 1080 by 1920): the server
+     *  reads a card's barcode from this photo, and at 1080 wide a card held to
+     *  the guide was under a thousand pixels across. Still 16:9, as the preview
+     *  is (see [bindUseCases]); CameraX takes the nearest size the camera has.
+     *  The one knob to raise if the barcode ever needs more. */
+    val CAPTURE_SIZE = Size(1440, 2560)
 
     /** ML Kit is far slower than the frame rate; matches the 250 ms tick the
      *  Dart-driven path used. */

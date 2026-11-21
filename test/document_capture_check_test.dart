@@ -11,7 +11,8 @@ import 'package:toden_flutter/src/widgets/ui_button.dart';
 // The server reads each uploaded side with the detectors it decides with. What
 // is pinned here: only a definite `false` asks for a retake, the order the
 // retakes are asked for in, the copy (word for word with the web and React
-// Native SDKs), and that the notice always leaves a way through.
+// Native SDKs), and that the notice leaves a way through for everything but a
+// cut-off document.
 //
 // The review footer itself is not pumped: DocumentCaptureScreen needs a camera,
 // platform channels and the provider tree. The notice it renders is.
@@ -106,23 +107,35 @@ void main() {
       expect(captureProblemMessage(_notComplete), isNot(contains('—')));
     });
 
-    testWidgets('the notice offers the retake and still a way through',
+    testWidgets('the notice offers the retake alone: no way past a cut-off ID',
         (tester) async {
       final retaken = <String>[];
-      var continued = 0;
       await tester.pumpWidget(_host(DocumentCaptureCheckNotice(
-        problems: const [CaptureProblem('front', _notComplete)],
+        problems: const [
+          CaptureProblem('front', _notComplete),
+          CaptureProblem('back', _noBarcode),
+        ],
         uploadOnly: false,
         onRetake: retaken.add,
-        onContinueAnyway: () => continued++,
+        onContinueAnyway: () {},
       )));
       await tester.pumpAndSettle();
       expect(find.text(captureProblemMessage(_notComplete)), findsOneWidget);
       await tester.tap(find.widgetWithText(UiButton, 'Retake front'));
-      await tester
-          .tap(find.widgetWithText(UiButton, kCaptureCheckContinueAnyway));
       expect(retaken, ['front']);
-      expect(continued, 1);
+      expect(find.widgetWithText(UiButton, kCaptureCheckContinueAnyway),
+          findsNothing);
+    });
+
+    test('continuing is allowed past a face or barcode, never a cut-off ID', () {
+      expect(
+          canContinueAnyway(const [
+            CaptureProblem('front', _noFace),
+            CaptureProblem('back', _noBarcode),
+          ]),
+          isTrue);
+      expect(canContinueAnyway(const [CaptureProblem('front', _notComplete)]),
+          isFalse);
     });
   });
 
