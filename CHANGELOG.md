@@ -1,3 +1,28 @@
+## 4.5.0
+
+No breaking changes: with a legacy publishable key and no provider, every request is exactly what 4.4.0 sent. The native plugin changes, so rebuild the app.
+
+**Deploy note for Toden:** user tokens need the matching Toden server release. Until it is deployed, a provider's token is sent and ignored.
+
+### Added
+
+- **User tokens for scoped publishable keys.** A scoped publishable key needs a short-lived user token from your server for address presence. Give the SDK a provider with `TodenUserTokens.setProvider`, or `getUserToken` on `VerificationConfig`, `AddressPresence.report`, `BackgroundPresence.enable` or `fetchPresenceWatchStatus`. The provider gets no user id: your server mints the token for the user in its own session. The SDK checks each token is for this user, for presence, for this key's environment and not expired before it sends it in `X-Toden-User-Token`; a provider that answers `null` means no header, and one that fails keeps an unexpired token it gave before or sends no header.
+- **One new token and one retry.** A 403 `user_token_invalid`, with a provider, gets one new token and one retry. `user_token_required`, `scope_not_declared` and every other answer are never retried, and none of these is treated as an invalid API key.
+- **`TodenUserTokens.setUserToken` for silent pushes.** Hand the SDK a token from a silent push and the native background queue is sent at once. A token for another user throws `UserTokenException` with `userTokenMismatch`.
+- **Background tokens in device-only storage.** Native code never calls your provider. The checked token is kept in the Keychain on iOS (after first unlock, this device only) and in `noBackupFilesDir` on Android, never in `UserDefaults` or the backed-up preferences, and is checked again against the armed user. `standDownPresence` forgets it.
+
+- **Face checks with a scoped publishable key.** A flow whose scope is `biometric-authentication` or `biometric-enrollment` asks your provider for a `biometric` token before each start and sends it on `/session/start`; it is kept in memory for that flow only. A workflow mount refused with `user_token_required` gets one token and one more start, and a face check refused with `user_token_invalid` gets one new token, a resumed session and one more submission. `too_many_attempts` goes to your app. `VerificationApiService.startSessionWithUserToken` carries the token, so a subclass that overrides `startSession` keeps compiling.
+- **Presence device.** With a provider, the phone registers a key it never exports (Secure Enclave on iOS, Android Keystore with StrongBox where the phone has it) right after an address verification. Native background code then signs for its own 1-hour presence token, and every queued day is sealed with the key, so a late report still counts for its own day. On a watch kept open past its deadline for late reports, the days after the deadline stay queued after a send. `standDownPresence` deletes the key.
+- **API key expiry webhooks (your server only).** The `api_key.expiring` and `api_key.expired` webhook events go to your webhook endpoint, not to the SDK. Nothing in this SDK changes for them.
+
+### Changed
+
+- **The verification's presence token is kept in device-only storage.** It moves out of the SDK's documents file, `UserDefaults` (iOS) and the backed-up preferences (Android) on first run, into the Keychain (this device only) and `noBackupFilesDir`.
+- **`TodenUserTokens.setUserToken` works after a cold start.** With no user or key passed, it reads the user and key the background tier is armed for, as React Native does. It never uses that key for another user.
+- **An error answer in Toden's v1 shape (`{ error: { code, message } }`) is read by its code.** It used to fail as a type error.
+- **The background queue is sent oldest first, in chunks of 31 days, on iOS and Android.** A chunk the server takes leaves the queue; a chunk it answers with 400 is dropped, since it can never succeed; any other answer keeps the queue for next time. Days are never dropped for their age. With user tokens in use and no fresh token, or a locked Keychain, the background keeps its queue and sends nothing.
+- **More values on `PresenceReportReason`.** It gains `userTokenRequired`, `userTokenInvalid`, `userTokenMismatch` and `scopeNotDeclared`, and a user-token refusal ends the wait for the watch at once instead of reporting `noWatch`. Check exhaustive `switch` statements.
+
 ## 4.4.0
 
 No breaking changes, and no new plugins: a normal upgrade, with no extra rebuild step.

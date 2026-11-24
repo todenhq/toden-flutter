@@ -50,7 +50,7 @@ final class DeviceIntelChannel: NSObject {
 
   /// Created once, then reused. Returned only when it is actually stored: an
   /// id that would change on the next launch is not a stable id.
-  private static func stableId() -> String? {
+  static func stableId() -> String? {
     if let existing = KeychainItem.read(stableIdAccount) { return existing }
     let fresh = UUID().uuidString
     return KeychainItem.write(stableIdAccount, fresh) ? fresh : nil

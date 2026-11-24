@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 
 /**
  * Persistence for the background presence tier: the armed config, the open
@@ -13,6 +14,15 @@ import org.json.JSONObject
  * trace never exists anywhere. Mirrors the RN SDK's background-store.ts.
  */
 class PresenceStore(context: Context) {
+  companion object {
+    /**
+     * One lock for every read-modify-write of the queue and the token file.
+     * Each caller builds its own PresenceStore, on a receiver's worker, the
+     * channel's executor or the token-flush thread, so the lock is process wide.
+     */
+    private val LOCK = Any()
+  }
+
   val appContext: Context = context.applicationContext
   private val prefs: SharedPreferences =
     context.applicationContext.getSharedPreferences("myaza_kyc_presence", Context.MODE_PRIVATE)
@@ -27,11 +37,14 @@ class PresenceStore(context: Context) {
     /** The Google Cloud project Play Integrity proofs are made for. */
     val playIntegrityProject: String? = null,
     val emulator: Boolean = false,
-    /** From the 202 of the verification that captured the pin. */
+    /** From the 202 of the verification that captured the pin. Kept in
+     *  noBackupFilesDir, never in these prefs, which Auto Backup copies. */
     val presenceToken: String? = null,
+    /** The file holds it but cannot be read yet: the flush waits. */
+    val presenceTokenHeld: Boolean = false,
   )
 
-  fun saveConfig(config: Config) {
+  fun saveConfig(config: Config) = synchronized(LOCK) {
     val json = JSONObject()
       .put("lat", config.lat)
       .put("lng", config.lng)
@@ -41,45 +54,266 @@ class PresenceStore(context: Context) {
       .put("externalUserId", config.externalUserId)
       .put("playIntegrityProject", config.playIntegrityProject ?: JSONObject.NULL)
       .put("emulator", config.emulator)
-      .put("presenceToken", config.presenceToken ?: JSONObject.NULL)
+    // A new pin drops the old token, wherever it was kept.
+    deleteHmacToken()
+    val token = config.presenceToken
+    // No-backup storage first; the prefs (which Auto Backup copies) only if that fails.
+    json.put("presenceToken", if (token != null && !saveHmacToken(config.externalUserId, token)) token else JSONObject.NULL)
     prefs.edit().putString("config", json.toString()).putBoolean("armed", true).apply()
   }
 
-  /** The token arrives after the fence may already be armed. Leaves `armed`
-   *  alone, and a config for another user is not this token's to change. */
-  fun updatePresenceToken(externalUserId: String, token: String) {
-    val raw = prefs.getString("config", null) ?: return
+  /** The token arrives after the fence may already be armed, and Dart keeps
+   *  it here for the foreground reporter too, so it is saved whether or not a
+   *  config is armed. Leaves `armed` alone; a config for another user keeps
+   *  its own. Answers whether no-backup storage took it (Dart then keeps no copy). */
+  fun updatePresenceToken(externalUserId: String, token: String): Boolean = synchronized(LOCK) {
+    val saved = saveHmacToken(externalUserId, token)
+    val raw = prefs.getString("config", null) ?: return@synchronized saved
     try {
       val json = JSONObject(raw)
-      if (json.getString("externalUserId") != externalUserId) return
-      prefs.edit().putString("config", json.put("presenceToken", token).toString()).apply()
+      if (json.getString("externalUserId") == externalUserId) {
+        json.put("presenceToken", if (saved) JSONObject.NULL else token)
+        prefs.edit().putString("config", json.toString()).apply()
+      }
     } catch (_: Exception) {
       // An unreadable config has nothing to update.
     }
+    saved
   }
 
-  fun loadConfig(): Config? {
-    val raw = prefs.getString("config", null) ?: return null
-    return try {
+  /** This user's token for the Dart reporter, and whether storage held it back. */
+  fun presenceToken(externalUserId: String): Pair<String?, Boolean> = synchronized(LOCK) {
+    when (val stored = readHmacToken()) {
+      is PresenceHmacToken.Stored.Locked -> Pair(null, true)
+      is PresenceHmacToken.Stored.Kept -> Pair(stored.token.takeIf { stored.externalUserId == externalUserId }, false)
+      else -> Pair(null, false)
+    }
+  }
+
+  /** A new pin, a cleared pin or a stand-down for this user drops the token. */
+  fun forgetPresenceToken(externalUserId: String) = synchronized(LOCK) {
+    val stored = readHmacToken()
+    if (stored is PresenceHmacToken.Stored.Kept && stored.externalUserId == externalUserId) deleteHmacToken()
+  }
+
+  fun loadConfig(): Config? = synchronized(LOCK) {
+    val raw = prefs.getString("config", null) ?: return@synchronized null
+    try {
       val json = JSONObject(raw)
+      val user = json.getString("externalUserId")
+      val legacy = if (json.isNull("presenceToken")) null else json.optString("presenceToken").takeIf { it.isNotEmpty() }
+      val stored = readHmacToken()
+      var token: String? = null
+      var held = false
+      when (val step = PresenceHmacToken.step(legacy, stored, user)) {
+        is PresenceHmacToken.Step.Use -> {
+          token = step.token
+          // The no-backup file already holds it: the backed-up copy goes.
+          if (legacy != null && PresenceHmacToken.has(stored, user)) {
+            prefs.edit().putString("config", json.put("presenceToken", JSONObject.NULL).toString()).apply()
+          }
+        }
+        is PresenceHmacToken.Step.MoveFromDefaults -> {
+          token = step.token
+          // Written, read back, and only then deleted from the prefs.
+          if (saveHmacToken(user, step.token) && readHmacToken() == PresenceHmacToken.Stored.Kept(user, step.token)) {
+            prefs.edit().putString("config", json.put("presenceToken", JSONObject.NULL).toString()).apply()
+          }
+        }
+        is PresenceHmacToken.Step.Held -> held = true
+      }
       Config(
         lat = json.getDouble("lat"),
         lng = json.getDouble("lng"),
         radius = json.optDouble("radius", 250.0),
         baseUrl = json.getString("baseUrl"),
         apiKey = json.getString("apiKey"),
-        externalUserId = json.getString("externalUserId"),
+        externalUserId = user,
         playIntegrityProject = json.optString("playIntegrityProject").takeIf { it.isNotEmpty() && it != "null" },
         emulator = json.optBoolean("emulator", false),
-        presenceToken = if (json.isNull("presenceToken")) null else json.getString("presenceToken"),
+        presenceToken = token,
+        presenceTokenHeld = held,
       )
     } catch (_: Exception) {
       null
     }
   }
 
-  fun clear() {
+  // ── The HMAC presenceToken: a file in noBackupFilesDir (design rev 4, R65) ──
+
+  private val hmacFile: File get() = File(appContext.noBackupFilesDir, "toden_presence_token.json")
+  private val hmacTmp: File get() = File(appContext.noBackupFilesDir, "toden_presence_token.json.tmp")
+
+  private fun saveHmacToken(externalUserId: String, token: String): Boolean = try {
+    hmacTmp.writeText(JSONObject().put("externalUserId", externalUserId).put("token", token).toString())
+    hmacTmp.renameTo(hmacFile)
+  } catch (_: Exception) {
+    false
+  }
+
+  /** Unreadable (credential storage before the first unlock) is `Locked`. */
+  private fun readHmacToken(): PresenceHmacToken.Stored = try {
+    if (!hmacFile.isFile) {
+      PresenceHmacToken.Stored.Missing
+    } else {
+      val json = JSONObject(hmacFile.readText())
+      PresenceHmacToken.Stored.Kept(json.getString("externalUserId"), json.getString("token"))
+    }
+  } catch (_: Exception) {
+    PresenceHmacToken.Stored.Locked
+  }
+
+  private fun deleteHmacToken() {
+    try {
+      hmacFile.delete()
+      hmacTmp.delete()
+    } catch (_: Exception) {
+      // Nothing to delete.
+    }
+  }
+
+  fun clear() = synchronized(LOCK) {
     prefs.edit().clear().apply()
+    deleteUserToken()
+    deleteHmacToken()
+  }
+
+  // ── User token: a file in noBackupFilesDir, never these prefs ─────────────
+  // The prefs are backed up with the app; noBackupFilesDir never is, and the
+  // file is private to the app. The flag below is not a secret.
+
+  private val userTokenFile: File get() = File(appContext.noBackupFilesDir, "toden_presence_user_token.json")
+
+  var userTokensInUse: Boolean
+    get() = prefs.getBoolean("userTokens", false)
+    set(value) {
+      prefs.edit().putBoolean("userTokens", value).apply()
+    }
+
+  private val userTokenTmp: File get() = File(appContext.noBackupFilesDir, "toden_presence_user_token.json.tmp")
+
+  fun saveUserToken(record: PresenceUserToken.Record): Boolean = synchronized(LOCK) {
+    try {
+      userTokenTmp.writeText(PresenceUserToken.encode(record))
+      userTokenTmp.renameTo(userTokenFile)
+    } catch (_: Exception) {
+      false
+    }
+  }
+
+  /** An unreadable file is `Locked`: the flush keeps its queue. */
+  fun readUserToken(): PresenceUserToken.Read = synchronized(LOCK) {
+    try {
+      val file = userTokenFile
+      if (!file.isFile) {
+        PresenceUserToken.Read.Missing
+      } else {
+        PresenceUserToken.decode(file.readText())?.let { PresenceUserToken.Read.Stored(it) }
+          ?: PresenceUserToken.Read.Missing
+      }
+    } catch (_: Exception) {
+      PresenceUserToken.Read.Locked
+    }
+  }
+
+  /** The server refused [sentToken]: only that token goes stale. */
+  fun markUserTokenStale(sentToken: String) = synchronized(LOCK) {
+    PresenceUserToken.staleAfterRefusal(readUserToken(), sentToken)?.let { saveUserToken(it) }
+    Unit
+  }
+
+  fun deleteUserToken() = synchronized(LOCK) {
+    try {
+      userTokenFile.delete()
+      userTokenTmp.delete()
+    } catch (_: Exception) {
+      // Nothing to delete.
+    }
+    Unit
+  }
+
+  /** Logout or stand-down for this user: no token, no flag. */
+  fun clearUserToken(externalUserId: String) = synchronized(LOCK) {
+    val stored = readUserToken() as? PresenceUserToken.Read.Stored
+    if (stored != null && stored.record.externalUserId != externalUserId) return@synchronized
+    userTokensInUse = false
+    deleteUserToken()
+  }
+
+  // ── Presence device: a file in noBackupFilesDir, never these prefs ────────
+  // The key's alias, its public half and the registration id. A restored
+  // backup must never carry them to another phone, whose Keystore has no key.
+
+  private val deviceFile: File get() = File(appContext.noBackupFilesDir, "toden_presence_device.json")
+  private val deviceTmp: File get() = File(appContext.noBackupFilesDir, "toden_presence_device.json.tmp")
+
+  fun readDevice(): PresenceDeviceRecord? = synchronized(LOCK) {
+    try {
+      if (deviceFile.isFile) PresenceDeviceRecords.decode(deviceFile.readText()) else null
+    } catch (_: Exception) {
+      null
+    }
+  }
+
+  fun saveDevice(record: PresenceDeviceRecord): Boolean = synchronized(LOCK) {
+    try {
+      deviceTmp.writeText(PresenceDeviceRecords.encode(record))
+      deviceTmp.renameTo(deviceFile)
+    } catch (_: Exception) {
+      false
+    }
+  }
+
+  /** Read, change and write under the lock, so a refresh and a registration never interleave. */
+  fun updateDevice(change: (PresenceDeviceRecord) -> PresenceDeviceRecord?) = synchronized(LOCK) {
+    val current = readDevice() ?: return@synchronized
+    val next = change(current)
+    if (next == null) deleteDevice() else saveDevice(next)
+  }
+
+  fun deleteDevice() = synchronized(LOCK) {
+    try {
+      deviceFile.delete()
+      deviceTmp.delete()
+    } catch (_: Exception) {
+      // Nothing to delete.
+    }
+    Unit
+  }
+
+  /** Logout: the key, its registration and its marks, for this user only. */
+  fun forgetDevice(externalUserId: String) = synchronized(LOCK) {
+    val record = readDevice() ?: return@synchronized
+    if (record.externalUserId != externalUserId) return@synchronized
+    record.alias?.let { PresenceDeviceKey.delete(it) }
+    deleteDevice()
+  }
+
+  /**
+   * The watch's deadline day (yyyy-MM-dd, UTC) while it is in progress past
+   * it, held for late sealed reports; null otherwise. Set by Dart from the
+   * watch status. Not a secret.
+   */
+  var heldDeadlineDay: String?
+    get() = prefs.getString("heldDeadlineDay", null)
+    set(value) {
+      prefs.edit().apply { if (value == null) remove("heldDeadlineDay") else putString("heldDeadlineDay", value) }.apply()
+    }
+
+  /** When an entry's aggregate last changed, on the clock the seals use. */
+  private fun observedNow(): Long = System.currentTimeMillis() + (readDevice()?.clockOffset ?: 0L)
+
+  /** Removes posted entries; days queued while the requests were out stay. */
+  fun removeFromQueue(posted: List<JSONObject>) = synchronized(LOCK) {
+    if (posted.isEmpty()) return@synchronized
+    val gone = posted.map { it.toString() }.toSet()
+    val current = pendingQueue()
+    val next = JSONArray()
+    for (i in 0 until current.length()) {
+      val o = current.getJSONObject(i)
+      if (o.toString() !in gone) next.put(o)
+    }
+    prefs.edit().putString("queue", next.toString()).apply()
   }
 
   /** The foreground-service tier's durable intent: the boot receiver restarts
@@ -157,7 +391,8 @@ class PresenceStore(context: Context) {
 
   /** Merge fresh day aggregates into the queue: same day → sum dwell, OR
    *  night, sum samples. The RN tier's mergeIntoQueue, verbatim. */
-  fun queueDays(days: List<PresenceFold.DayAggregate>) {
+  fun queueDays(days: List<PresenceFold.DayAggregate>) = synchronized(LOCK) {
+    val observed = observedNow()
     val byDay = LinkedHashMap<String, JSONObject>()
     val existing = JSONArray(prefs.getString("queue", "[]") ?: "[]")
     for (i in 0 until existing.length()) {
@@ -172,10 +407,13 @@ class PresenceStore(context: Context) {
           .put("dwellMinutes", d.dwellMinutes)
           .put("nightPresent", d.nightPresent)
           .put("samples", 1)
+          .put("observedAtMillis", observed)
       } else {
         prior.put("dwellMinutes", prior.getInt("dwellMinutes") + d.dwellMinutes)
         prior.put("nightPresent", prior.getBoolean("nightPresent") || d.nightPresent)
         prior.put("samples", prior.getInt("samples") + 1)
+        // A changed day is sealed again, as of now.
+        prior.put("observedAtMillis", observed)
       }
     }
     val next = JSONArray()
@@ -186,7 +424,8 @@ class PresenceStore(context: Context) {
   /** A mocked fix's day: merged into the queue with no dwell and the
    *  mock-location flag set — evidence OF fraud is worth more to the watch
    *  than silence. The flag survives a later merge (the RN tier's rule). */
-  fun queueFlagged(day: String, nightPresent: Boolean) {
+  fun queueFlagged(day: String, nightPresent: Boolean) = synchronized(LOCK) {
+    val observed = observedNow()
     val byDay = LinkedHashMap<String, JSONObject>()
     val existing = pendingQueue()
     for (i in 0 until existing.length()) {
@@ -202,10 +441,12 @@ class PresenceStore(context: Context) {
         .put("nightPresent", nightPresent)
         .put("samples", 1)
         .put("integrity", integrity)
+        .put("observedAtMillis", observed)
     } else {
       prior.put("nightPresent", prior.getBoolean("nightPresent") || nightPresent)
       prior.put("samples", prior.getInt("samples") + 1)
       prior.put("integrity", integrity)
+      prior.put("observedAtMillis", observed)
     }
     val next = JSONArray()
     byDay.values.forEach { next.put(it) }
@@ -218,7 +459,7 @@ class PresenceStore(context: Context) {
     JSONArray()
   }
 
-  fun clearQueue() {
+  fun clearQueue() = synchronized(LOCK) {
     prefs.edit().putString("queue", "[]").apply()
   }
 }

@@ -46,14 +46,14 @@ void main() {
       await savePresencePin('user_keep', 6.4281, 3.4219);
       await savePresenceToken('user_keep', 'tok_1');
       expect((await loadPresencePin('user_keep'))?.presenceToken, 'tok_1');
-      expect(nativeCalls.single.method, 'setPresenceToken');
-      expect(nativeCalls.single.arguments, {'externalUserId': 'user_keep', 'presenceToken': 'tok_1'});
+      final sets = nativeCalls.where((c) => c.method == 'setPresenceToken');
+      expect(sets.first.arguments, {'externalUserId': 'user_keep', 'presenceToken': 'tok_1'});
     });
 
     test('does nothing without a pin', () async {
       await savePresenceToken('user_none', 'tok_1');
       expect(await loadPresencePin('user_none'), isNull);
-      expect(nativeCalls, isEmpty);
+      expect(nativeCalls.where((c) => c.method == 'setPresenceToken'), isEmpty);
     });
 
     test('a new capture drops the old token', () async {
@@ -69,7 +69,7 @@ void main() {
       await savePresenceToken('user_bad', '  ');
       await savePresenceToken('user_bad', 'x' * 129);
       expect((await loadPresencePin('user_bad'))?.presenceToken, isNull);
-      expect(nativeCalls, isEmpty);
+      expect(nativeCalls.where((c) => c.method == 'setPresenceToken'), isEmpty);
     });
   });
 

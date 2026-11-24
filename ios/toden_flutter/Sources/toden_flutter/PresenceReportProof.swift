@@ -14,38 +14,17 @@ enum PresenceReportProof {
 
   /// One queued day as the server receives it.
   static func wire(_ entry: [String: Any]) -> [String: Any] {
-    var out: [String: Any] = [
-      "day": entry["day"] as? String ?? "",
-      "source": "geofence",
-      "dwellMinutes": entry["dwellMinutes"] as? Int ?? 1,
-      "nightPresent": entry["nightPresent"] as? Bool ?? false,
-      "samples": entry["samples"] as? Int ?? 1,
-    ]
-    var integrity: [String: Any] = [:]
-    if entry["mockLocation"] as? Bool == true { integrity["mockLocation"] = true }
     #if targetEnvironment(simulator)
-      integrity["emulator"] = true
+      return PresenceWire.observation(entry, emulator: true)
+    #else
+      return PresenceWire.observation(entry, emulator: false)
     #endif
-    if !integrity.isEmpty { out["integrity"] = integrity }
-    return out
   }
 
   static func digestText(
     externalUserId: String, stableId: String?, deviceId: String?, observations: [[String: Any]]
   ) -> String {
-    let flag: (Bool) -> Int = { $0 ? 1 : 0 }
-    let rows = observations.map { o -> String in
-      let integrity = o["integrity"] as? [String: Any]
-      return [
-        o["day"] as? String ?? "",
-        o["source"] as? String ?? "",
-        String(o["dwellMinutes"] as? Int ?? 0),
-        String(flag(o["nightPresent"] as? Bool ?? false)),
-        String(o["samples"] as? Int ?? 1),
-        String(flag(integrity?["mockLocation"] as? Bool ?? false)),
-        String(flag(integrity?["emulator"] as? Bool ?? false)),
-      ].joined(separator: "|")
-    }
+    let rows = observations.map(PresenceWire.digestRow)
     return (["toden-presence-report-v1", externalUserId, stableId ?? "", deviceId ?? ""] + rows)
       .joined(separator: "\n")
   }

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../utils/resolve_url.dart';
+import 'user_token.dart';
 
 // ─── Waiting for the watch ───────────────────────────────────────────────────
 //
@@ -54,15 +55,32 @@ bool shouldStandDown(WatchState? state, {required bool fresh}) =>
 Future<String?> fetchWatchStatus(
   String apiKey,
   String? devUrl,
-  String externalUserId,
-) async =>
-    (await fetchWatchState(apiKey, devUrl, externalUserId))?.status;
+  String externalUserId, {
+  TodenUserTokenProvider? getUserToken,
+}) async =>
+    (await fetchWatchState(apiKey, devUrl, externalUserId, getUserToken: getUserToken))?.status;
 
 Future<WatchState?> fetchWatchState(
   String apiKey,
   String? devUrl,
-  String externalUserId,
-) async {
+  String externalUserId, {
+  TodenUserTokenProvider? getUserToken,
+}) async =>
+    (await readWatch(apiKey, devUrl, externalUserId, getUserToken: getUserToken)).state;
+
+/// The status read, and why it failed when a user token is the reason.
+class WatchRead {
+  final WatchState? state;
+  final UserTokenErrorCode? refusal;
+  const WatchRead(this.state, this.refusal);
+}
+
+Future<WatchRead> readWatch(
+  String apiKey,
+  String? devUrl,
+  String externalUserId, {
+  TodenUserTokenProvider? getUserToken,
+}) async {
   try {
     final dio = Dio(BaseOptions(
       baseUrl: resolveBaseUrl(apiKey, devUrl: devUrl),
@@ -70,15 +88,24 @@ Future<WatchState?> fetchWatchState(
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
     ));
-    final res = await dio.get<Map<String, dynamic>>(
-      '/api/v1/address/presence/${Uri.encodeComponent(externalUserId)}',
+    final sent = await sendWithUserToken<Map<String, dynamic>>(
+      apiKey: apiKey,
+      externalUserId: externalUserId,
+      purpose: UserTokenPurpose.presence,
+      getUserToken: getUserToken,
+      send: (headers) => dio.get<Map<String, dynamic>>(
+        '/api/v1/address/presence/${Uri.encodeComponent(externalUserId)}',
+        options: headers.isEmpty ? null : Options(headers: headers),
+      ),
     );
-    final status = res.data?['status'];
-    if (status is! String) return null;
+    if (!sent.ok) return WatchRead(null, sent.refusal);
+    final data = sent.response?.data;
+    final status = data?['status'];
+    if (status is! String) return const WatchRead(null, null);
     // An older server sends no flag: a revoked check is the one stop it reports.
-    return WatchState(status, stopped: res.data?['stopped'] == true || status == 'revoked');
+    return WatchRead(WatchState(status, stopped: data?['stopped'] == true || status == 'revoked'), null);
   } catch (_) {
-    return null;
+    return const WatchRead(null, null);
   }
 }
 
@@ -94,6 +121,8 @@ typedef WatchStatusReader = Future<String?> Function();
 Future<WatchPresence> awaitWatch({
   required bool fresh,
   required WatchStatusReader fetchStatus,
+  /// True ends the wait now (a user-token refusal: waiting will not fix it).
+  bool Function()? stop,
   Future<void> Function(Duration)? sleep,
   DateTime Function()? now,
   Duration waitFor = kWatchWait,
@@ -105,6 +134,7 @@ Future<WatchPresence> awaitWatch({
   while (true) {
     final status = await fetchStatus();
     if (status == 'in_progress') return WatchPresence.live;
+    if (stop?.call() == true) return WatchPresence.unknown;
     if (!fresh) return status == null ? WatchPresence.unknown : WatchPresence.absent;
     if (!clock().isBefore(deadline)) {
       return status == null ? WatchPresence.unknown : WatchPresence.absent;

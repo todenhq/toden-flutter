@@ -11,8 +11,8 @@ export '../config/poa_country_gate.dart' show poaOfferedCountries;
 
 // ─── The Proof of Address step's country control ─────────────────────────────
 //
-// On every scope (the Didit PoA model: the applicant names where the document
-// is from, then uploads it). The step owns the value and what a pick does
+// On every scope, the applicant names where the document is from, then
+// uploads it. The step owns the value and what a pick does
 // (config/poa_country_gate.dart): on the address scope the pick is the flow's
 // declared country, which also drives the search filter, the map's opening
 // view and the submission's country; elsewhere it is the proof of address's

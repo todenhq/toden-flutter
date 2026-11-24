@@ -1,0 +1,1208 @@
+{
+  "comment": "Canonical user-token cases (design rev 3, section 14). Replayed by the RN SDK (userTokenVectors.test.ts), Dart (user_token_vectors_test.dart), iOS (PresenceUserTokenTests.swift) and Android (PresenceUserTokenTest.kt). Change a rule in one language, the vectors and the other three in the same commit.",
+  "header": "X-Toden-User-Token",
+  "chunkDays": 31,
+  "nowMillis": 1795000000000,
+  "identity": [
+    {
+      "name": "a matching presence token",
+      "actingFor": "cus_123",
+      "purpose": "presence",
+      "apiKey": "pk_test_abc",
+      "body": {
+        "object": "user_token",
+        "id": "utk_1",
+        "token": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "purpose": "presence",
+        "externalUserId": "cus_123",
+        "expiresAt": "2026-11-19T11:06:40.000Z",
+        "maxUses": null
+      },
+      "expected": "ok"
+    },
+    {
+      "name": "a token for another user",
+      "actingFor": "cus_123",
+      "purpose": "presence",
+      "apiKey": "pk_test_abc",
+      "body": {
+        "token": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "purpose": "presence",
+        "externalUserId": "cus_999",
+        "expiresAt": "2026-11-19T11:06:40.000Z"
+      },
+      "expected": "user_token_mismatch"
+    },
+    {
+      "name": "a padded user is another user",
+      "actingFor": "cus_123",
+      "purpose": "presence",
+      "apiKey": "pk_test_abc",
+      "body": {
+        "token": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "purpose": "presence",
+        "externalUserId": "cus_123 ",
+        "expiresAt": "2026-11-19T11:06:40.000Z"
+      },
+      "expected": "user_token_mismatch"
+    },
+    {
+      "name": "a biometric token for a presence call",
+      "actingFor": "cus_123",
+      "purpose": "presence",
+      "apiKey": "pk_test_abc",
+      "body": {
+        "token": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "purpose": "biometric",
+        "externalUserId": "cus_123",
+        "expiresAt": "2026-11-18T11:16:40.000Z"
+      },
+      "expected": "user_token_mismatch"
+    },
+    {
+      "name": "a live token with a test key",
+      "actingFor": "cus_123",
+      "purpose": "presence",
+      "apiKey": "pk_test_abc",
+      "body": {
+        "token": "ut_live_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "purpose": "presence",
+        "externalUserId": "cus_123",
+        "expiresAt": "2026-11-19T11:06:40.000Z"
+      },
+      "expected": "user_token_mismatch"
+    },
+    {
+      "name": "a malformed token",
+      "actingFor": "cus_123",
+      "purpose": "presence",
+      "apiKey": "pk_test_abc",
+      "body": {
+        "token": "ut_test_short",
+        "purpose": "presence",
+        "externalUserId": "cus_123",
+        "expiresAt": "2026-11-19T11:06:40.000Z"
+      },
+      "expected": "user_token_mismatch"
+    },
+    {
+      "name": "an expired token",
+      "actingFor": "cus_123",
+      "purpose": "presence",
+      "apiKey": "pk_test_abc",
+      "body": {
+        "token": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "purpose": "presence",
+        "externalUserId": "cus_123",
+        "expiresAt": "2026-11-18T11:06:39.000Z"
+      },
+      "expected": "user_token_mismatch"
+    },
+    {
+      "name": "no expiry",
+      "actingFor": "cus_123",
+      "purpose": "presence",
+      "apiKey": "pk_test_abc",
+      "body": {
+        "token": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "purpose": "presence",
+        "externalUserId": "cus_123"
+      },
+      "expected": "user_token_mismatch"
+    },
+    {
+      "name": "a development token with a development key",
+      "actingFor": "cus_123",
+      "purpose": "presence",
+      "apiKey": "pk_dev_abc",
+      "body": {
+        "token": "ut_dev_b-_9b-_9b-_9b-_9b-_9b-_9b-_9b-_9b-_9b-_9xyz",
+        "purpose": "presence",
+        "externalUserId": "cus_123",
+        "expiresAt": "2026-11-18T12:06:40.000Z"
+      },
+      "expected": "ok"
+    }
+  ],
+  "refusals": [
+    {
+      "name": "v1 envelope, invalid",
+      "status": 403,
+      "body": {
+        "error": {
+          "type": "PERMISSION_ERROR",
+          "code": "user_token_invalid",
+          "message": "This user token is not valid for this request. Get a new one from your server and try again.",
+          "request_id": null
+        }
+      },
+      "code": "user_token_invalid"
+    },
+    {
+      "name": "v1 envelope, required",
+      "status": 403,
+      "body": {
+        "error": {
+          "type": "PERMISSION_ERROR",
+          "code": "user_token_required",
+          "message": "This request needs a user token from your server. Send it in the X-Toden-User-Token header."
+        }
+      },
+      "code": "user_token_required"
+    },
+    {
+      "name": "compact body, invalid",
+      "status": 403,
+      "body": {
+        "error": "user_token_invalid",
+        "message": "x"
+      },
+      "code": "user_token_invalid"
+    },
+    {
+      "name": "workflow-limited key",
+      "status": 403,
+      "body": {
+        "error": {
+          "type": "PERMISSION_ERROR",
+          "code": "scope_not_declared"
+        }
+      },
+      "code": "scope_not_declared"
+    },
+    {
+      "name": "the code decides, not the status",
+      "status": 400,
+      "body": {
+        "error": {
+          "code": "user_token_invalid"
+        }
+      },
+      "code": "user_token_invalid"
+    },
+    {
+      "name": "an invalid API key is not a user-token refusal",
+      "status": 401,
+      "body": {
+        "error": {
+          "type": "AUTHENTICATION_ERROR",
+          "code": "invalid_api_key"
+        }
+      },
+      "code": null
+    },
+    {
+      "name": "another 403",
+      "status": 403,
+      "body": {
+        "error": {
+          "code": "insufficient_scope"
+        }
+      },
+      "code": null
+    },
+    {
+      "name": "too many face checks",
+      "status": 429,
+      "body": {
+        "error": {
+          "code": "too_many_attempts"
+        }
+      },
+      "code": null
+    },
+    {
+      "name": "no body",
+      "status": 403,
+      "body": null,
+      "code": null
+    }
+  ],
+  "foreground": [
+    {
+      "name": "a valid token goes through",
+      "provider": true,
+      "responses": [
+        {
+          "status": 200
+        }
+      ],
+      "requests": 1,
+      "providerCalls": 1,
+      "headers": [
+        "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      ],
+      "outcome": "ok"
+    },
+    {
+      "name": "invalid: one new token, one retry",
+      "provider": true,
+      "responses": [
+        {
+          "status": 403,
+          "code": "user_token_invalid"
+        },
+        {
+          "status": 200
+        }
+      ],
+      "requests": 2,
+      "providerCalls": 2,
+      "headers": [
+        "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "ut_test_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+      ],
+      "outcome": "ok"
+    },
+    {
+      "name": "invalid twice: no third try",
+      "provider": true,
+      "responses": [
+        {
+          "status": 403,
+          "code": "user_token_invalid"
+        },
+        {
+          "status": 403,
+          "code": "user_token_invalid"
+        }
+      ],
+      "requests": 2,
+      "providerCalls": 2,
+      "headers": [
+        "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "ut_test_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+      ],
+      "outcome": "user_token_invalid"
+    },
+    {
+      "name": "required with a provider: never retried",
+      "provider": true,
+      "responses": [
+        {
+          "status": 403,
+          "code": "user_token_required"
+        }
+      ],
+      "requests": 1,
+      "providerCalls": 1,
+      "headers": [
+        "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      ],
+      "outcome": "user_token_required"
+    },
+    {
+      "name": "required with no provider: no retry, no header",
+      "provider": false,
+      "responses": [
+        {
+          "status": 403,
+          "code": "user_token_required"
+        }
+      ],
+      "requests": 1,
+      "providerCalls": 0,
+      "headers": [
+        null
+      ],
+      "outcome": "user_token_required"
+    },
+    {
+      "name": "workflow-limited key: never retried",
+      "provider": true,
+      "responses": [
+        {
+          "status": 403,
+          "code": "scope_not_declared"
+        }
+      ],
+      "requests": 1,
+      "providerCalls": 1,
+      "headers": [
+        "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      ],
+      "outcome": "scope_not_declared"
+    },
+    {
+      "name": "invalid API key: not retried, not a user-token refusal",
+      "provider": true,
+      "responses": [
+        {
+          "status": 401,
+          "code": "invalid_api_key"
+        }
+      ],
+      "requests": 1,
+      "providerCalls": 1,
+      "headers": [
+        "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      ],
+      "outcome": "error"
+    },
+    {
+      "name": "server error: not retried",
+      "provider": true,
+      "responses": [
+        {
+          "status": 500
+        }
+      ],
+      "requests": 1,
+      "providerCalls": 1,
+      "headers": [
+        "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      ],
+      "outcome": "error"
+    },
+    {
+      "name": "too many attempts: not retried",
+      "provider": true,
+      "responses": [
+        {
+          "status": 429,
+          "code": "too_many_attempts"
+        }
+      ],
+      "requests": 1,
+      "providerCalls": 1,
+      "headers": [
+        "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      ],
+      "outcome": "error"
+    }
+  ],
+  "background": [
+    {
+      "name": "forty days post in two chunks, oldest first",
+      "queue": [
+        "2026-10-23",
+        "2026-10-06",
+        "2026-11-06",
+        "2026-10-29",
+        "2026-10-12",
+        "2026-10-18",
+        "2026-10-01",
+        "2026-11-01",
+        "2026-10-24",
+        "2026-10-07",
+        "2026-11-07",
+        "2026-10-30",
+        "2026-10-13",
+        "2026-10-19",
+        "2026-10-02",
+        "2026-11-02",
+        "2026-10-25",
+        "2026-10-08",
+        "2026-11-08",
+        "2026-10-31",
+        "2026-10-14",
+        "2026-10-20",
+        "2026-10-03",
+        "2026-11-03",
+        "2026-10-26",
+        "2026-10-09",
+        "2026-11-09",
+        "2026-10-15",
+        "2026-10-21",
+        "2026-10-04",
+        "2026-11-04",
+        "2026-10-27",
+        "2026-10-10",
+        "2026-10-16",
+        "2026-10-22",
+        "2026-10-05",
+        "2026-11-05",
+        "2026-10-28",
+        "2026-10-11",
+        "2026-10-17"
+      ],
+      "token": {
+        "externalUserId": "cus_123",
+        "token": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "expiresAtMillis": 1795072000000,
+        "stale": false
+      },
+      "responses": [
+        200,
+        200
+      ],
+      "posts": [
+        [
+          "2026-10-01",
+          "2026-10-02",
+          "2026-10-03",
+          "2026-10-04",
+          "2026-10-05",
+          "2026-10-06",
+          "2026-10-07",
+          "2026-10-08",
+          "2026-10-09",
+          "2026-10-10",
+          "2026-10-11",
+          "2026-10-12",
+          "2026-10-13",
+          "2026-10-14",
+          "2026-10-15",
+          "2026-10-16",
+          "2026-10-17",
+          "2026-10-18",
+          "2026-10-19",
+          "2026-10-20",
+          "2026-10-21",
+          "2026-10-22",
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25",
+          "2026-10-26",
+          "2026-10-27",
+          "2026-10-28",
+          "2026-10-29",
+          "2026-10-30",
+          "2026-10-31"
+        ],
+        [
+          "2026-11-01",
+          "2026-11-02",
+          "2026-11-03",
+          "2026-11-04",
+          "2026-11-05",
+          "2026-11-06",
+          "2026-11-07",
+          "2026-11-08",
+          "2026-11-09"
+        ]
+      ],
+      "header": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "remaining": [],
+      "stale": false
+    },
+    {
+      "name": "a 400 drops only its chunk",
+      "queue": [
+        "2026-10-23",
+        "2026-10-06",
+        "2026-11-06",
+        "2026-10-29",
+        "2026-10-12",
+        "2026-10-18",
+        "2026-10-01",
+        "2026-11-01",
+        "2026-10-24",
+        "2026-10-07",
+        "2026-11-07",
+        "2026-10-30",
+        "2026-10-13",
+        "2026-10-19",
+        "2026-10-02",
+        "2026-11-02",
+        "2026-10-25",
+        "2026-10-08",
+        "2026-11-08",
+        "2026-10-31",
+        "2026-10-14",
+        "2026-10-20",
+        "2026-10-03",
+        "2026-11-03",
+        "2026-10-26",
+        "2026-10-09",
+        "2026-11-09",
+        "2026-10-15",
+        "2026-10-21",
+        "2026-10-04",
+        "2026-11-04",
+        "2026-10-27",
+        "2026-10-10",
+        "2026-10-16",
+        "2026-10-22",
+        "2026-10-05",
+        "2026-11-05",
+        "2026-10-28",
+        "2026-10-11",
+        "2026-10-17"
+      ],
+      "token": {
+        "externalUserId": "cus_123",
+        "token": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "expiresAtMillis": 1795072000000,
+        "stale": false
+      },
+      "responses": [
+        400,
+        200
+      ],
+      "posts": [
+        [
+          "2026-10-01",
+          "2026-10-02",
+          "2026-10-03",
+          "2026-10-04",
+          "2026-10-05",
+          "2026-10-06",
+          "2026-10-07",
+          "2026-10-08",
+          "2026-10-09",
+          "2026-10-10",
+          "2026-10-11",
+          "2026-10-12",
+          "2026-10-13",
+          "2026-10-14",
+          "2026-10-15",
+          "2026-10-16",
+          "2026-10-17",
+          "2026-10-18",
+          "2026-10-19",
+          "2026-10-20",
+          "2026-10-21",
+          "2026-10-22",
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25",
+          "2026-10-26",
+          "2026-10-27",
+          "2026-10-28",
+          "2026-10-29",
+          "2026-10-30",
+          "2026-10-31"
+        ],
+        [
+          "2026-11-01",
+          "2026-11-02",
+          "2026-11-03",
+          "2026-11-04",
+          "2026-11-05",
+          "2026-11-06",
+          "2026-11-07",
+          "2026-11-08",
+          "2026-11-09"
+        ]
+      ],
+      "header": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "remaining": [],
+      "stale": false
+    },
+    {
+      "name": "a refusal keeps the whole queue and marks the token stale",
+      "queue": [
+        "2026-10-23",
+        "2026-10-06",
+        "2026-11-06",
+        "2026-10-29",
+        "2026-10-12",
+        "2026-10-18",
+        "2026-10-01",
+        "2026-11-01",
+        "2026-10-24",
+        "2026-10-07",
+        "2026-11-07",
+        "2026-10-30",
+        "2026-10-13",
+        "2026-10-19",
+        "2026-10-02",
+        "2026-11-02",
+        "2026-10-25",
+        "2026-10-08",
+        "2026-11-08",
+        "2026-10-31",
+        "2026-10-14",
+        "2026-10-20",
+        "2026-10-03",
+        "2026-11-03",
+        "2026-10-26",
+        "2026-10-09",
+        "2026-11-09",
+        "2026-10-15",
+        "2026-10-21",
+        "2026-10-04",
+        "2026-11-04",
+        "2026-10-27",
+        "2026-10-10",
+        "2026-10-16",
+        "2026-10-22",
+        "2026-10-05",
+        "2026-11-05",
+        "2026-10-28",
+        "2026-10-11",
+        "2026-10-17"
+      ],
+      "token": {
+        "externalUserId": "cus_123",
+        "token": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "expiresAtMillis": 1795072000000,
+        "stale": false
+      },
+      "responses": [
+        403
+      ],
+      "posts": [
+        [
+          "2026-10-01",
+          "2026-10-02",
+          "2026-10-03",
+          "2026-10-04",
+          "2026-10-05",
+          "2026-10-06",
+          "2026-10-07",
+          "2026-10-08",
+          "2026-10-09",
+          "2026-10-10",
+          "2026-10-11",
+          "2026-10-12",
+          "2026-10-13",
+          "2026-10-14",
+          "2026-10-15",
+          "2026-10-16",
+          "2026-10-17",
+          "2026-10-18",
+          "2026-10-19",
+          "2026-10-20",
+          "2026-10-21",
+          "2026-10-22",
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25",
+          "2026-10-26",
+          "2026-10-27",
+          "2026-10-28",
+          "2026-10-29",
+          "2026-10-30",
+          "2026-10-31"
+        ]
+      ],
+      "header": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "remaining": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10",
+        "2026-10-11",
+        "2026-10-12",
+        "2026-10-13",
+        "2026-10-14",
+        "2026-10-15",
+        "2026-10-16",
+        "2026-10-17",
+        "2026-10-18",
+        "2026-10-19",
+        "2026-10-20",
+        "2026-10-21",
+        "2026-10-22",
+        "2026-10-23",
+        "2026-10-24",
+        "2026-10-25",
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30",
+        "2026-10-31",
+        "2026-11-01",
+        "2026-11-02",
+        "2026-11-03",
+        "2026-11-04",
+        "2026-11-05",
+        "2026-11-06",
+        "2026-11-07",
+        "2026-11-08",
+        "2026-11-09"
+      ],
+      "stale": true
+    },
+    {
+      "name": "a refusal of the second chunk keeps it",
+      "queue": [
+        "2026-10-23",
+        "2026-10-06",
+        "2026-11-06",
+        "2026-10-29",
+        "2026-10-12",
+        "2026-10-18",
+        "2026-10-01",
+        "2026-11-01",
+        "2026-10-24",
+        "2026-10-07",
+        "2026-11-07",
+        "2026-10-30",
+        "2026-10-13",
+        "2026-10-19",
+        "2026-10-02",
+        "2026-11-02",
+        "2026-10-25",
+        "2026-10-08",
+        "2026-11-08",
+        "2026-10-31",
+        "2026-10-14",
+        "2026-10-20",
+        "2026-10-03",
+        "2026-11-03",
+        "2026-10-26",
+        "2026-10-09",
+        "2026-11-09",
+        "2026-10-15",
+        "2026-10-21",
+        "2026-10-04",
+        "2026-11-04",
+        "2026-10-27",
+        "2026-10-10",
+        "2026-10-16",
+        "2026-10-22",
+        "2026-10-05",
+        "2026-11-05",
+        "2026-10-28",
+        "2026-10-11",
+        "2026-10-17"
+      ],
+      "token": {
+        "externalUserId": "cus_123",
+        "token": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "expiresAtMillis": 1795072000000,
+        "stale": false
+      },
+      "responses": [
+        200,
+        403
+      ],
+      "posts": [
+        [
+          "2026-10-01",
+          "2026-10-02",
+          "2026-10-03",
+          "2026-10-04",
+          "2026-10-05",
+          "2026-10-06",
+          "2026-10-07",
+          "2026-10-08",
+          "2026-10-09",
+          "2026-10-10",
+          "2026-10-11",
+          "2026-10-12",
+          "2026-10-13",
+          "2026-10-14",
+          "2026-10-15",
+          "2026-10-16",
+          "2026-10-17",
+          "2026-10-18",
+          "2026-10-19",
+          "2026-10-20",
+          "2026-10-21",
+          "2026-10-22",
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25",
+          "2026-10-26",
+          "2026-10-27",
+          "2026-10-28",
+          "2026-10-29",
+          "2026-10-30",
+          "2026-10-31"
+        ],
+        [
+          "2026-11-01",
+          "2026-11-02",
+          "2026-11-03",
+          "2026-11-04",
+          "2026-11-05",
+          "2026-11-06",
+          "2026-11-07",
+          "2026-11-08",
+          "2026-11-09"
+        ]
+      ],
+      "header": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "remaining": [
+        "2026-11-01",
+        "2026-11-02",
+        "2026-11-03",
+        "2026-11-04",
+        "2026-11-05",
+        "2026-11-06",
+        "2026-11-07",
+        "2026-11-08",
+        "2026-11-09"
+      ],
+      "stale": true
+    },
+    {
+      "name": "a server error keeps the queue",
+      "queue": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10"
+      ],
+      "token": {
+        "externalUserId": "cus_123",
+        "token": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "expiresAtMillis": 1795072000000,
+        "stale": false
+      },
+      "responses": [
+        503
+      ],
+      "posts": [
+        [
+          "2026-10-01",
+          "2026-10-02",
+          "2026-10-03",
+          "2026-10-04",
+          "2026-10-05",
+          "2026-10-06",
+          "2026-10-07",
+          "2026-10-08",
+          "2026-10-09",
+          "2026-10-10"
+        ]
+      ],
+      "header": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "remaining": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10"
+      ],
+      "stale": true
+    },
+    {
+      "name": "no answer keeps the queue, token not stale",
+      "queue": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10"
+      ],
+      "token": {
+        "externalUserId": "cus_123",
+        "token": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "expiresAtMillis": 1795072000000,
+        "stale": false
+      },
+      "responses": [
+        0
+      ],
+      "posts": [
+        [
+          "2026-10-01",
+          "2026-10-02",
+          "2026-10-03",
+          "2026-10-04",
+          "2026-10-05",
+          "2026-10-06",
+          "2026-10-07",
+          "2026-10-08",
+          "2026-10-09",
+          "2026-10-10"
+        ]
+      ],
+      "header": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "remaining": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10"
+      ],
+      "stale": false
+    },
+    {
+      "name": "no user token in use: one post without the header, as before",
+      "queue": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10"
+      ],
+      "token": null,
+      "responses": [
+        200
+      ],
+      "posts": [
+        [
+          "2026-10-01",
+          "2026-10-02",
+          "2026-10-03",
+          "2026-10-04",
+          "2026-10-05",
+          "2026-10-06",
+          "2026-10-07",
+          "2026-10-08",
+          "2026-10-09",
+          "2026-10-10"
+        ]
+      ],
+      "header": null,
+      "remaining": [],
+      "stale": false
+    },
+    {
+      "name": "no user token in use, refused: queue kept",
+      "queue": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10"
+      ],
+      "token": null,
+      "responses": [
+        403
+      ],
+      "posts": [
+        [
+          "2026-10-01",
+          "2026-10-02",
+          "2026-10-03",
+          "2026-10-04",
+          "2026-10-05",
+          "2026-10-06",
+          "2026-10-07",
+          "2026-10-08",
+          "2026-10-09",
+          "2026-10-10"
+        ]
+      ],
+      "header": null,
+      "remaining": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10"
+      ],
+      "stale": false
+    },
+    {
+      "name": "an expired token: no post, queue kept",
+      "queue": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10"
+      ],
+      "token": {
+        "externalUserId": "cus_123",
+        "token": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "expiresAtMillis": 1794999999999,
+        "stale": false
+      },
+      "responses": [],
+      "posts": [],
+      "header": null,
+      "remaining": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10"
+      ],
+      "stale": false
+    },
+    {
+      "name": "a stale token: no post, queue kept",
+      "queue": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10"
+      ],
+      "token": {
+        "externalUserId": "cus_123",
+        "token": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "expiresAtMillis": 1795072000000,
+        "stale": true
+      },
+      "responses": [],
+      "posts": [],
+      "header": null,
+      "remaining": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10"
+      ],
+      "stale": true
+    },
+    {
+      "name": "a token for another user: no post, queue kept",
+      "queue": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10"
+      ],
+      "token": {
+        "externalUserId": "cus_999",
+        "token": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "expiresAtMillis": 1795072000000,
+        "stale": false
+      },
+      "responses": [],
+      "posts": [],
+      "header": null,
+      "remaining": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10"
+      ],
+      "stale": false
+    },
+    {
+      "name": "tokens in use but none stored: no post, queue kept",
+      "queue": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10"
+      ],
+      "token": "missing",
+      "responses": [],
+      "posts": [],
+      "header": null,
+      "remaining": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10"
+      ],
+      "stale": false
+    },
+    {
+      "name": "Keychain locked: no post, queue kept",
+      "queue": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10"
+      ],
+      "token": "locked",
+      "responses": [],
+      "posts": [],
+      "header": null,
+      "remaining": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10"
+      ],
+      "stale": false
+    },
+    {
+      "name": "an empty queue posts nothing",
+      "queue": [],
+      "token": {
+        "externalUserId": "cus_123",
+        "token": "ut_test_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "expiresAtMillis": 1795072000000,
+        "stale": false
+      },
+      "responses": [],
+      "posts": [],
+      "header": null,
+      "remaining": [],
+      "stale": false
+    }
+  ]
+}

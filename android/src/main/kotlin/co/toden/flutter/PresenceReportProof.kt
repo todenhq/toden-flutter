@@ -41,13 +41,16 @@ object PresenceReportProof {
   private var playIntegrity: PlayIntegrity? = null
 
   fun digestText(externalUserId: String, stableId: String?, deviceId: String?, rows: List<Row>): String {
-    val flag = { v: Boolean -> if (v) 1 else 0 }
     val lines = mutableListOf("toden-presence-report-v1", externalUserId, stableId ?: "", deviceId ?: "")
-    rows.mapTo(lines) { o ->
-      listOf(o.day, o.source, o.dwellMinutes, flag(o.nightPresent), o.samples, flag(o.mockLocation), flag(o.emulator))
-        .joinToString("|")
-    }
+    rows.mapTo(lines, ::rowText)
     return lines.joinToString("\n")
+  }
+
+  /** One observation's line of the digest; a seal signs the same line (PresenceDevice.kt). */
+  fun rowText(o: Row): String {
+    val flag = { v: Boolean -> if (v) 1 else 0 }
+    return listOf(o.day, o.source, o.dwellMinutes, flag(o.nightPresent), o.samples, flag(o.mockLocation), flag(o.emulator))
+      .joinToString("|")
   }
 
   private fun sha256(vararg parts: ByteArray): ByteArray {
@@ -84,10 +87,13 @@ object PresenceReportProof {
     }
   }
 
-  private fun rowsOf(observations: JSONArray): List<Row> = (0 until observations.length()).map { i ->
-    val o = observations.getJSONObject(i)
+  private fun rowsOf(observations: JSONArray): List<Row> =
+    (0 until observations.length()).map { i -> rowOf(observations.getJSONObject(i)) }
+
+  /** A wire observation as its digest row. */
+  fun rowOf(o: JSONObject): Row {
     val integrity = o.optJSONObject("integrity")
-    Row(
+    return Row(
       day = o.getString("day"),
       dwellMinutes = o.getInt("dwellMinutes"),
       nightPresent = o.getBoolean("nightPresent"),

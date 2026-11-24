@@ -9,6 +9,7 @@ import 'presence_stand_down.dart';
 import 'presence_report_proof.dart';
 import 'presence_store.dart';
 import 'presence_watch_wait.dart';
+import 'user_token.dart';
 
 // ─── The FOREGROUND presence reporter — the default tier ─────────────────────
 //
@@ -35,7 +36,27 @@ enum PresenceReportReason {
   /// off and the stored pin forgotten.
   stopped,
   networkError,
+
+  /// A scoped publishable key needs a user token, and none was given.
+  userTokenRequired,
+
+  /// The server refused the user token, after one new token and one retry.
+  userTokenInvalid,
+
+  /// The provider's token is for another user or purpose, or has expired:
+  /// nothing was sent.
+  userTokenMismatch,
+
+  /// The publishable key is limited to workflows and cannot use presence.
+  scopeNotDeclared,
 }
+
+PresenceReportReason _reasonOf(UserTokenErrorCode code) => switch (code) {
+      UserTokenErrorCode.userTokenRequired => PresenceReportReason.userTokenRequired,
+      UserTokenErrorCode.userTokenInvalid => PresenceReportReason.userTokenInvalid,
+      UserTokenErrorCode.userTokenMismatch => PresenceReportReason.userTokenMismatch,
+      UserTokenErrorCode.scopeNotDeclared => PresenceReportReason.scopeNotDeclared,
+    };
 
 class PresenceReportResult {
   final bool reported;
@@ -100,17 +121,23 @@ class AddressPresence {
   /// is running without it, asking for "allow all the time" once. Pass
   /// [autoBackground] `false` to do that yourself with
   /// `BackgroundPresence.enable()`, at a moment you choose.
+  ///
+  /// With a scoped publishable key, [getUserToken] asks your server for a
+  /// user token for the signed-in user (it gets no user id from the SDK).
+  /// Omit it with a legacy key, or call `TodenUserTokens.setProvider` once.
   static Future<PresenceReportResult> report({
     required String apiKey,
     required String externalUserId,
     String? devUrl,
     bool autoBackground = true,
+    TodenUserTokenProvider? getUserToken,
   }) async {
     EnableBackgroundResult? armed;
     final result = await _report(
       apiKey: apiKey,
       externalUserId: externalUserId,
       devUrl: devUrl,
+      getUserToken: getUserToken,
       // A check running without background monitoring gets it switched on
       // here, once (presence_auto_arm.dart): this call is the only one an
       // existing app makes.
@@ -134,6 +161,7 @@ class AddressPresence {
     required String apiKey,
     required String externalUserId,
     String? devUrl,
+    TodenUserTokenProvider? getUserToken,
     required Future<void> Function(StoredPin pin, WatchState? watch, bool fresh) arm,
   }) async {
     final pin = await loadPresencePin(externalUserId);
@@ -147,9 +175,18 @@ class AddressPresence {
     final fresh = pinIsFresh(pin.savedAt);
     WatchState? known;
     var knownRead = false;
+    UserTokenErrorCode? refusal;
+    Future<WatchState?> read() async {
+      final answer = await readWatch(apiKey, devUrl, externalUserId, getUserToken: getUserToken);
+      refusal ??= answer.refusal;
+      return answer.state;
+    }
+
     if (!fresh) {
-      known = await fetchWatchState(apiKey, devUrl, externalUserId);
+      known = await read();
       knownRead = true;
+      // A user-token refusal is not a stopped watch, and waiting will not fix it.
+      if (refusal != null) return PresenceReportResult(false, null, _reasonOf(refusal!));
       if (shouldStandDown(known, fresh: fresh)) {
         await standDownPresence(externalUserId);
         return const PresenceReportResult(false, null, PresenceReportReason.stopped);
@@ -210,9 +247,12 @@ class AddressPresence {
           knownRead = false;
           return known?.status;
         }
-        return fetchWatchStatus(apiKey, devUrl, externalUserId);
+        return (await read())?.status;
       },
+      stop: () => refusal != null,
     );
+    // A refusal ends the wait at once: polling 90 seconds would not fix it.
+    if (refusal != null) return PresenceReportResult(false, inside, _reasonOf(refusal!));
     if (watch == WatchPresence.absent) {
       return PresenceReportResult(false, inside, PresenceReportReason.noWatch);
     }
@@ -243,12 +283,27 @@ class AddressPresence {
         observations: observations,
         playIntegrityProject: pin.playIntegrityProject,
       );
-      await dio.post<Map<String, dynamic>>('/api/v1/address/observations', data: {
-        'externalUserId': externalUserId,
-        if (pin.presenceToken != null) 'presenceToken': pin.presenceToken,
-        'observations': observations.map((o) => o.toJson()).toList(),
-        ...proof,
-      });
+      final sent = await sendWithUserToken<Map<String, dynamic>>(
+        apiKey: apiKey,
+        externalUserId: externalUserId,
+        purpose: UserTokenPurpose.presence,
+        getUserToken: getUserToken,
+        send: (headers) => dio.post<Map<String, dynamic>>(
+          '/api/v1/address/observations',
+          data: {
+            'externalUserId': externalUserId,
+            if (pin.presenceToken != null) 'presenceToken': pin.presenceToken,
+            'observations': observations.map((o) => o.toJson()).toList(),
+            ...proof,
+          },
+          options: headers.isEmpty ? null : Options(headers: headers),
+        ),
+      );
+      if (sent.refusal != null) return PresenceReportResult(false, inside, _reasonOf(sent.refusal!));
+      // With a token in hand, the days the background held while it had none go now.
+      await TodenUserTokens.refreshBackground(
+          apiKey: apiKey, externalUserId: externalUserId, getUserToken: getUserToken);
+      if (!sent.ok) return PresenceReportResult(false, inside, PresenceReportReason.networkError);
       return PresenceReportResult(true, inside, PresenceReportReason.reported);
     } catch (_) {
       return PresenceReportResult(false, inside, PresenceReportReason.networkError);

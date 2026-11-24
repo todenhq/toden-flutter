@@ -44,6 +44,8 @@ class StoredPin {
   /// From the 202 of the verification that captured this pin. It is what
   /// makes this phone's reports count as the watch's own device; without one
   /// they count at the foreground tier. Rolling chains keep the same token.
+  /// Kept by the native side in device-only storage (Keychain this device
+  /// only, noBackupFilesDir), not in this file, which backups copy.
   final String? presenceToken;
   const StoredPin({
     required this.lat,
@@ -108,27 +110,69 @@ Future<void> savePresencePin(
     if (playIntegrityProject != null) 'playIntegrityProject': playIntegrityProject,
   };
   await _writeAll(pins);
+  // A new pin drops the token, wherever it is kept.
+  await _forgetNativeToken(externalUserId);
 }
 
-/// Keeps the 202's token beside the pin it belongs to, and hands it to the
-/// native tier, which reports with no Dart running. Saving a new pin drops it,
-/// so a token can only ever sit beside the capture that earned it. Never throws.
+// ─── The HMAC presenceToken in device-only storage (design rev 4, R65) ───────
+//
+// The native side keeps it in the Keychain (this device only) on iOS and in
+// noBackupFilesDir on Android. This JSON file is in the documents directory,
+// which iCloud and Android backups copy, so it holds the token only when the
+// native side cannot (no plugin, as in widget tests, or a failed write), and a
+// token an older build left here is moved once, then deleted from the file.
+
+Future<bool> _keepNativeToken(String externalUserId, String token) async {
+  try {
+    return await _channel.invokeMethod<bool>('setPresenceToken', {
+          'externalUserId': externalUserId,
+          'presenceToken': token,
+        }) ==
+        true;
+  } catch (_) {
+    return false;
+  }
+}
+
+Future<String?> _nativeToken(String externalUserId) async {
+  try {
+    final read = await _channel.invokeMethod<Map<Object?, Object?>>(
+        'readPresenceToken', {'externalUserId': externalUserId});
+    final token = read?['token'];
+    return token is String && token.isNotEmpty ? token : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<void> _forgetNativeToken(String externalUserId) async {
+  try {
+    await _channel.invokeMethod<void>('forgetPresenceToken', {'externalUserId': externalUserId});
+  } catch (_) {
+    // No native side: nothing was kept there.
+  }
+}
+
+/// Keeps the 202's token for the pin it belongs to: in device-only native
+/// storage, which the background tier also reports with when no Dart is
+/// running. Saving a new pin drops it, so a token can only ever sit beside the
+/// capture that earned it. Never throws.
 Future<void> savePresenceToken(String externalUserId, String? token) async {
   final value = token?.trim() ?? '';
   if (value.isEmpty || value.length > _kMaxPresenceTokenLength) return;
   final pins = await _readAll();
   final raw = pins[externalUserId];
   if (raw is! Map) return;
+  if (await _keepNativeToken(externalUserId, value)) {
+    if (raw.containsKey('presenceToken')) {
+      pins[externalUserId] = Map.of(raw)..remove('presenceToken');
+      await _writeAll(pins);
+    }
+    return;
+  }
+  // No native storage: this file, as before 4.5.0.
   pins[externalUserId] = {...raw, 'presenceToken': value};
   await _writeAll(pins);
-  try {
-    await _channel.invokeMethod<void>('setPresenceToken', {
-      'externalUserId': externalUserId,
-      'presenceToken': value,
-    });
-  } catch (_) {
-    // No native side, or nothing armed: the next enable carries the token.
-  }
 }
 
 /// Records that the reporter asked for "allow all the time" for this pin.
@@ -179,6 +223,20 @@ Future<StoredPin?> loadPresencePin(String externalUserId) async {
     await clearPresencePin(externalUserId);
     return null;
   }
+  var token = raw['presenceToken'] is String ? raw['presenceToken'] as String : null;
+  if (token != null) {
+    // Left by an older build: moved to device-only storage, then out of the file.
+    if (await _keepNativeToken(externalUserId, token)) {
+      final pins = await _readAll();
+      final current = pins[externalUserId];
+      if (current is Map) {
+        pins[externalUserId] = Map.of(current)..remove('presenceToken');
+        await _writeAll(pins);
+      }
+    }
+  } else {
+    token = await _nativeToken(externalUserId);
+  }
   return StoredPin(
     lat: lat.toDouble(),
     lng: lng.toDouble(),
@@ -187,7 +245,7 @@ Future<StoredPin?> loadPresencePin(String externalUserId) async {
     background: raw['background'] != false,
     backgroundAsked: raw['backgroundAsked'] == true,
     playIntegrityProject: raw['playIntegrityProject'] as String?,
-    presenceToken: raw['presenceToken'] is String ? raw['presenceToken'] as String : null,
+    presenceToken: token,
   );
 }
 
@@ -198,4 +256,5 @@ Future<void> clearPresencePin(String externalUserId) async {
     pins.remove(externalUserId);
     await _writeAll(pins);
   }
+  await _forgetNativeToken(externalUserId);
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -5,6 +7,8 @@ import '../utils/resolve_url.dart';
 import 'always_location.dart';
 import 'presence_report_proof.dart';
 import 'presence_store.dart';
+import 'presence_device_registration.dart';
+import 'user_token.dart';
 
 export 'always_location.dart';
 
@@ -73,10 +77,14 @@ class BackgroundPresence {
   /// Arms the native geofence for [externalUserId]'s stored pin. Asks for the
   /// location permissions on the way (while-in-use, then always). Never
   /// throws; every refusal comes back as a reason.
+  ///
+  /// With a scoped publishable key, [getUserToken] gives the background a
+  /// presence token now (see `AddressPresence.report`).
   static Future<EnableBackgroundResult> enable({
     required String apiKey,
     required String externalUserId,
     String? devUrl,
+    TodenUserTokenProvider? getUserToken,
   }) async {
     final pin = await loadPresencePin(externalUserId);
     if (pin == null) {
@@ -109,6 +117,23 @@ class BackgroundPresence {
         'playIntegrityProject': pin.playIntegrityProject,
         'emulator': await runningOnEmulator(),
       });
+      // A token now, handed to the native store after the identity check. No
+      // provider: nothing happens and the background posts as it always has.
+      if (ok == true) {
+        await TodenUserTokens.refreshBackground(
+            apiKey: apiKey, externalUserId: externalUserId, getUserToken: getUserToken);
+        // A later foreground registers a device the 202 could not (offline,
+        // or an older SDK then). A registered phone answers without a mint.
+        final hmac = pin.presenceToken;
+        if (hmac != null && hmac.isNotEmpty) {
+          unawaited(registerPresenceDevice(
+              apiKey: apiKey,
+              externalUserId: externalUserId,
+              presenceToken: hmac,
+              devUrl: devUrl,
+              getUserToken: getUserToken));
+        }
+      }
       return ok == true
           ? const EnableBackgroundResult(true, BackgroundPresenceReason.started)
           : const EnableBackgroundResult(false, BackgroundPresenceReason.unavailable);

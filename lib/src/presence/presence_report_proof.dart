@@ -62,22 +62,28 @@ String reportDigestText({
   String? deviceId,
   required List<ReportObservation> observations,
 }) {
-  int flag(bool v) => v ? 1 : 0;
   return [
     'toden-presence-report-v1',
     externalUserId,
     stableId ?? '',
     deviceId ?? '',
-    ...observations.map((o) => [
-          o.day,
-          o.source,
-          o.dwellMinutes,
-          flag(o.nightPresent),
-          o.samples,
-          flag(o.mockLocation),
-          flag(o.emulator),
-        ].join('|')),
+    ...observations.map(reportDigestRow),
   ].join('\n');
+}
+
+/// One observation's line of the digest; a seal signs the same line
+/// (presence_device.dart).
+String reportDigestRow(ReportObservation o) {
+  int flag(bool v) => v ? 1 : 0;
+  return [
+    o.day,
+    o.source,
+    o.dwellMinutes,
+    flag(o.nightPresent),
+    o.samples,
+    flag(o.mockLocation),
+    flag(o.emulator),
+  ].join('|');
 }
 
 /// SHA-256(challenge || digest): what the platform is asked to sign.

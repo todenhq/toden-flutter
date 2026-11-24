@@ -12,7 +12,7 @@ Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  toden_flutter: ^4.4.0
+  toden_flutter: ^4.5.0
 ```
 
 Then run `flutter pub get`.
@@ -816,6 +816,98 @@ if (check == null) {
 
 It never throws. `presenceStatus()` above answers for the phone (permissions,
 pin, tier); this answers for the check itself.
+
+### User tokens (scoped publishable keys)
+
+With a **legacy** publishable key nothing changes: pass no provider, and every
+request is exactly what 4.4.0 sent. With a **scoped** publishable key, the
+presence routes also need a short-lived user token from your server, sent in
+the `X-Toden-User-Token` header. Give the SDK a provider; it receives **no user
+id**, because your server knows who is signed in:
+
+```dart
+TodenUserTokens.setProvider((purpose) async {
+  final res = await myApi.post('/me/${purpose.name}-token');
+  return res.statusCode == 200 ? res.data as Map<String, dynamic> : null; // null: no token
+});
+```
+
+Or pass `getUserToken` on `VerificationConfig`, `AddressPresence.report`,
+`BackgroundPresence.enable` or `fetchPresenceWatchStatus`.
+
+Your server mints the token with a secret key that holds
+`user_tokens.presence.write`, for the user in **its own** signed-in session. It
+must never mint for a user id the app sends:
+
+```ts
+// Your server, e.g. POST /me/presence-token
+const me = await currentUser(req); // from your session, not from the request
+const r = await fetch('https://api.toden.co/api/v1/user-tokens/presence', {
+  method: 'POST',
+  headers: { Authorization: `Bearer ${process.env.TODEN_SECRET_KEY}`, 'Content-Type': 'application/json' },
+  // publishableKeyId: the id of the scoped publishable key your app ships with
+  body: JSON.stringify({ externalUserId: me.id, publishableKeyId: process.env.TODEN_PK_ID }),
+});
+res.json(await r.json()); // { token, externalUserId, purpose: 'presence', expiresAt, ... }
+```
+
+Each call returns a new token (24 hours by default, 7 days at most). On logout,
+call `POST /user-tokens/presence/revoke` with `{ externalUserId }` and
+`standDownPresence(userId)` in the app.
+
+What the SDK does with it:
+
+- It checks the answer is for the user it is acting for, for `presence`, for
+  this key's environment, and not expired. Otherwise it sends nothing and the
+  report ends `PresenceReportReason.userTokenMismatch`.
+- A provider that answers `null` means no token: the request goes without
+  the header. One that throws (offline, say) keeps using an unexpired token it
+  gave before; with none, the request goes without the header.
+- On 403 `user_token_invalid` it asks the provider once more and retries
+  once. `user_token_required` and `scope_not_declared` (a key limited to
+  workflows) are never retried. `PresenceReportReason` gains `userTokenRequired`,
+  `userTokenInvalid`, `userTokenMismatch` and `scopeNotDeclared`; check
+  exhaustive `switch` statements.
+- Native background code never calls your provider. The checked token is kept
+  in the Keychain on iOS (after first unlock, this device only) and in
+  `noBackupFilesDir` on Android, never in `UserDefaults` or the backed-up
+  preferences. With no fresh token the background keeps its queue and sends
+  it, oldest first in 31-day chunks, when the app is opened or when your
+  silent push hands it a token:
+
+```dart
+// In your silent-push handler: the same mint response your server returns.
+await TodenUserTokens.setUserToken(mintResponse, apiKey: 'pk_live_...', externalUserId: userId);
+// Throws UserTokenException (userTokenMismatch) for another user.
+```
+
+#### Face checks in the embedded flow
+
+With a scoped publishable key, a flow whose scope is `biometric-authentication`
+or `biometric-enrollment` also needs a user token, this time for `biometric`.
+Your provider is called with `UserTokenPurpose.biometric` before each start, so
+mint one with a secret key that holds `user_tokens.biometric.write` at
+`POST /user-tokens/biometric`. Each start uses a new one; it is kept in memory
+for that flow only and never stored.
+
+- A workflow mount whose scope only the server knows: on 403
+  `user_token_required` the SDK asks for one biometric token and starts once
+  more.
+- A face check refused with 403 `user_token_invalid` (the token behind the
+  session was revoked or expired): one new token, the session is resumed with
+  it, and the check is sent once more.
+- 429 `too_many_attempts` goes to your app and is never retried.
+
+#### Presence device (background refresh and late days)
+
+With a provider, the SDK registers the phone right after an address
+verification: a key the phone never exports (Secure Enclave on iOS, Android
+Keystore with StrongBox where the phone has it) signs for a 1-hour presence
+token in the background, so days found while the app is closed are sent
+without waiting for it to be opened, and each queued day is sealed so a late
+report still counts for its own day. Your server needs nothing more than the
+presence mint above. On a phone with no such key (a simulator, Android below 6)
+presence works as before. `standDownPresence` deletes the key.
 
 ## Credits
 

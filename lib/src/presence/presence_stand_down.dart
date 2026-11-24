@@ -1,6 +1,8 @@
 import 'background_presence.dart';
 import 'foreground_presence.dart';
+import 'presence_device_registration.dart';
 import 'presence_store.dart';
+import 'user_token.dart';
 
 // ─── Standing down ───────────────────────────────────────────────────────────
 //
@@ -16,6 +18,11 @@ import 'presence_store.dart';
 // the one case where the second user must enable again.
 
 Future<void> standDownPresence(String externalUserId) async {
+  // Logout too: the user's token goes with the pin. The docs tell backends to
+  // revoke by user as well.
+  await TodenUserTokens.clearNative(externalUserId);
+  // And the presence device: its key, registration id and marks.
+  await forgetPresenceDevice(externalUserId);
   await BackgroundPresence.disable();
   await PresenceService.disable();
   try {

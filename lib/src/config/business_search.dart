@@ -1,7 +1,7 @@
 // Search by company name: the request it sends and the refusals that move the
 // applicant to registration-number entry.
 //
-// Some registers charge per search (read through Didit), so the server needs
+// Some registers charge per search, so the server needs
 // the attempt session a search belongs to: one charge is scoped to and capped
 // by it. A workflow can also switch search by name off (`business.nameSearch:
 // false`). Mirrors the web SDK's `lib/business-search.ts` and the RN SDK's

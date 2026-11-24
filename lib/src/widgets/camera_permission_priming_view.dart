@@ -7,7 +7,7 @@ import '../i18n/text_scope.dart';
 import 'icons/icons.dart';
 
 /// "Allow camera access" priming screen, shown right before the native OS camera
-/// permission prompt (mirrors Stripe Identity). It sets the user's expectation
+/// permission prompt. It sets the user's expectation
 /// that the system prompt is coming so they're primed to accept it — the actual
 /// permission request only fires once they tap "Grant access".
 ///

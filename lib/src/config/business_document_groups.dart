@@ -6,7 +6,7 @@ export 'business_document_missing.dart';
 
 // ─── Business documents, one per GROUP ───────────────────────────────────────
 //
-// Company documents are asked for one per group (Didit's model): the documents
+// Company documents are asked for one per group: the documents
 // an organisation ticks inside one group are alternatives, and the applicant
 // uploads whichever one they hold. A group is required when any document in it
 // is required. The step walks the groups one at a time.

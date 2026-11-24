@@ -13,6 +13,7 @@ import 'biometric_options.dart';
 import '../i18n/translate.dart' show WorkflowTexts;
 import 'screen_content.dart';
 import 'id_selection_layout.dart';
+import '../presence/user_token.dart' show TodenUserTokenProvider;
 
 export 'screen_content.dart';
 export 'id_selection_layout.dart' show IdSelectionLayout;
@@ -181,7 +182,8 @@ class VerificationAppearance {
       logoAsset: b.logoAsset,
       logo: (flow['logo'] as String?) ?? b.logo,
       // num, not double: JSON decodes 12 as int and 12.0 as double.
-      borderRadius: (flow['borderRadius'] as num?)?.toDouble() ?? b.borderRadius,
+      borderRadius:
+          (flow['borderRadius'] as num?)?.toDouble() ?? b.borderRadius,
       fontFamily: (flow['fontFamily'] as String?) ?? b.fontFamily,
       headingFontFamily:
           (flow['headingFontFamily'] as String?) ?? b.headingFontFamily,
@@ -303,7 +305,9 @@ class VoiceGuidanceConfig {
 
   /// How the voice is matched to the person's country: `any` unless set otherwise.
   String get resolvedLocalVoice =>
-      const {'female', 'male', 'off'}.contains(localVoice) ? localVoice! : 'any';
+      const {'female', 'male', 'off'}.contains(localVoice)
+          ? localVoice!
+          : 'any';
 
   /// Resolved BCP-47 language, defaulting to `en-US`.
   String get resolvedLanguage => language ?? 'en-US';
@@ -319,7 +323,8 @@ class VoiceGuidanceConfig {
         language: language ?? base.language,
         voice: voice ?? base.voice,
         localVoice: localVoice ?? base.localVoice,
-        localVoiceNeighbours: _localVoiceNeighbours ?? base._localVoiceNeighbours,
+        localVoiceNeighbours:
+            _localVoiceNeighbours ?? base._localVoiceNeighbours,
       );
 
   /// Parses a resolved workflow's `voiceGuidance` value, which may be a bare
@@ -329,7 +334,8 @@ class VoiceGuidanceConfig {
   static VoiceGuidanceConfig? fromDynamic(Object? value) {
     if (value is bool) return VoiceGuidanceConfig(enabled: value);
     if (value is Map) {
-      String? text(Object? v) => v is String && v.trim().isNotEmpty ? v.trim() : null;
+      String? text(Object? v) =>
+          v is String && v.trim().isNotEmpty ? v.trim() : null;
       final enabled = value['enabled'];
       final neighbours = value['localVoiceNeighbours'];
       return VoiceGuidanceConfig(
@@ -430,10 +436,10 @@ class WorkflowCountryOption {
             .toList(growable: false),
         multiIdSlots: (json['multiIdSlots'] as List?)
             ?.map((slot) => (slot is Map<String, dynamic>
-                    ? (slot['idTypes'] as List?)
-                        ?.map((e) => e as String)
-                        .toList(growable: false)
-                    : null))
+                ? (slot['idTypes'] as List?)
+                    ?.map((e) => e as String)
+                    .toList(growable: false)
+                : null))
             .toList(growable: false),
       );
 }
@@ -627,6 +633,16 @@ class VerificationConfig {
   /// Optional; when omitted the server falls back to the provider record id.
   final String? userId;
 
+  /// With a scoped publishable key: asks your server for a short-lived user
+  /// token for the signed-in user. Your server mints it with a secret key
+  /// (`POST /user-tokens/presence` or `POST /user-tokens/biometric`) for the
+  /// user in ITS OWN session; the SDK passes no user id, only the purpose.
+  /// Presence tokens let address presence report after the flow. A biometric
+  /// token is fetched fresh before a face check or face enrolment starts
+  /// (each start spends one use), held in memory for that flow only and never
+  /// stored. Omit it with a legacy key: every request is then 4.4.0's.
+  final TodenUserTokenProvider? getUserToken;
+
   /// Arbitrary, free-form metadata forwarded verbatim with every verification
   /// request. Nothing here is required or interpreted by the SDK/server — use
   /// [userId] for the user reference, not a `userId` key in here.
@@ -812,6 +828,7 @@ class VerificationConfig {
     this.consent,
     this.success,
     this.userId,
+    this.getUserToken,
     this.metadata,
     this.livenessConfig,
     this.voiceGuidance = const VoiceGuidanceConfig(),
@@ -851,6 +868,7 @@ class VerificationConfig {
     String? appCountry,
     MultiIdConfig? multiId,
     List<String>? idTypes,
+
     /// Set `idTypes` to null instead of keeping the current value.
     ///
     /// The workflow merge needs it: a multi-region flow declares its ID types
@@ -932,12 +950,14 @@ class VerificationConfig {
         consent: consent ?? this.consent,
         success: success ?? this.success,
         userId: userId,
+        getUserToken: getUserToken,
         metadata: metadata,
         livenessConfig: livenessConfig,
         voiceGuidance: voiceGuidance ?? this.voiceGuidance,
         userData: userData,
         deviceIntelligence: deviceIntelligence ?? this.deviceIntelligence,
-        keyPeopleLinkRecovery: keyPeopleLinkRecovery ?? this.keyPeopleLinkRecovery,
+        keyPeopleLinkRecovery:
+            keyPeopleLinkRecovery ?? this.keyPeopleLinkRecovery,
         consentStep: consentStep ?? this.consentStep,
         silentCapture: silentCapture ?? this.silentCapture,
         livenessBrightScreen: livenessBrightScreen ?? this.livenessBrightScreen,
@@ -972,6 +992,7 @@ class VerificationConfig {
 
 class VerificationSubmission {
   final String verificationId;
+
   /// Always 'pending' at this point.
   final String status;
   final Map<String, dynamic> metadata;
@@ -1020,6 +1041,7 @@ class VerificationError {
   /// no microphone-permission code.
   final String code;
   final String message;
+
   /// For 'insufficient_credits': { required, balance, currency }.
   final Map<String, dynamic>? details;
 

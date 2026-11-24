@@ -4,10 +4,9 @@ import 'session_declined.dart' show isSessionDeclinedError;
 // ─── A limit on liveness attempts ────────────────────────────────────────────
 //
 // A workflow can set `maxLivenessAttempts` (1 to 3, or `false` for no limit;
-// absent means 3, on by default, as the server reads it), as
-// Didit's "Maximum liveness attempts" does. The check runs on the phone, so
-// the server only knows of a failure when the SDK reports it: each failed
-// check (the panel with "Time's up. Let's try again." and Try Again) is posted
+// absent means 3, on by default, as the server reads it). The check runs on
+// the phone, so the server only knows of a failure when the SDK reports it:
+// each failed check (the panel with "Time's up. Let's try again." and Try Again) is posted
 // once to `POST /api/kyc/liveness/failed`, never retried. The server counts
 // them per attempt and answers:
 //

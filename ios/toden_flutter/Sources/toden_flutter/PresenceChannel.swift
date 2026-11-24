@@ -52,10 +52,92 @@ final class PresenceChannel: NSObject {
         result(ok)
       }
     case "setPresenceToken":
+      // True: the Keychain (this device only) has it, and Dart keeps no copy
+      // in its documents file, which iCloud backs up.
       if let args = call.arguments as? [String: Any],
          let externalUserId = args["externalUserId"] as? String,
          let token = args["presenceToken"] as? String {
-        PresenceStore.updatePresenceToken(externalUserId: externalUserId, token: token)
+        result(PresenceStore.updatePresenceToken(externalUserId: externalUserId, token: token))
+      } else {
+        result(false)
+      }
+    case "readPresenceToken":
+      guard let args = call.arguments as? [String: Any],
+            let externalUserId = args["externalUserId"] as? String
+      else {
+        result(nil)
+        return
+      }
+      let read = PresenceStore.presenceToken(externalUserId: externalUserId)
+      result(["token": read.token as Any, "held": read.held])
+    case "forgetPresenceToken":
+      if let args = call.arguments as? [String: Any],
+         let externalUserId = args["externalUserId"] as? String {
+        PresenceStore.forgetPresenceToken(externalUserId: externalUserId)
+      }
+      result(nil)
+    case "setPresenceUserToken":
+      // Called only after Dart's identity check; checked again here against
+      // the armed user, so a token for anyone else is never kept.
+      guard let args = call.arguments as? [String: Any],
+            let externalUserId = args["externalUserId"] as? String,
+            let token = args["token"] as? String,
+            let expiresAt = (args["expiresAtMillis"] as? NSNumber)?.int64Value,
+            let config = PresenceStore.loadConfig(),
+            config.externalUserId == externalUserId,
+            PresenceUserToken.wellFormed(token)
+      else {
+        result(false)
+        return
+      }
+      let saved = PresenceStore.saveUserToken(
+        PresenceUserToken.Record(
+          externalUserId: externalUserId, token: token, expiresAtMillis: expiresAt, stale: false))
+      if saved {
+        PresenceStore.userTokensInUse = true
+        // The days held while there was no token go now.
+        PresenceMonitor.shared.flushQueue()
+      }
+      result(saved)
+    case "presenceArmedReporter":
+      // setUserToken after a cold start (a silent push): the user and key the
+      // background tier reports for. The key is publishable by design.
+      guard PresenceStore.armed, let config = PresenceStore.loadConfig() else {
+        result(nil)
+        return
+      }
+      result(["externalUserId": config.externalUserId, "apiKey": config.apiKey])
+    case "registerPresenceDevice":
+      // Right after an address verification's 202, from Dart, which fetched
+      // the presence user token.
+      guard let args = call.arguments as? [String: Any],
+            let baseUrl = args["baseUrl"] as? String, let apiKey = args["apiKey"] as? String,
+            let externalUserId = args["externalUserId"] as? String,
+            let presenceToken = args["presenceToken"] as? String
+      else {
+        result("keep")
+        return
+      }
+      DispatchQueue.global(qos: .utility).async {
+        PresenceDeviceClient.register(
+          baseUrl: baseUrl, apiKey: apiKey, externalUserId: externalUserId, userToken: args["userToken"] as? String,
+          presenceToken: presenceToken, stableId: DeviceIntelChannel.stableId()
+        ) { outcome in
+          DispatchQueue.main.async { result(outcome) }
+        }
+      }
+    case "setPresenceHeldDeadline":
+      PresenceStore.heldDeadlineDay = (call.arguments as? [String: Any])?["day"] as? String
+      result(nil)
+    case "forgetPresenceDevice":
+      if let args = call.arguments as? [String: Any], let externalUserId = args["externalUserId"] as? String {
+        PresenceStore.forgetDevice(externalUserId: externalUserId)
+      }
+      result(nil)
+    case "clearPresenceUserToken":
+      if let args = call.arguments as? [String: Any],
+         let externalUserId = args["externalUserId"] as? String {
+        PresenceStore.clearUserToken(externalUserId: externalUserId)
       }
       result(nil)
     case "presenceCheckIn":

@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 
 import '../utils/resolve_url.dart';
+import 'presence_device_registration.dart';
+import 'user_token.dart';
 
 // Where a user's presence check stands ON THE SERVER, for the host app to
 // show. `presenceStatus()` answers for the phone (permissions, pin, tier);
@@ -99,11 +101,14 @@ PresenceWatchStatus? parsePresenceWatchStatus(Map<String, dynamic>? body) {
 }
 
 /// Reads the check's status with the publishable key. Never throws: null
-/// means the server could not be reached or refused the key.
+/// means the server could not be reached or refused the key. With a scoped
+/// publishable key, pass [getUserToken] (or call
+/// `TodenUserTokens.setProvider` once).
 Future<PresenceWatchStatus?> fetchPresenceWatchStatus({
   required String apiKey,
   required String externalUserId,
   String? devUrl,
+  TodenUserTokenProvider? getUserToken,
 }) async {
   try {
     final dio = Dio(BaseOptions(
@@ -112,10 +117,21 @@ Future<PresenceWatchStatus?> fetchPresenceWatchStatus({
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
     ));
-    final res = await dio.get<Map<String, dynamic>>(
-      '/api/v1/address/presence/${Uri.encodeComponent(externalUserId)}',
+    final sent = await sendWithUserToken<Map<String, dynamic>>(
+      apiKey: apiKey,
+      externalUserId: externalUserId,
+      purpose: UserTokenPurpose.presence,
+      getUserToken: getUserToken,
+      send: (headers) => dio.get<Map<String, dynamic>>(
+        '/api/v1/address/presence/${Uri.encodeComponent(externalUserId)}',
+        options: headers.isEmpty ? null : Options(headers: headers),
+      ),
     );
-    return parsePresenceWatchStatus(res.data);
+    if (!sent.ok) return null;
+    final status = parsePresenceWatchStatus(sent.response?.data);
+    // The native flush keeps days after a held watch's deadline queued.
+    if (status != null) await syncHeldDeadline(status);
+    return status;
   } catch (_) {
     return null;
   }

@@ -5,7 +5,7 @@ import 'key_people_sections.dart' show KeyPeopleSection;
 // lib/ownership-pending.ts and the React Native SDK's
 // config/ownershipPending.ts: keep the three in lockstep.
 //
-// Some registers (read through Didit) take minutes to answer for a company's
+// Some registers take minutes to answer for a company's
 // shareholders. The server waits briefly when the company is picked, reads
 // again at submission and finishes in the background; when the owners arrive
 // they join the application's key people with their invite links. Two

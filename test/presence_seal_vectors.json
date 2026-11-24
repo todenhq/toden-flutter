@@ -1,0 +1,387 @@
+{
+  "comment": "Canonical presence device cases (user token design rev 4, sections 6b and 14). Replayed by the RN SDK (presenceDeviceVectors.test.ts), Dart (presence_device_vectors_test.dart), iOS (PresenceDeviceTests.swift) and Android (PresenceDeviceTest.kt). Change a rule in one language, the vectors and the other three in the same commit. Keys are P-256, public keys base64 DER SPKI, signatures base64 DER ECDSA-SHA256, times Unix milliseconds.",
+  "spkiPrefixHex": "3059301306072a8648ce3d020106082a8648ce3d030107034200",
+  "key": {
+    "x963": "BCI3Wv/DFRRE892iJcgefYot2G0AB7UUS91MlheoDAF3aK0LqT8svCYcS16qKE4DhGiQjypLCupKdgo84W8h/LM=",
+    "spki": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIjda/8MVFETz3aIlyB59ii3YbQAHtRRL3UyWF6gMAXdorQupPyy8JhxLXqooTgOEaJCPKksK6kp2CjzhbyH8sw=="
+  },
+  "registration": [
+    {
+      "externalUserId": "cus_123",
+      "publicKey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIjda/8MVFETz3aIlyB59ii3YbQAHtRRL3UyWF6gMAXdorQupPyy8JhxLXqooTgOEaJCPKksK6kp2CjzhbyH8sw==",
+      "signedAt": 1795000000000,
+      "text": "toden-presence-device-v1\ncus_123\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIjda/8MVFETz3aIlyB59ii3YbQAHtRRL3UyWF6gMAXdorQupPyy8JhxLXqooTgOEaJCPKksK6kp2CjzhbyH8sw==\n1795000000000"
+    }
+  ],
+  "refresh": [
+    {
+      "deviceId": "upd_0123456789abcdef0123456789abcdef",
+      "externalUserId": "cus_123",
+      "signedAt": 1795000000000,
+      "text": "toden-presence-refresh-v1\nupd_0123456789abcdef0123456789abcdef\ncus_123\n1795000000000"
+    },
+    {
+      "deviceId": "upd_0123456789abcdef0123456789abcdef",
+      "externalUserId": "cus 9",
+      "signedAt": 1795000000001,
+      "text": "toden-presence-refresh-v1\nupd_0123456789abcdef0123456789abcdef\ncus 9\n1795000000001"
+    }
+  ],
+  "seal": [
+    {
+      "name": "a night at home",
+      "deviceId": "upd_0123456789abcdef0123456789abcdef",
+      "externalUserId": "cus_123",
+      "observation": {
+        "day": "2026-11-20",
+        "source": "geofence",
+        "dwellMinutes": 610,
+        "nightPresent": true,
+        "samples": 14
+      },
+      "observedAtMillis": 1795132680000,
+      "observedAt": "2026-11-19T23:58:00.000Z",
+      "row": "2026-11-20|geofence|610|1|14|0|0",
+      "text": "toden-presence-seal-v1\nupd_0123456789abcdef0123456789abcdef\ncus_123\n2026-11-20|geofence|610|1|14|0|0\n1795132680000"
+    },
+    {
+      "name": "a short day visit",
+      "deviceId": "upd_0123456789abcdef0123456789abcdef",
+      "externalUserId": "cus_123",
+      "observation": {
+        "day": "2026-11-21",
+        "source": "geofence",
+        "dwellMinutes": 35,
+        "nightPresent": false,
+        "samples": 1
+      },
+      "observedAtMillis": 1795190400123,
+      "observedAt": "2026-11-20T16:00:00.123Z",
+      "row": "2026-11-21|geofence|35|0|1|0|0",
+      "text": "toden-presence-seal-v1\nupd_0123456789abcdef0123456789abcdef\ncus_123\n2026-11-21|geofence|35|0|1|0|0\n1795190400123"
+    },
+    {
+      "name": "a mocked fix",
+      "deviceId": "upd_0123456789abcdef0123456789abcdef",
+      "externalUserId": "cus_123",
+      "observation": {
+        "day": "2026-11-22",
+        "source": "geofence",
+        "dwellMinutes": 0,
+        "nightPresent": true,
+        "samples": 2,
+        "integrity": {
+          "mockLocation": true
+        }
+      },
+      "observedAtMillis": 1795280000000,
+      "observedAt": "2026-11-21T16:53:20.000Z",
+      "row": "2026-11-22|geofence|0|1|2|1|0",
+      "text": "toden-presence-seal-v1\nupd_0123456789abcdef0123456789abcdef\ncus_123\n2026-11-22|geofence|0|1|2|1|0\n1795280000000"
+    },
+    {
+      "name": "an emulator, foreground",
+      "deviceId": "upd_0123456789abcdef0123456789abcdef",
+      "externalUserId": "cus_123",
+      "observation": {
+        "day": "2026-11-22",
+        "source": "foreground",
+        "dwellMinutes": 1,
+        "nightPresent": false,
+        "samples": 1,
+        "integrity": {
+          "emulator": true
+        }
+      },
+      "observedAtMillis": 1795280000999,
+      "observedAt": "2026-11-21T16:53:20.999Z",
+      "row": "2026-11-22|foreground|1|0|1|0|1",
+      "text": "toden-presence-seal-v1\nupd_0123456789abcdef0123456789abcdef\ncus_123\n2026-11-22|foreground|1|0|1|0|1\n1795280000999"
+    }
+  ],
+  "signature": {
+    "publicKey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIjda/8MVFETz3aIlyB59ii3YbQAHtRRL3UyWF6gMAXdorQupPyy8JhxLXqooTgOEaJCPKksK6kp2CjzhbyH8sw==",
+    "text": "toden-presence-device-v1\ncus_123\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIjda/8MVFETz3aIlyB59ii3YbQAHtRRL3UyWF6gMAXdorQupPyy8JhxLXqooTgOEaJCPKksK6kp2CjzhbyH8sw==\n1795000000000",
+    "signature": "MEUCIQCb1ZkXJQFZw3jmvBebDNvUAlTk33lEEZBAkxa8UtXh+gIgbAKLma6OICeks1de1uT74mWyyHw+4Cr6BIUXa1oirgw=",
+    "tamperedText": "toden-presence-device-v1\ncus_124\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIjda/8MVFETz3aIlyB59ii3YbQAHtRRL3UyWF6gMAXdorQupPyy8JhxLXqooTgOEaJCPKksK6kp2CjzhbyH8sw==\n1795000000000"
+  },
+  "refreshIntervalMillis": 1800000,
+  "backOffMillis": 21600000,
+  "signedAt": [
+    {
+      "name": "first signature: the corrected clock",
+      "correctedNow": 1795000000000,
+      "lastSent": null,
+      "expected": 1795000000000
+    },
+    {
+      "name": "the clock moved on",
+      "correctedNow": 1795000000500,
+      "lastSent": 1795000000000,
+      "expected": 1795000000500
+    },
+    {
+      "name": "the same millisecond again",
+      "correctedNow": 1795000000000,
+      "lastSent": 1795000000000,
+      "expected": 1795000000001
+    },
+    {
+      "name": "the clock went back: never an old value",
+      "correctedNow": 1794999000000,
+      "lastSent": 1795000000000,
+      "expected": 1795000000001
+    }
+  ],
+  "clockOffset": [
+    {
+      "name": "phone five minutes slow",
+      "deviceNowMillis": 1795000000000,
+      "date": "Wed, 18 Nov 2026 11:11:40 GMT",
+      "expected": 300000
+    },
+    {
+      "name": "no Date header keeps the offset",
+      "deviceNowMillis": 1795000000000,
+      "date": null,
+      "expected": null
+    },
+    {
+      "name": "an unreadable Date header keeps the offset",
+      "deviceNowMillis": 1795000000000,
+      "date": "yesterday",
+      "expected": null
+    }
+  ],
+  "refreshAnswers": [
+    {
+      "name": "a new token",
+      "status": 201,
+      "code": null,
+      "outcome": "store"
+    },
+    {
+      "name": "the device is gone: delete the key",
+      "status": 403,
+      "code": "presence_device_invalid",
+      "outcome": "delete_key"
+    },
+    {
+      "name": "a wrong clock: correct and retry once",
+      "status": 400,
+      "code": "clock_skew",
+      "outcome": "retry_clock"
+    },
+    {
+      "name": "an old signedAt: sign again and retry once",
+      "status": 409,
+      "code": "stale_signed_at",
+      "outcome": "retry_signed_at"
+    },
+    {
+      "name": "no live watch yet, or a dormant chain: back off",
+      "status": 409,
+      "code": "no_live_watch",
+      "outcome": "back_off"
+    },
+    {
+      "name": "refresh limited: keep, wait for the interval",
+      "status": 429,
+      "code": "presence_refresh_limited",
+      "outcome": "keep"
+    },
+    {
+      "name": "a 403 with another code never deletes the key",
+      "status": 403,
+      "code": "user_token_invalid",
+      "outcome": "keep"
+    },
+    {
+      "name": "a 401 never deletes the key",
+      "status": 401,
+      "code": null,
+      "outcome": "keep"
+    },
+    {
+      "name": "a server error keeps everything",
+      "status": 503,
+      "code": null,
+      "outcome": "keep"
+    },
+    {
+      "name": "nothing came back",
+      "status": null,
+      "code": null,
+      "outcome": "keep"
+    }
+  ],
+  "registrationAnswers": [
+    {
+      "name": "registered",
+      "status": 201,
+      "code": null,
+      "outcome": "registered"
+    },
+    {
+      "name": "the same key again",
+      "status": 200,
+      "code": null,
+      "outcome": "registered"
+    },
+    {
+      "name": "refused: wait for a new verification",
+      "status": 403,
+      "code": "device_registration_refused",
+      "outcome": "refused"
+    },
+    {
+      "name": "at the device limit",
+      "status": 409,
+      "code": "presence_device_limit",
+      "outcome": "limit"
+    },
+    {
+      "name": "this key is dead: delete it",
+      "status": 403,
+      "code": "presence_device_invalid",
+      "outcome": "delete_key"
+    },
+    {
+      "name": "a bad key or proof: delete it",
+      "status": 422,
+      "code": "invalid_device_key",
+      "outcome": "delete_key"
+    },
+    {
+      "name": "not genuine: refused",
+      "status": 422,
+      "code": "device_not_genuine",
+      "outcome": "refused"
+    },
+    {
+      "name": "a wrong clock: correct and retry once",
+      "status": 400,
+      "code": "clock_skew",
+      "outcome": "retry_clock"
+    },
+    {
+      "name": "a server error: try again at the next open",
+      "status": 500,
+      "code": null,
+      "outcome": "keep"
+    },
+    {
+      "name": "nothing came back",
+      "status": null,
+      "code": null,
+      "outcome": "keep"
+    }
+  ],
+  "refreshDue": [
+    {
+      "name": "never refreshed",
+      "nowMillis": 1795000000000,
+      "lastRefreshAtMillis": null,
+      "backOffUntilMillis": null,
+      "due": true
+    },
+    {
+      "name": "refreshed ten minutes ago",
+      "nowMillis": 1795000000000,
+      "lastRefreshAtMillis": 1794999400000,
+      "backOffUntilMillis": null,
+      "due": false
+    },
+    {
+      "name": "refreshed thirty minutes ago",
+      "nowMillis": 1795000000000,
+      "lastRefreshAtMillis": 1794998200000,
+      "backOffUntilMillis": null,
+      "due": true
+    },
+    {
+      "name": "backing off",
+      "nowMillis": 1795000000000,
+      "lastRefreshAtMillis": null,
+      "backOffUntilMillis": 1795000000001,
+      "due": false
+    },
+    {
+      "name": "the back-off is over",
+      "nowMillis": 1795000000000,
+      "lastRefreshAtMillis": null,
+      "backOffUntilMillis": 1795000000000,
+      "due": true
+    }
+  ],
+  "heldWatch": [
+    {
+      "name": "no hold: a 2xx removes the chunk",
+      "deadlineDay": null,
+      "sent": [
+        "2026-11-18",
+        "2026-11-19",
+        "2026-11-20"
+      ],
+      "removed": [
+        "2026-11-18",
+        "2026-11-19",
+        "2026-11-20"
+      ]
+    },
+    {
+      "name": "held: days after the deadline stay",
+      "deadlineDay": "2026-11-19",
+      "sent": [
+        "2026-11-18",
+        "2026-11-19",
+        "2026-11-20",
+        "2026-11-21"
+      ],
+      "removed": [
+        "2026-11-18",
+        "2026-11-19"
+      ]
+    },
+    {
+      "name": "held: every day after the deadline stays",
+      "deadlineDay": "2026-11-10",
+      "sent": [
+        "2026-11-18"
+      ],
+      "removed": []
+    }
+  ],
+  "core": {
+    "note": "Copied verbatim from core (src/lib/address-intel/presence/devices/presence_seal_vectors.json), signatures made by core's test key. Each SDK builds the text from the inputs with its own builder and checks core's signature verifies over it, so a builder that drifts from core fails here. Replace this block whenever core's file changes.",
+    "publicKey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEr6a45C6S4/1nnZ21hnqGqNodrWJn65T9ALi00JRkY2Eto53jCYyHJD3y+oEhSjbFHtxKd+Z3PBxKOj2y6EdxGg==",
+    "registration": {
+      "externalUserId": "cus_123",
+      "signedAt": 1764000000000,
+      "text": "toden-presence-device-v1\ncus_123\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEr6a45C6S4/1nnZ21hnqGqNodrWJn65T9ALi00JRkY2Eto53jCYyHJD3y+oEhSjbFHtxKd+Z3PBxKOj2y6EdxGg==\n1764000000000",
+      "signature": "MEYCIQDW3ViKF0PrDJLCeUc2VBUP7Fv+89N42CCyM99qPFLo6QIhAPkavv4pNRgc2bXJ23QlzD3pgSjps9leGn/6UUrdKfuZ"
+    },
+    "refresh": {
+      "deviceId": "upd_0123456789abcdef0123456789abcdef",
+      "externalUserId": "cus_123",
+      "signedAt": 1764000000000,
+      "text": "toden-presence-refresh-v1\nupd_0123456789abcdef0123456789abcdef\ncus_123\n1764000000000",
+      "signature": "MEQCIE7htzgXE3v4PZfQZEOXxU4INto6FMAhZnZltU1g0fApAiBL/MRaWEHq3sn5zWnGKd4wRmSXWJZkljxxE2w89OWVkw=="
+    },
+    "seal": {
+      "deviceId": "upd_0123456789abcdef0123456789abcdef",
+      "externalUserId": "cus_123",
+      "observation": {
+        "day": "2026-11-20",
+        "source": "geofence",
+        "dwellMinutes": 610,
+        "nightPresent": true,
+        "samples": 14
+      },
+      "row": "2026-11-20|geofence|610|1|14|0|0",
+      "observedAtMillis": 1763683080000,
+      "text": "toden-presence-seal-v1\nupd_0123456789abcdef0123456789abcdef\ncus_123\n2026-11-20|geofence|610|1|14|0|0\n1763683080000",
+      "signature": "MEUCIBmReO3FCG1aE9BN2aWx4Vd5frtxNviWPDXgSXqk7I5uAiEAuXBkES4kWLaBeHAZSQCgwW1uRP08BzhpqWpJXAoIlCQ="
+    }
+  }
+}

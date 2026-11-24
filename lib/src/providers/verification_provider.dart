@@ -29,6 +29,7 @@ import 'session_progress.dart';
 import 'session_restore.dart';
 import '../config/key_people_prefill.dart';
 import '../services/api_service.dart';
+import '../services/mount_user_token.dart';
 import '../services/device_metadata_service.dart';
 import '../services/device_intel_platform.dart';
 import '../services/device_signals.dart';
@@ -1078,7 +1079,7 @@ class VerificationNotifier extends _$VerificationNotifier {
   //
   // Sends the verify request and returns immediately when the server responds
   // with 202 + { verificationId, status: 'pending' }. The actual verification
-  // (OCR, YouVerify, facial comparison) runs asynchronously on the server and
+  // (OCR, government database checks, facial comparison) runs asynchronously on the server and
   // the result arrives via webhook to the org's backend.
   //
   // Throws [VerificationApiException] for network/auth/credit errors so the caller
@@ -1604,7 +1605,16 @@ class VerificationNotifier extends _$VerificationNotifier {
     try {
       // Retry the submission on transient failures (network / timeout / 5xx);
       // terminal errors (401/402/403/validation) surface immediately.
-      final response = await withRetry(() => api.verify(request), onRetry: onRetry);
+      final response = await withRetry(() => api.verify(request), onRetry: onRetry).catchError((Object e) async {
+        // A scoped key's face check whose bound user token died: a fresh token,
+        // a re-mount (a resume of this session, which rebinds it) and one
+        // resubmission.
+        final user = (_config.userId ?? _config.metadata?['userId'])?.toString();
+        if (!remountFixes(e, externalUserId: user, getUserToken: _config.getUserToken)) throw e;
+        final sessionId = await _remountSession();
+        if (sessionId == null || sessionId != request.sessionId) throw e;
+        return withRetry(() => api.verify(request), onRetry: onRetry);
+      });
       // Before anything can report: the first report starts when the submitted
       // screen sees this result.
       await keepPresenceToken(_config, response.presenceToken);
@@ -1622,6 +1632,46 @@ class VerificationNotifier extends _$VerificationNotifier {
 
   // ── Reset ──────────────────────────────────────────────────────────────────
 
+  /// One /session/start. A face-scope mount with a user-token provider carries
+  /// a fresh biometric token (services/mount_user_token.dart); everything else
+  /// is 4.4.0's request.
+  Future<SessionStartResponse> _mintSession({String? deviceRef, Map<String, dynamic>? device, bool anyScope = false}) {
+    final externalUserId = (_config.userId ?? _config.metadata?['userId'])?.toString();
+    return startWithMountToken(
+      apiKey: _config.apiKey,
+      externalUserId: externalUserId,
+      scope: _config.scope,
+      getUserToken: _config.getUserToken,
+      anyScope: anyScope,
+      // A resume needs deviceRef with a publishable key: without it a
+      // re-mount mints a new session instead of rebinding this one.
+      start: (headers) => headers.isEmpty
+          ? api.startSession(
+              externalUserId: externalUserId, workflowId: _config.workflowId, deviceRef: deviceRef, device: device)
+          : api.startSessionWithUserToken(
+              externalUserId: externalUserId,
+              workflowId: _config.workflowId,
+              deviceRef: deviceRef,
+              device: device,
+              headers: headers,
+            ),
+    );
+  }
+
+  /// Mount again with a fresh biometric token after /verify said the session's
+  /// bound token is no longer good (403 `user_token_invalid`): a resume, which
+  /// rebinds the session. The session id the server answered with, or null.
+  Future<String?> _remountSession() async {
+    try {
+      final deviceRef = await FingerprintService.instance.persistentDeviceId();
+      final res = await _mintSession(deviceRef: deviceRef, anyScope: true);
+      state = state.copyWith(sessionId: res.sessionId, sessionUrl: res.url);
+      return res.sessionId;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _startAttemptSession() async {
     try {
       // The device id is the anonymous-mount resume fallback: without a
@@ -1631,12 +1681,7 @@ class VerificationNotifier extends _$VerificationNotifier {
       // What this phone is, sent up front: the dashboard's in-progress row
       // shows Device and Source from the moment the SDK loads.
       final device = await DeviceMetadataService.instance.collect().catchError((_) => <String, dynamic>{});
-      final res = await api.startSession(
-        externalUserId: _config.userId ?? _config.metadata?['userId'],
-        workflowId: _config.workflowId,
-        deviceRef: deviceRef,
-        device: device,
-      );
+      final res = await _mintSession(deviceRef: deviceRef, device: device);
       state = state.copyWith(sessionId: res.sessionId, sessionUrl: res.url);
       // Resuming: put the user back where they were, exactly as web does.
       // The stored snapshot hydrates the state (session_restore.dart), so

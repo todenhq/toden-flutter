@@ -82,12 +82,90 @@ class PresenceHandler(private val context: Context) {
         PresenceStore(context).clear()
         result.success(null)
       }
+      // True: no-backup storage has it, and Dart keeps no copy in its
+      // documents file, which Auto Backup copies.
       "setPresenceToken" -> {
         val externalUserId = call.argument<String>("externalUserId")
         val token = call.argument<String>("presenceToken")
-        if (externalUserId != null && token != null) {
-          PresenceStore(context).updatePresenceToken(externalUserId, token)
+        result.success(
+          externalUserId != null && token != null && PresenceStore(context).updatePresenceToken(externalUserId, token),
+        )
+      }
+      "readPresenceToken" -> {
+        val externalUserId = call.argument<String>("externalUserId")
+        if (externalUserId == null) {
+          result.success(null)
+        } else {
+          val (token, held) = PresenceStore(context).presenceToken(externalUserId)
+          result.success(mapOf("token" to token, "held" to held))
         }
+      }
+      "forgetPresenceToken" -> {
+        call.argument<String>("externalUserId")?.let { PresenceStore(context).forgetPresenceToken(it) }
+        result.success(null)
+      }
+      // Called only after Dart's identity check; checked again here against
+      // the armed user, so a token for anyone else is never kept.
+      "setPresenceUserToken" -> {
+        val externalUserId = call.argument<String>("externalUserId")
+        val token = call.argument<String>("token")
+        val expiresAt = call.argument<Number>("expiresAtMillis")?.toLong()
+        val store = PresenceStore(context)
+        val config = store.loadConfig()
+        if (externalUserId == null || token == null || expiresAt == null || config == null ||
+          config.externalUserId != externalUserId || !PresenceUserToken.wellFormed(token)
+        ) {
+          result.success(false)
+          return true
+        }
+        val saved = store.saveUserToken(PresenceUserToken.Record(externalUserId, token, expiresAt, stale = false))
+        if (saved) {
+          store.userTokensInUse = true
+          // The days held while there was no token go now.
+          thread(name = "myaza-presence-token-flush") { PresenceGeofencer.flushQueue(store) }
+        }
+        result.success(saved)
+      }
+      // setUserToken after a cold start (a silent push): the user and key the
+      // background tier reports for. The key is publishable by design.
+      "presenceArmedReporter" -> {
+        val store = PresenceStore(context)
+        val config = if (store.armed || store.serviceEnabled) store.loadConfig() else null
+        result.success(config?.let { mapOf("externalUserId" to it.externalUserId, "apiKey" to it.apiKey) })
+      }
+      // Right after an address verification's 202, from Dart, which fetched
+      // the presence user token. Network, so off the main thread.
+      "registerPresenceDevice" -> {
+        val baseUrl = call.argument<String>("baseUrl")
+        val apiKey = call.argument<String>("apiKey")
+        val externalUserId = call.argument<String>("externalUserId")
+        val userToken = call.argument<String>("userToken")
+        val presenceToken = call.argument<String>("presenceToken")
+        if (baseUrl == null || apiKey == null || externalUserId == null || presenceToken == null) {
+          result.success("keep")
+          return true
+        }
+        val main = android.os.Handler(android.os.Looper.getMainLooper())
+        thread(name = "myaza-presence-device") {
+          val outcome = try {
+            PresenceDeviceClient.register(PresenceStore(context), baseUrl, apiKey, externalUserId, userToken, presenceToken)
+          } catch (_: Exception) {
+            "keep"
+          }
+          main.post { result.success(outcome) }
+        }
+      }
+      "setPresenceHeldDeadline" -> {
+        PresenceStore(context).heldDeadlineDay = call.argument<String>("day")
+        result.success(null)
+      }
+      "forgetPresenceDevice" -> {
+        call.argument<String>("externalUserId")?.let { PresenceStore(context).forgetDevice(it) }
+        result.success(null)
+      }
+      "clearPresenceUserToken" -> {
+        val externalUserId = call.argument<String>("externalUserId")
+        if (externalUserId != null) PresenceStore(context).clearUserToken(externalUserId)
         result.success(null)
       }
       "isPresenceArmed" -> result.success(PresenceStore(context).armed)

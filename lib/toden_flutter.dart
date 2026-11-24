@@ -130,6 +130,18 @@ export 'src/presence/presence_store.dart' show clearPresencePin, savePresencePin
 // What the SDK does when the organisation stops monitoring; a host may also
 // call it itself (for example on sign-out).
 export 'src/presence/presence_stand_down.dart' show standDownPresence;
+// User tokens for scoped publishable keys: the host's provider asks its own
+// backend for a short-lived token (it gets no user id from the SDK), and
+// TodenUserTokens.setUserToken takes one from a silent push for the
+// background queue.
+export 'src/presence/user_token.dart'
+    show
+        kUserTokenHeader,
+        TodenUserTokenProvider,
+        TodenUserTokens,
+        UserTokenErrorCode,
+        UserTokenException,
+        UserTokenPurpose;
 export 'src/presence/background_presence.dart'
     show
         BackgroundPresenceReason,

@@ -130,15 +130,36 @@ final class PresenceMonitor: NSObject, CLLocationManagerDelegate {
     flushQueue()
   }
 
-  /// Posts the pending queue. The relaunched-for-an-event process gets only
-  /// seconds, so the network call runs under a background task. The server
-  /// ingest is idempotent per (watch, day, source) and MERGES, so a flush
-  /// that half-landed is safe to retry whole next time.
-  func flushQueue() {
-    guard let config = PresenceStore.loadConfig() else { return }
+  /// Posts the pending queue, oldest day first in chunks of 31 (PresenceFlush).
+  /// The relaunched-for-an-event process gets only seconds, so the requests run
+  /// under a background task. With user tokens in use, a missing, expired or
+  /// stale token, or a locked Keychain, means no post and the queue is kept;
+  /// a refusal keeps the queue and marks the token stale, so the app fetches
+  /// a new one when it is next opened (or the host's silent push hands one).
+  func flushQueue(refreshed: Bool = false) {
+    // Before the first unlock the Keychain holds the presenceToken back: wait,
+    // rather than post without it.
+    guard let config = PresenceStore.loadConfig(), !config.presenceTokenHeld else { return }
     let pending = PresenceStore.pendingQueue()
     if pending.isEmpty { return }
-    let observations = pending.map { PresenceReportProof.wire($0) }
+    let decision = PresenceUserToken.decide(
+      inUse: PresenceStore.userTokensInUse,
+      read: PresenceStore.userTokensInUse ? PresenceStore.readUserToken() : .missing,
+      externalUserId: config.externalUserId,
+      nowMillis: Int64(Date().timeIntervalSince1970 * 1000)
+    )
+    let userToken: String?
+    switch decision {
+    case .skip:
+      // No usable token: a registered presence device signs for a fresh one.
+      guard !refreshed else { return }
+      PresenceDeviceClient.refreshIfDue(config: config) { ok in
+        if ok { self.flushQueue(refreshed: true) }
+      }
+      return
+    case .noHeader: userToken = nil
+    case .use(let token): userToken = token
+    }
 
     var backgroundTask: UIBackgroundTaskIdentifier = .invalid
     let finish = {
@@ -149,18 +170,57 @@ final class PresenceMonitor: NSObject, CLLocationManagerDelegate {
     }
     backgroundTask = UIApplication.shared.beginBackgroundTask(expirationHandler: finish)
 
+    PresenceFlush.run(
+      queue: pending,
+      post: { chunk, completion in
+        self.post(chunk: chunk, config: config, userToken: userToken) { status in
+          // A 400 can never succeed, so the chunk is dropped; say so (never the token).
+          if status == 400 { NSLog("[toden] presence: the server refused %ld queued days (400); dropped", chunk.count) }
+          completion(status)
+        }
+      },
+      done: { result in
+        if result.refused, let sent = userToken { PresenceStore.markUserTokenStale(sentToken: sent) }
+        // On a watch held past its deadline, days after it stay queued: a
+        // reviewer's extension may still let them count.
+        PresenceStore.removeFromQueue(
+          PresenceDeviceRules.removableAfterSend(result.sent, heldDeadlineDay: PresenceStore.heldDeadlineDay)
+            + result.dropped)
+        finish()
+      }
+    )
+  }
+
+  private func post(
+    chunk: [[String: Any]], config: PresenceStore.Config, userToken: String?,
+    completion: @escaping (Int?) -> Void
+  ) {
+    var observations = chunk.map { PresenceReportProof.wire($0) }
+    // Seals are read only beside a user token, so a post without one is
+    // exactly as before.
+    var sealDeviceId: String?
+    if userToken != nil, let device = PresenceStore.readDevice(), device.registered,
+       device.externalUserId == config.externalUserId, let deviceId = device.deviceId, let tag = device.tag,
+       PresenceSeal.apply(
+         queued: chunk, observations: &observations, deviceId: deviceId, externalUserId: config.externalUserId,
+         sign: { PresenceDeviceKey.sign(tag: tag, text: $0) })
+    {
+      sealDeviceId = deviceId
+    }
+    let posted = observations
     // Best-effort: what cannot be proved is left off and the report still goes.
-    PresenceReportProof.prove(config: config, observations: observations) { proof in
+    PresenceReportProof.prove(config: config, observations: posted) { proof in
       var fields = PresenceWire.body(
         externalUserId: config.externalUserId,
         presenceToken: config.presenceToken,
-        observations: observations
+        observations: posted
       )
+      if let id = sealDeviceId { fields["sealDeviceId"] = id }
       proof.forEach { fields[$0.key] = $0.value }
       guard let url = URL(string: "\(config.baseUrl)/api/v1/address/observations"),
             let body = try? JSONSerialization.data(withJSONObject: fields)
       else {
-        finish()
+        completion(nil)
         return
       }
       var request = URLRequest(url: url)
@@ -168,12 +228,12 @@ final class PresenceMonitor: NSObject, CLLocationManagerDelegate {
       request.timeoutInterval = 8
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
       request.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
+      if let userToken = userToken {
+        request.setValue(userToken, forHTTPHeaderField: PresenceUserToken.header)
+      }
       request.httpBody = body
       URLSession.shared.dataTask(with: request) { _, response, _ in
-        if let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) {
-          PresenceStore.clearQueue()
-        }
-        finish()
+        completion((response as? HTTPURLResponse)?.statusCode)
       }.resume()
     }
   }

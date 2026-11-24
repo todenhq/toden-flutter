@@ -8,7 +8,7 @@ import 'package:toden_flutter/src/services/api_service.dart';
 
 // ─── Shareholders the register has not sent yet ──────────────────────────────
 //
-// A register read through Didit can take minutes to send the shareholders; the
+// Some registers take minutes to send the shareholders; the
 // server adds them to the application when they arrive. A missing field is an
 // older server and reads as false. Mirrors the web and React Native tests.
 

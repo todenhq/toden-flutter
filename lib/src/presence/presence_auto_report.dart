@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import '../config/verification_config.dart';
 import 'background_presence.dart';
+import 'presence_device_registration.dart';
 import 'presence_reporter.dart';
 import 'presence_store.dart';
+import 'user_token.dart';
 
 // ─── What the SDK does ON ITS OWN when a presence flow is submitted ─────────
 //
@@ -40,9 +44,31 @@ bool wantsBackgroundPresence(VerificationConfig config) =>
 /// Stores the 202's presenceToken beside the pin. Only for a flow that saved a
 /// pin: the 202 of any address capture carries a token, and one from a flow
 /// with presence off must not replace the token of a check still running.
-Future<void> keepPresenceToken(VerificationConfig config, String? token) async {
-  if (shouldAutoReportPresence(config)) await savePresenceToken(config.userId!, token);
+///
+/// With a user-token provider, the phone's presence device is registered now
+/// too (presence_device_registration.dart), in the background: the flow never
+/// waits for it.
+Future<void> keepPresenceToken(VerificationConfig config, String? token, {RegisterDeviceFn? register}) async {
+  if (!shouldAutoReportPresence(config)) return;
+  await savePresenceToken(config.userId!, token);
+  if (token == null || token.isEmpty) return;
+  unawaited((register ?? registerPresenceDevice)(
+    apiKey: config.apiKey,
+    externalUserId: config.userId!,
+    presenceToken: token,
+    devUrl: config.devUrl,
+    getUserToken: config.getUserToken,
+  ));
 }
+
+typedef RegisterDeviceFn = Future<String> Function({
+  required String apiKey,
+  required String externalUserId,
+  required String presenceToken,
+  String? devUrl,
+  TodenUserTokenProvider? getUserToken,
+  PresenceChannelInvoke? invoke,
+});
 
 typedef PresenceReportFn = Future<PresenceReportResult> Function({
   required String apiKey,
@@ -64,27 +90,34 @@ class AutoReportOutcome {
 
 Future<AutoReportOutcome?> autoReportPresence(
   VerificationConfig config, {
-  PresenceReportFn report = AddressPresence.report,
-  BackgroundEnableFn enableBackground = BackgroundPresence.enable,
+  PresenceReportFn? report,
+  BackgroundEnableFn? enableBackground,
   // false when the "allow all the time" screen makes the ask itself
   // (screens/background_ask_screen.dart): only the report runs here.
   bool askForBackground = true,
 }) async {
   if (!shouldAutoReportPresence(config)) return null;
   final userId = config.userId!;
+  // The SDK's own calls carry the config's user-token provider, if any.
+  final doReport = report ??
+      ({required String apiKey, required String externalUserId, String? devUrl}) => AddressPresence.report(
+          apiKey: apiKey, externalUserId: externalUserId, devUrl: devUrl, getUserToken: config.getUserToken);
+  final doEnable = enableBackground ??
+      ({required String apiKey, required String externalUserId, String? devUrl}) => BackgroundPresence.enable(
+          apiKey: apiKey, externalUserId: externalUserId, devUrl: devUrl, getUserToken: config.getUserToken);
   // Background first: its permission prompt belongs on the success screen,
   // not a minute later when the report has finished waiting for the watch.
   EnableBackgroundResult? background;
   if (askForBackground && wantsBackgroundPresence(config)) {
     try {
-      background = await enableBackground(apiKey: config.apiKey, externalUserId: userId, devUrl: config.devUrl);
+      background = await doEnable(apiKey: config.apiKey, externalUserId: userId, devUrl: config.devUrl);
     } catch (_) {
       background = null;
     }
   }
   PresenceReportResult? reported;
   try {
-    reported = await report(apiKey: config.apiKey, externalUserId: userId, devUrl: config.devUrl);
+    reported = await doReport(apiKey: config.apiKey, externalUserId: userId, devUrl: config.devUrl);
   } catch (_) {
     reported = null;
   }

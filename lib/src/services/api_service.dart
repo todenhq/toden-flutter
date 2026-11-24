@@ -35,7 +35,7 @@ part 'api_device.dart';
 // which SDK versions are in the wild and gate breaking API changes by version.
 // Keep in sync with pubspec.yaml `version`.
 
-const String kSdkVersion = '4.4.0';
+const String kSdkVersion = '4.5.0';
 
 // ─── Exception ────────────────────────────────────────────────────────────────
 
@@ -1399,7 +1399,7 @@ class VerificationApiService {
   // ── Verify — submit verification (async) ───────────────────────────────────
   //
   // Server returns 202 with { verificationId, status: 'pending' } in ~200ms.
-  // OCR, YouVerify, and facial comparison happen asynchronously on the server.
+  // OCR, government database checks and facial comparison happen asynchronously on the server.
   // The result is delivered via webhook or polled via [status].
 
   Future<VerifyResponse> verify(VerifyRequest request) async {
@@ -1430,6 +1430,29 @@ class VerificationApiService {
     /// in-progress row shows the device and SDK from the moment the SDK loads
     /// rather than after the applicant finishes (2026-09-08).
     Map<String, dynamic>? device,
+  }) =>
+      _startSession(externalUserId: externalUserId, workflowId: workflowId, deviceRef: deviceRef, device: device);
+
+  /// [startSession] carrying a face-scope mount's biometric user token
+  /// (services/mount_user_token.dart). A separate method, so a subclass that
+  /// overrides [startSession] keeps compiling and a mount with no token is
+  /// 4.4.0's request.
+  Future<SessionStartResponse> startSessionWithUserToken({
+    String? externalUserId,
+    String? workflowId,
+    String? deviceRef,
+    Map<String, dynamic>? device,
+    required Map<String, String> headers,
+  }) =>
+      _startSession(
+          externalUserId: externalUserId, workflowId: workflowId, deviceRef: deviceRef, device: device, headers: headers);
+
+  Future<SessionStartResponse> _startSession({
+    String? externalUserId,
+    String? workflowId,
+    String? deviceRef,
+    Map<String, dynamic>? device,
+    Map<String, String> headers = const {},
   }) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
@@ -1440,7 +1463,7 @@ class VerificationApiService {
           if (workflowId != null) 'workflowId': workflowId,
           if (device != null) 'device': device,
         },
-        options: Options(contentType: 'application/json'),
+        options: Options(contentType: 'application/json', headers: headers.isEmpty ? null : headers),
       );
       return SessionStartResponse.fromJson(response.data!);
     } on DioException catch (e) {
@@ -1828,8 +1851,11 @@ class VerificationApiService {
     Map<String, dynamic>? details;
 
     if (data is Map<String, dynamic>) {
-      error = data['error'] as String? ?? error;
-      message = data['message'] as String?;
+      // Flat `{ error, message }`, or the v1 envelope `{ error: { code, message } }`.
+      final raw = data['error'];
+      error = raw is String ? raw : (raw is Map && raw['code'] is String ? raw['code'] as String : error);
+      final rawMessage = data['message'] ?? (raw is Map ? raw['message'] : null);
+      message = rawMessage is String ? rawMessage : null;
       if (statusCode == 402) error = 'insufficient_credits';
       details = errorDetailsFrom(statusCode, data);
     } else if (e.type == DioExceptionType.connectionTimeout ||
